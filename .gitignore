@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.log
+
+venv/
+
+# pyinstaller
+build/
+dist/
+
+.idea/
+
+data/*
+!data/.gitkeep
+
+selfie/web/
+
+*.env

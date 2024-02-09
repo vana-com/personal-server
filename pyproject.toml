@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "selfie"
+version = "0.1.0"
+description = "Data awareness mixin for LLMs"
+authors = ["Vana <services@vana.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+fastapi = "^0.109.0"
+uvicorn = "^0.27.0"
+humanize = "^4.9.0"
+litellm = "^1.23.3"
+txtai = {version = "^6.3.0", extras = ["pipeline-llm"]}
+pyinstaller = "^6.3.0"
+sse-starlette = "^2.0.0"
+llama-index = "^0.9.38"
+html2text = "^2020.1.16"
+peewee = "^3.17.0"
+pypdf = "^3.17.4"
+python-multipart = "^0.0.6"
+ngrok = "^1.0.0"
+python-dotenv = "^1.0.1"
+
+# Support GPU Features
+auto-gptq = { version = "^0.6.0", optional = true }
+optimum = { version = "^1.16.2", optional = true }
+autoawq = { version = "^0.1.8", optional = true }
+
+[tool.poetry.extras]
+gpu = ["auto-gptq", "optimum", "autoawq"]
+
+[tool.poetry.group.dev.dependencies]
+colorlog = "^6.8.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
