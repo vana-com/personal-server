@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#!/bin/bash
+set -e
 
 # Step 1: Build Next.js App
 echo "Building Next.js app..."

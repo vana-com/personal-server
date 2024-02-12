@@ -18,37 +18,55 @@ def parse_time_with_periods(time_str, format_str):
 class WhatsAppParser(TextBasedChatParser):
     SUPPORTED_FORMATS = [
         {
-            'regex': r"(?P<timestamp>\d{1,2}/\d{1,2}/\d{2}, \d{1,2}:\d{2}\s(AM|PM)) - (?P<from>.+?): (?P<value>.+)",
-            'timestamp_format': "%m/%d/%y, %I:%M %p"
+            "regex": r"(?:\[)?(?P<timestamp>\d{1,2}/\d{1,2}/\d{2}, \d{1,2}:\d{2}\s(AM|PM))(?:\])? - (?P<from>.+?): (?P<value>.+)",
+            "timestamp_format": "%m/%d/%y, %I:%M %p",
         },
         {
-            'regex': r"(?P<timestamp>\d{4}-\d{1,2}-\d{1,2}, \d{1,2}:\d{2}\s?(a\.m\.|p\.m\.)) - (?P<from>.+?): (?P<value>.+)",
-            'timestamp_format': "%Y-%m-%d, %I:%M%p"
+            "regex": r"(?:\[)?(?P<timestamp>\d{1,2}/\d{1,2}/\d{2}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))(?:\])? (?P<from>.+?): (?P<value>.+)",
+            "timestamp_format": "%m/%d/%y, %I:%M:%S %p",
         },
         {
-            'regex': r"\[(?P<timestamp>\d{4}-\d{1,2}-\d{1,2}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))\] (?P<from>.+?): (?P<value>.+)",
-            'timestamp_format': "%Y-%m-%d, %I:%M:%S %p"
+            "regex": r"(?P<timestamp>\d{4}-\d{1,2}-\d{1,2}, \d{1,2}:\d{2}\s?(a\.m\.|p\.m\.)) - (?P<from>.+?): (?P<value>.+)",
+            "timestamp_format": "%Y-%m-%d, %I:%M%p",
+        },
+        {
+            "regex": r"\[(?P<timestamp>\d{4}-\d{1,2}-\d{1,2}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))\] (?P<from>.+?): (?P<value>.+)",
+            "timestamp_format": "%Y-%m-%d, %I:%M:%S %p",
+        },
+        {
+            "regex": r"(?:\[)?(?P<timestamp>\d{4}-\d{1,2}-\d{1,2}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))(?:\])? (?P<from>.+?): (?P<value>.+)",
+            "timestamp_format": "%Y-%m-%d, %I:%M:%S %p",
+        },
+        {
+            "regex": r"(?:\[)?(?P<timestamp>\d{1,2}-\d{1,2}-\d{2}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))(?:\])? (?P<from>.+?): (?P<value>.+)",
+            "timestamp_format": "%Y-%m-%d, %I:%M:%S %p",
         },
         # Deprecated or unofficial formats
         {
-            'regex': r"\[(?P<timestamp>\d{1,2}/\d{1,2}/\d{2,4}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))\] (?P<from>.+?): (?P<value>.+)",
-            'timestamp_format': "%m/%d/%y, %I:%M:%S %p"
+            "regex": r"\[(?P<timestamp>\d{1,2}/\d{1,2}/\d{2,4}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))\] (?P<from>.+?): (?P<value>.+)",
+            "timestamp_format": "%m/%d/%y, %I:%M:%S %p",
         },
         {
-            'regex': r"(?P<timestamp>\d{1,2}/\d{1,2}/\d{2}, \d{1,2}:\d{2}(AM|PM)) - (?P<from>.+?): (?P<value>.+)",
-            'timestamp_format': "%m/%d/%y, %I:%M%p"
+            "regex": r"(?P<timestamp>\d{1,2}/\d{1,2}/\d{2}, \d{1,2}:\d{2}(AM|PM)) - (?P<from>.+?): (?P<value>.+)",
+            "timestamp_format": "%m/%d/%y, %I:%M%p",
         },
     ]
 
     DROP_LINES_LIKE = [
         {
-            'regex': r"(?P<timestamp>\d{1,2}/\d{1,2}/\d{2}, \d{1,2}:\d{2}\s(AM|PM)) - (?P<value>.+)",
+            "regex": r"(?:\[)?(?P<timestamp>\d{1,2}/\d{1,2}/\d{2}, \d{1,2}:\d{2}\s(AM|PM))(?:\])? - (?P<value>.+)",
         },
         {
-            'regex': r"(?P<timestamp>\d{4}-\d{1,2}-\d{1,2}, \d{1,2}:\d{2}\s?(a\.m\.|p\.m\.)) - (?P<value>.+)",
+            "regex": r"(?:\[)?(?P<timestamp>\d{1,2}/\d{1,2}/\d{2}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))(?:\])? (?P<value>.+)",
         },
         {
-            'regex': r"\[(?P<timestamp>\d{4}-\d{1,2}-\d{1,2}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))\] (?P<value>.+)",
+            "regex": r"(?:\[)?(?P<timestamp>\d{4}-\d{1,2}-\d{1,2}, \d{1,2}:\d{2}\s?(a\.m\.|p\.m\.))(?:\])? - (?P<value>.+)",
+        },
+        {
+            "regex": r"(?:\[)?(?P<timestamp>\d{4}-\d{1,2}-\d{1,2}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))(?:\])? (?P<value>.+)",
+        },
+        {
+            "regex": r"(?:\[)?(?P<timestamp>\d{1,2}-\d{1,2}-\d{2}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))(?:\])? (?P<value>.+)",
         },
     ]
 
@@ -57,7 +75,7 @@ class WhatsAppParser(TextBasedChatParser):
         WhatsApp includes messages like "You added Alice" and "Messages and calls are encrypted", remove them.
         """
         # Remove lines that do not match the supported formats and do match the filter lines
-        keep_formats, remove_formats = [re.compile(fmt['regex']) for fmt in self.SUPPORTED_FORMATS], [re.compile(drp['regex']) for drp in self.DROP_LINES_LIKE]
+        keep_formats, remove_formats = [re.compile(fmt['regex'], flags=re.DOTALL) for fmt in self.SUPPORTED_FORMATS], [re.compile(drp['regex'], flags=re.DOTALL) for drp in self.DROP_LINES_LIKE]
         new_doc = '\n'.join([
             line for line in document.split('\n')
             if not any(fmt.match(line) for fmt in remove_formats) or any(flt.match(line) for flt in keep_formats)
