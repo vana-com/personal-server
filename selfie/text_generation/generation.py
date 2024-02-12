@@ -7,11 +7,12 @@ from fastapi import HTTPException
 from sse_starlette import EventSourceResponse
 from txtai.pipeline import GenerationFactory, LLM
 
-from selfie.config import default_local_model, default_hosted_model
+from selfie.config import get_app_config
 from selfie.types.completion_requests import SelfieCompletionResponse, CompletionRequest, ChatCompletionRequest
 
 logger = logging.getLogger(__name__)
 
+config = get_app_config()
 
 async def completion(request: CompletionRequest | ChatCompletionRequest) -> SelfieCompletionResponse:
     logger.debug(f"Handling a completion request: {request}")
@@ -26,7 +27,7 @@ async def completion(request: CompletionRequest | ChatCompletionRequest) -> Self
         method = request.method
     elif (request.method is "litellm" and request.model is None) or (request.method is None and request.api_base is not None):
         request.method = "litellm"
-        request.model = default_hosted_model if request.model is None else request.model
+        request.model = config.hosted_model if request.model is None else request.model
         method = "litellm"
     elif request.method is None and request.model:
         method = GenerationFactory.method(request.model, request.method)
@@ -40,14 +41,14 @@ async def completion(request: CompletionRequest | ChatCompletionRequest) -> Self
     logger.debug(f"OpenAI params: {open_ai_params}")
 
     if method == "llama.cpp":
-        model = request.model or default_local_model
+        model = request.model or config.local_model
         logger.info(f"Using model {model}")
         llm = LLM(
             # verbose=True,
             path=model,
             method="llama.cpp",
             n_ctx=8192,
-            n_gpu_layers=-1,
+            n_gpu_layers=-1 if config.gpu else 0,
         ).generator.llm
 
         completion_fn = (llm.create_chat_completion if chat_mode else llm.create_completion)

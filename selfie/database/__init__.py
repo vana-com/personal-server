@@ -16,7 +16,7 @@ import json
 import importlib
 from typing import List, Dict, Any, Optional, Callable
 
-from selfie.config import default_database_storage_root, default_db_name
+from selfie.config import get_app_config
 from selfie.embeddings import DataIndex
 from selfie.embeddings.document_types import Document
 
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 database_proxy = Proxy()
 
+config = get_app_config()
 
 class BaseModel(Model):
     class Meta:
@@ -52,10 +53,10 @@ class SelfieDocument(BaseModel):
 
 
 class DataManager:
-    def __init__(self, storage_path: str = default_database_storage_root):
+    def __init__(self, storage_path: str = config.database_storage_root):
         os.makedirs(storage_path, exist_ok=True)
 
-        self.db = SqliteDatabase(os.path.join(storage_path, default_db_name))
+        self.db = SqliteDatabase(os.path.join(storage_path, config.db_name))
         database_proxy.initialize(self.db)
         self.db.connect()
         self.db.create_tables([DataSource, SelfieDocument])

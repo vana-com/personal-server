@@ -12,11 +12,13 @@ from selfie.api.data_sources import router as data_sources_router
 from selfie.api.documents import router as documents_router
 from selfie.api.index_documents import router as index_documents_router
 from selfie.api.models import router as models_router
+from selfie.config import get_app_config
 
 logger = logging.getLogger(__name__)
 
+config = get_app_config()
 
-app = FastAPI()
+app = FastAPI(root_path="/api/v1")
 
 app.add_middleware(
     CORSMiddleware,
