@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import type { OpenAIChat } from "deep-chat/dist/types/openAI";
 import dynamic from "next/dynamic";
+import { RequestDetails } from "deep-chat/dist/types/interceptors";
+
 
 const DeepChat = dynamic(
   () => import('deep-chat-react').then((mod) => ({ default: mod.DeepChat })),
@@ -22,37 +23,6 @@ export const Chat = ({
   return <DeepChat
     // clearMessages={(shouldClear) => {}}
     key={`${assistantName}-${assistantBio}-${userName}-${disableAugmentation}-${showIntroPanel}`} // Force re-render when props are changed
-    directConnection={{
-      openAI: {
-        chat: {
-          model: '',
-          system_prompt: `You are ${assistantName}, chatting with ${userName} in a fictional roleplay in which you are playing yourself. Write 1 reply only. Be proactive, creative, and drive the plot and conversation forward. Write at least 1 sentence, up to 4. Always stay in character and avoid repetition.${assistantBio ? `\n${assistantBio}` : ''}`,
-          stop: ['[END]', '[INST]', '[/INST]'],
-          temperature: 0.3,
-          frequency_penalty: 0.7,
-          presence_penalty: 0.7,
-          top_p: 1,
-          max_tokens: 350,
-        } as OpenAIChat,
-        key: 'ignored'
-      }
-    }}
-    request={{
-      url: 'http://localhost:8181/v1/chat/completions',
-      additionalBodyProps: {
-        disable_augmentation: disableAugmentation,
-
-        /** Uncomment and edit to use a local OpenAI-compatible API, e.g. text-generation-webui on localhost:5000.
-         api_base: 'http://localhost:5000/v1',
-         // When api_base refers to a local text-generation-webui API, we need to specify the instruction template.
-         instruction_template: 'mistral',
-         **/
-      },
-    }}
-    stream={true}
-    initialMessages={ showIntroPanel ? [] : [
-      {"text": "Hello! How are you?", "role": "assistant"},
-    ]}
     htmlClassUtilities={{
       'close-button': {
         events: {
@@ -127,6 +97,52 @@ export const Chat = ({
           ::-webkit-scrollbar-track {
             background-color: unset;
           }"
+    initialMessages={[
+      {"text": "Hello! How are you?", "role": "assistant"},
+    ]}
+    stream={true}
+    request={{
+      url: 'http://localhost:8181/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Authorization': 'bearer ignored',
+      },
+      additionalBodyProps: {
+        disable_augmentation: disableAugmentation,
+
+        /** Uncomment and edit to use a local OpenAI-compatible API, e.g. text-generation-webui on localhost:5000.
+         api_base: 'http://localhost:5000/v1',
+         // When api_base refers to a local text-generation-webui API, we need to specify the instruction template.
+         instruction_template: 'mistral',
+         **/
+
+        model: '',
+        stop: ['[END]', '[INST]', '[/INST]'],
+        stream: true,
+        temperature: 0.3,
+        frequency_penalty: 0.7,
+        presence_penalty: 0.7,
+        top_p: 1,
+        max_tokens: 350,
+      },
+    }}
+    requestInterceptor={(details: RequestDetails) => {
+      details.body.messages = details.body.messages.map((message: {role: string, text: string}) => {
+        return { role: message.role, content: message.text };
+      });
+
+      const system_prompt = `You are ${assistantName}, chatting with ${userName} in a fictional roleplay in which you are playing yourself. Write 1 reply only. Be proactive, creative, and drive the plot and conversation forward. Write at least 1 sentence, up to 4. Always stay in character and avoid repetition.${ assistantBio ? `\n${assistantBio}` : ''}`
+
+      const message = {
+        role: 'system',
+        content: system_prompt
+      }
+      details.body.messages = [message, ...details.body.messages];
+
+      return details;
+    }}
+    responseInterceptor={(details: any) => ({ text: details.choices[0].delta.content })}
+
   >
     {showIntroPanel && <div
       style={{
