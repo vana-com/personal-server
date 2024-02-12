@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/20/solid";
-import { DataSource, Document } from "@/app/types";
+import { DataSource, Document, DocumentStats } from "@/app/types";
 import { isDateString, isNumeric } from "@/app/utils";
 import { DocumentTableActionBar } from "./DocumentTableActionBar";
 import DocumentTableRow from './DocumentTableRow';
@@ -17,6 +17,7 @@ interface DocumentTableProps {
   onIndexDocuments: () => void | Promise<void>;
   onUnindexDocuments: () => void | Promise<void>;
   disabled?: boolean;
+  stats?: DocumentStats;
 }
 
 const DocumentTable = ({
@@ -31,6 +32,7 @@ const DocumentTable = ({
                          onIndexDocuments,
                          onUnindexDocuments,
                          disabled = false,
+                         stats,
                        }: DocumentTableProps) => {
   const [sortField, setSortField] = useState<string | undefined>();
   const [sortDirection, setSortDirection] = useState<'asc'|'desc'>('asc');
@@ -82,13 +84,19 @@ const DocumentTable = ({
     }, {});
   }, [documents, sortField, sortDirection]);
 
+  const indexableDocuments = Array.from(Object.keys(documents).map((coll) => documents[coll].filter(doc => !doc.is_indexed)).flat().filter(doc => selectedDocuments.has(doc.id)));
+  const unindexableDocuments = Array.from(Object.keys(documents).map((coll) => documents[coll].filter(doc => doc.is_indexed)).flat().filter(doc => selectedDocuments.has(doc.id)));
+
   return (
     <>
       <DocumentTableActionBar
         onIndexDocuments={onIndexDocuments}
         onUnindexDocuments={onUnindexDocuments}
+        indexableDocuments={indexableDocuments}
+        unindexableDocuments={unindexableDocuments}
         hasSelectedDocuments={selectedDocuments.size > 0}
         disabled={disabled}
+        stats={stats}
       />
       <table className="table w-full">
         <thead>

@@ -4,6 +4,7 @@ export interface Document {
     [key: string]: any
   }
   is_indexed: boolean
+  num_index_documents?: number
 }
 
 export interface Documents {
@@ -23,4 +24,10 @@ export interface DataSource {
     load_data_args: any[];
     load_data_kwargs: any;
   };
+}
+
+export interface DocumentStats {
+  totalDocuments: number;
+  numDocumentsIndexed: number;
+  numEmbeddingIndexDocuments: number;
 }

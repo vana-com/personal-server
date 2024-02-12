@@ -219,14 +219,17 @@ class DataManager:
     def get_documents(self, source_id: Optional[int] = None):
         if source_id:
             documents = SelfieDocument.select().where(SelfieDocument.source_id == source_id)
+            doc_ids = [str(document.id) for document in documents]
         else:
             documents = SelfieDocument.select()
+            doc_ids = None
 
-        one_indexed_document_per_source = DataIndex("n/a").get_one_document_per_source_document([str(document.id) for document in documents])
+        one_indexed_document_per_source = DataIndex("n/a").get_one_document_per_source_document(doc_ids)
         indexed_documents = list(set([doc['source_document_id'] for doc in one_indexed_document_per_source]))
+
         return [
             # TODO: for some reason, initializing Embeddings in DataIndex with the SQLAlchemy driver returns indexed_documents as strings, not ints (requires str(doc.id)).
-            {"id": doc.id, "metadata": json.loads(doc.metadata), "is_indexed": doc.id in indexed_documents} for doc in documents
+            {"id": doc.id, "metadata": json.loads(doc.metadata), "is_indexed": doc.id in indexed_documents, "num_index_documents": DataIndex("n/a").get_document_count([str(doc.id)])} for doc in documents
         ]
 
     def get_document(self, document_id: str):
