@@ -54,7 +54,7 @@ class ChatParser:
         Returns:
             str: A new string with non-printable characters removed, e.g., "HelloWorld"
         """
-        text = text.replace('\r', '').replace('\u200e', '')
+        text = text.replace('\r', '').replace('\u200e', '').replace('\u202F', ' ')
         return ''.join(char for char in text if char.isprintable())
 
     def parse_chat(self, document: str) -> ShareGPTConversation:
@@ -87,7 +87,14 @@ class ChatParser:
 class TextBasedChatParser(ChatParser):
     def _can_parse_hook(self, document: str) -> bool:
         logger.debug(f"Trying to parse {document[:10]} with {self.__class__.__name__}")
-        return any(re.match(fmt['regex'], document.splitlines()[0], re.DOTALL) for fmt in self.SUPPORTED_FORMATS)
+
+        if not document.strip():
+            return False
+
+        return any(
+            re.match(fmt['regex'], document.splitlines()[0], re.DOTALL)
+            for fmt in self.SUPPORTED_FORMATS
+        )
 
     """
     Parser for chat data that is text-based like WhatsApp.
@@ -98,7 +105,9 @@ class TextBasedChatParser(ChatParser):
         """
         Checks if a line of text is the start of a new message.
         """
-        return any(bool(re.match(format['regex'], line)) for format in self.SUPPORTED_FORMATS)
+        return any(
+            bool(re.match(format["regex"], line, flags=re.DOTALL)) for format in self.SUPPORTED_FORMATS
+        )
 
     def group_lines(self, raw_lines: List[str]) -> List[List[str]]:
         """

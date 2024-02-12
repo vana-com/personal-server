@@ -394,12 +394,14 @@ class DataIndex:
             [(document_id, self.map_document(updated_document, extract_importance))]
         )
 
-    def get_document_count(self):
+    def get_document_count(self, source_document_ids: Optional[List[str]] = None):
         if not self.has_data():
             return 0
 
-        result = self.embeddings.search("SELECT count(*) FROM txtai")
-        return result[0]["count(*)"]
+        if source_document_ids:
+            return self.embeddings.search(f"SELECT count(*) FROM txtai WHERE source_document_id IN ({', '.join(source_document_ids)})")[0]["count(*)"]
+        else:
+            return self.embeddings.count()
 
     async def get_document(self, document_id):
         if not self.has_data():

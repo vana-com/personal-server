@@ -718,35 +718,18 @@ debug@^4.3.1, debug@^4.3.2, debug@^4.3.4:
   dependencies:
     ms "2.1.2"
 
-deep-chat-dev@9.0.130:
-  version "9.0.130"
-  resolved "https://registry.yarnpkg.com/deep-chat-dev/-/deep-chat-dev-9.0.130.tgz#1038f6be9a7c1195410af4377fa3f7cba30974c6"
-  integrity sha512-ZN0tt+jDk5sGVYXZMgIzKE6WtkmhKEpbigpvhwFD2YWJD4nCM9teDOylMX/WZ7pfsUABxT5l7hwhQIasri67vg==
-  dependencies:
-    "@microsoft/fetch-event-source" "^2.0.1"
-    remarkable "^2.0.1"
-    speech-to-element "^0.1.66"
-
-deep-chat-react-dev@^9.0.129:
-  version "9.0.130"
-  resolved "https://registry.yarnpkg.com/deep-chat-react-dev/-/deep-chat-react-dev-9.0.130.tgz#ad53dda2fd9c03e83b16a99ad5f1e27356e20e45"
-  integrity sha512-v+zqojRLbjyxGI+CCLoeGD3h6EA7CNGIaB6KC+ALgikp6bHeXy3JpqrsPJlrr+iijASqwfnYGiHWxzIF0grPfA==
+deep-chat-react@^1.4.11:
+  version "1.4.11"
+  resolved "https://registry.yarnpkg.com/deep-chat-react/-/deep-chat-react-1.4.11.tgz#28284ac0a305b3239484de71383b0877f13fa798"
+  integrity sha512-wrKZUldeJ/FrD9dDch12xpse8P4HyV3noMASySDi6pKMs2uCru5aekCD3AUWvnkIicOD8HCYdoGOr4CfAuHdDQ==
   dependencies:
     "@lit-labs/react" "^1.1.1"
-    deep-chat-dev "9.0.130"
+    deep-chat "1.4.11"
 
-deep-chat-react@^1.4.10:
-  version "1.4.10"
-  resolved "https://registry.yarnpkg.com/deep-chat-react/-/deep-chat-react-1.4.10.tgz#3e86eaaafb49d93345e41baececef32264f6c093"
-  integrity sha512-OqaEc1FycqGrM2IuTtyRDMzSl9mRqGCeGHA6PMukLP5B3VrnkzuRJ0F6genkPk6tsGZo+oNBVi+QPUBFAIqD8Q==
-  dependencies:
-    "@lit-labs/react" "^1.1.1"
-    deep-chat "1.4.10"
-
-deep-chat@1.4.10:
-  version "1.4.10"
-  resolved "https://registry.yarnpkg.com/deep-chat/-/deep-chat-1.4.10.tgz#1e0db7ec6b52d61e1f649daea5497f75adcc1e54"
-  integrity sha512-rxtyDDLIEmvutQMtuPz1J5eufKQBiW3ThsQuq1raWmTxW5EeHYTgsdjcgYY8Wb3WIRTX/J984vkmvJ4YdprL1Q==
+deep-chat@1.4.11:
+  version "1.4.11"
+  resolved "https://registry.yarnpkg.com/deep-chat/-/deep-chat-1.4.11.tgz#1c079fee803cb80ca08c6668d19e571374110e3d"
+  integrity sha512-+I79+ZOMXpg3xAGKoaVFkuxF0+HJZmXLBz1hONTIIrALR08r7tnbw0g3rhS9T7dUeMzA84BbxV8HMco9pNQWjw==
   dependencies:
     "@microsoft/fetch-event-source" "^2.0.1"
     remarkable "^2.0.1"

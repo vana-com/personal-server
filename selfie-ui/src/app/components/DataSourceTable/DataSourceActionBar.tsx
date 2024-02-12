@@ -20,7 +20,7 @@ export const DataSourceActionBar: React.FC<AddDataSourceFormProps> = ({ onAddDat
     <form onSubmit={handleSubmit} className="flex flex-wrap items-center mb-4">
       <input
         type="text"
-        placeholder="Enter Data Source Name"
+        placeholder="Enter a name for this document directory"
         value={name}
         onChange={(e) => setName(e.target.value)}
         className="input input-sm input-bordered w-full max-w-xs mr-2"
@@ -28,9 +28,9 @@ export const DataSourceActionBar: React.FC<AddDataSourceFormProps> = ({ onAddDat
       />
       <input
         type="text"
-        placeholder="Enter Absolute Path to Directory"
+        placeholder="Enter the absolute path to the directory"
         value={directory}
-        onChange={(e) => setDirectory(e.target.value)}
+        onChange={(e) => setDirectory(e.target.value?.trim())}
         className="input input-bordered input-sm w-full max-w-xs mr-2"
         required
       />
