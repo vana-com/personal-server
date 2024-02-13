@@ -29,6 +29,7 @@ default_importance = 0.3
 config = get_app_config()
 
 llm = LLM(
+    verbose=config.verbose,
     path=config.local_model,
     method="llama.cpp",
     n_ctx=8192,

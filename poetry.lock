@@ -1425,12 +1425,12 @@ proxy = ["PyJWT (>=2.8.0,<3.0.0)", "apscheduler (>=3.10.4,<4.0.0)", "backoff", "
 
 [[package]]
 name = "llama-cpp-python"
-version = "0.2.39"
+version = "0.2.42"
 description = "Python bindings for the llama.cpp library"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "llama_cpp_python-0.2.39.tar.gz", hash = "sha256:e4fed6d0e9b925810a6463d75ef339d73288db5fa004938e5b6ce4fb40977d4f"},
+    {file = "llama_cpp_python-0.2.42.tar.gz", hash = "sha256:31236d67424d2694c5c40fffea0930cbbdaa5862f35404664df43d87a3bd8c27"},
 ]
 
 [package.dependencies]
@@ -4877,4 +4877,4 @@ gpu = ["auto-gptq", "autoawq", "optimum"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "70462f4324fa29f446a27cc24b3d7ed372eba1212ec5e4465c7fc10e28e1bfb2"
+content-hash = "7cb59943cfd2d4770595e1e7f15df3d19c15f830b0111d013864b98d9f5b5e9d"

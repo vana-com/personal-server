@@ -14,7 +14,7 @@ handler.setFormatter(colorlog.ColoredFormatter())
 logging.root.addHandler(handler)
 
 logging.basicConfig(level=logging.INFO)
-logging.getLogger("selfie").setLevel(level=logging.DEBUG)
+logging.getLogger("selfie").setLevel(level=logging.INFO)
 
 
 litellm.drop_params = True
