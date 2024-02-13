@@ -1,7 +1,7 @@
 import logging
 import warnings
-from llama_index.llms import litellm
 import colorlog
+import litellm
 
 # Suppress specific warnings
 # TODO: Not sure why these aren't quite working

@@ -26,7 +26,11 @@ class WhatsAppParser(TextBasedChatParser):
             "timestamp_format": "%m/%d/%y, %I:%M:%S %p",
         },
         {
-            "regex": r"(?P<timestamp>\d{4}-\d{1,2}-\d{1,2}, \d{1,2}:\d{2}\s?(a\.m\.|p\.m\.)) - (?P<from>.+?): (?P<value>.+)",
+            "regex": r"(?P<timestamp>\d{4}-\d{1,2}-\d{1,2}, \d{1,2}:\d{2}\s(a\.m\.|p\.m\.)) - (?P<from>.+?): (?P<value>.+)",
+            "timestamp_format": "%Y-%m-%d, %I:%M %p",
+        },
+        {
+            "regex": r"(?P<timestamp>\d{4}-\d{1,2}-\d{1,2}, \d{1,2}:\d{2}(a\.m\.|p\.m\.)) - (?P<from>.+?): (?P<value>.+)",
             "timestamp_format": "%Y-%m-%d, %I:%M%p",
         },
         {

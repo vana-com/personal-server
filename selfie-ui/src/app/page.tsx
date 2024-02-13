@@ -148,7 +148,7 @@ const SelfieManager = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: dataSourceName,
-          loader_module: "llama_index.readers.SimpleDirectoryReader",
+          loader_module: "llama_index.core.SimpleDirectoryReader",
           constructor_args: [],
           constructor_kwargs: {
             input_dir: selectedDirectory,

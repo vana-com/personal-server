@@ -23,7 +23,7 @@ export const DocumentTableActionBar: React.FC<IndexDocumentsFormProps> = ({
                                                                       }) => {
   const handleSubmit = async (event: React.FormEvent, isIndex: boolean) => {
     event.preventDefault();
-    await (isIndex ? onIndexDocuments() : onUnindexDocuments);
+    await (isIndex ? onIndexDocuments() : onUnindexDocuments());
   };
 
   return (

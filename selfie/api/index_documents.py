@@ -8,7 +8,7 @@ from selfie.parsers.chat.chat_file_parsing_helper import get_files_with_configs,
 from selfie.embeddings import DataIndex
 from selfie.embeddings.document_types import Document
 
-from llama_index.node_parser.text import SentenceSplitter
+from llama_index.core.node_parser.text import SentenceSplitter
 from datetime import datetime
 import importlib
 
