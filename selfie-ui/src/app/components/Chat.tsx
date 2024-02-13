@@ -102,7 +102,7 @@ export const Chat = ({
     ]}
     stream={true}
     request={{
-      url: 'http://localhost:8181/v1/chat/completions',
+      url: '/v1/chat/completions',
       method: 'POST',
       headers: {
         'Authorization': 'bearer ignored',

@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any, Coroutine, Callable
 
 import humanize
 
-from selfie.config import default_embeddings_storage_root, default_db_name, default_local_model
+from selfie.config import get_app_config
 from selfie.data_generators.chat_training_data import (
     ChatTrainingDataGenerator,
 )
@@ -26,11 +26,13 @@ logger = logging.getLogger(__name__)
 
 default_importance = 0.3
 
+config = get_app_config()
+
 llm = LLM(
-    path=default_local_model,
+    path=config.local_model,
     method="llama.cpp",
     n_ctx=8192,
-    n_gpu_layers=-1,
+    n_gpu_layers=-1 if config.gpu else 0,
 )
 
 
@@ -42,7 +44,7 @@ class DataIndex:
             cls._singleton = super(DataIndex, cls).__new__(cls)
         return cls._singleton
 
-    def __init__(self, character_name, storage_path: str = default_embeddings_storage_root, use_local_llm=True, completion=None):
+    def __init__(self, character_name, storage_path: str = config.embeddings_storage_root, use_local_llm=True, completion=None):
         if not hasattr(self, 'is_initialized'):
             logger.info("Initializing DataIndex")
             self.storage_path = os.path.join(storage_path, "index")

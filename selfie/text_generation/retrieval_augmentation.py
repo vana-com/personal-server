@@ -73,4 +73,4 @@ async def augment(request: CompletionRequest | ChatCompletionRequest, completion
                 # This case should not happen, but just in case... with the caveat that some models do not support system messages.
                 request.messages.insert(0, Message(role="system", content=system_message))
     else:
-        request.prompt = system_message
+        request.prompt = f"[System note: {system_message}]\n\n{request.prompt}"

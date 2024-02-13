@@ -12,11 +12,13 @@ from selfie.api.data_sources import router as data_sources_router
 from selfie.api.documents import router as documents_router
 from selfie.api.index_documents import router as index_documents_router
 from selfie.api.models import router as models_router
+from selfie.config import get_app_config
 
 logger = logging.getLogger(__name__)
 
+config = get_app_config()
 
-app = FastAPI()
+app = FastAPI(root_path="/v1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,11 +43,11 @@ static_files_dir = os.path.join(bundle_dir, "web")
 app.mount("/static", StaticFiles(directory=static_files_dir), name="static")
 
 
-app.include_router(completions_router, prefix="/v1")
-app.include_router(data_sources_router, prefix="/v1")
-app.include_router(documents_router, prefix="/v1")
-app.include_router(index_documents_router, prefix="/v1")
-app.include_router(models_router, prefix="/v1")
+app.include_router(completions_router)
+app.include_router(data_sources_router)
+app.include_router(documents_router)
+app.include_router(index_documents_router)
+app.include_router(models_router)
 
 
 @app.get("/", response_class=HTMLResponse)
