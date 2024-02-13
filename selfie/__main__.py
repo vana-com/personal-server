@@ -50,12 +50,13 @@ def get_configured_app(shareable=False):
         logging.getLogger("selfie").setLevel(level=logging.DEBUG)
 
     ngrok_auth_token = os.environ.get('NGROK_AUTHTOKEN', None)
+    ngrok_domain = os.environ.get('NGROK_DOMAIN', None)
 
     if shareable and args.share:
         if ngrok_auth_token is None:
             raise ValueError("NGROK_AUTHTOKEN environment variable is required to share the API. Visit https://dashboard.ngrok.com to get your token.")
 
-        listener = ngrok.forward(args.port, authtoken_from_env=True)
+        listener = ngrok.forward(args.port, authtoken_from_env=True, domain=ngrok_domain)
         logger.info(f"Application is available at {listener.url()}")
         # Update config directly as modifying args won't affect the env vars
         os.environ['SELFIE_HOST'] = listener.url()
