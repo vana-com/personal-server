@@ -45,14 +45,18 @@ class WhatsAppParser(TextBasedChatParser):
             "regex": r"(?:\[)?(?P<timestamp>\d{1,2}-\d{1,2}-\d{2}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))(?:\])? (?P<from>.+?): (?P<value>.+)",
             "timestamp_format": "%Y-%m-%d, %I:%M:%S %p",
         },
-        # Deprecated or unofficial formats
         {
             "regex": r"\[(?P<timestamp>\d{1,2}/\d{1,2}/\d{2,4}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))\] (?P<from>.+?): (?P<value>.+)",
             "timestamp_format": "%m/%d/%y, %I:%M:%S %p",
         },
+        # Deprecated or unofficial format (?)
         {
             "regex": r"(?P<timestamp>\d{1,2}/\d{1,2}/\d{2}, \d{1,2}:\d{2}(AM|PM)) - (?P<from>.+?): (?P<value>.+)",
             "timestamp_format": "%m/%d/%y, %I:%M%p",
+        },
+        {
+            "regex": r"\[(?P<timestamp>\d{2}\.\d{2}\.\d{2}, \d{2}:\d{2}:\d{2})\] (?P<from>.+?): (?P<value>.+)",
+            "timestamp_format": "%d%m%y, %H:%M:%S",
         },
     ]
 
@@ -72,6 +76,9 @@ class WhatsAppParser(TextBasedChatParser):
         {
             "regex": r"(?:\[)?(?P<timestamp>\d{1,2}-\d{1,2}-\d{2}, \d{1,2}:\d{2}:\d{2}\s(AM|PM))(?:\])? (?P<value>.+)",
         },
+        {
+            "regex": r"(?:\[)?(?P<timestamp>\d{2}\.\d{2}\.\d{2}, \d{2}:\d{2}:\d{2})(?:\])? (?P<value>.+)",
+        }
     ]
 
     def _preprocess_hook(self, document: str) -> str:

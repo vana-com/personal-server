@@ -57,7 +57,7 @@ To launch Selfie, ensure that [python](https://www.python.org), [poetry](https:/
 
 This starts a local web server and should launch the UI in your browser at http://localhost:8181. API documentation is available at http://localhost:8181/docs. Now that the server is running, you can use the API to import your data and connect to your LLM.
 
-> Note: You can host selfie at a publicly-accessible URL with [ngrok](https://ngrok.com). Add your ngrok token in `selfie/.env` and run `poetry run python -m selfie --share`.
+> Note: You can host selfie at a publicly-accessible URL with [ngrok](https://ngrok.com). Add your ngrok token (and optionally, ngrok domain) in `selfie/.env` and run `poetry run python -m selfie --share`.
 
 ### Step 1:  Gather Messaging Data
 
