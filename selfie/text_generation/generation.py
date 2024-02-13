@@ -44,7 +44,7 @@ async def completion(request: CompletionRequest | ChatCompletionRequest) -> Self
         model = request.model or config.local_model
         logger.info(f"Using model {model}")
         llm = LLM(
-            # verbose=True,
+            verbose=config.verbose,
             path=model,
             method="llama.cpp",
             n_ctx=8192,

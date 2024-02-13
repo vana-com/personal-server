@@ -23,7 +23,8 @@ def deserialize_args_from_env():
         share=os.getenv('SELFIE_SHARE') == 'True',
         port=int(os.getenv('SELFIE_PORT', default_port)),
         gpu=os.getenv('SELFIE_GPU') == 'True',
-        reload=os.getenv('SELFIE_RELOAD') == 'True'
+        reload=os.getenv('SELFIE_RELOAD') == 'True',
+        verbose=os.getenv('SELFIE_VERBOSE') == 'True',
     )
 
 
@@ -36,6 +37,7 @@ def parse_args():
         parser.add_argument("--port", type=int, default=int(os.getenv('PORT', default_port)), help="Specify the port to run on")
         parser.add_argument("--gpu", action="store_true", help="Enable GPU support")
         parser.add_argument("--reload", action="store_true", help="Enable hot-reloading")
+        parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
         args = parser.parse_args()
         serialize_args_to_env(args)
         return args
@@ -43,6 +45,9 @@ def parse_args():
 
 def get_configured_app(shareable=False):
     args = parse_args()
+
+    if args.verbose:
+        logging.getLogger("selfie").setLevel(level=logging.DEBUG)
 
     ngrok_auth_token = os.environ.get('NGROK_AUTHTOKEN', None)
 
@@ -56,7 +61,7 @@ def get_configured_app(shareable=False):
         os.environ['SELFIE_HOST'] = listener.url()
         del os.environ['SELFIE_PORT']
 
-    create_app_config()
+    create_app_config(**vars(args))
 
     # Ensure this import happens after configuration is set
     from selfie.api import app
@@ -65,6 +70,7 @@ def get_configured_app(shareable=False):
 
 def main():
     args = parse_args()
+
     if args.reload:
         if args.share:
             raise ValueError("Reloading with sharing enabled is not supported.")

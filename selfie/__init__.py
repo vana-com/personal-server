@@ -1,7 +1,7 @@
 import logging
 import warnings
-from llama_index.llms import litellm
 import colorlog
+import litellm
 
 # Suppress specific warnings
 # TODO: Not sure why these aren't quite working
@@ -14,7 +14,7 @@ handler.setFormatter(colorlog.ColoredFormatter())
 logging.root.addHandler(handler)
 
 logging.basicConfig(level=logging.INFO)
-logging.getLogger("selfie").setLevel(level=logging.DEBUG)
+logging.getLogger("selfie").setLevel(level=logging.INFO)
 
 
 litellm.drop_params = True

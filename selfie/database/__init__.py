@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timezone
 
-from llama_index.node_parser import SentenceSplitter
+from llama_index.core.node_parser import SentenceSplitter
 from peewee import (
     Model,
     SqliteDatabase,
