@@ -18,9 +18,8 @@ class AppConfig(BaseModel):
     database_storage_root: str = Field(default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data/database"), description="Root directory for database storage")
     embeddings_storage_root: str = Field(default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data/embeddings"), description="Root directory for embeddings storage")
     db_name: str = Field(default='selfie.db', description="Database name")
-    # Newer versions of llama.cpp do not seem compatible with mistral-7b-instruct-v0.2 without explicitly setting chat_format="mistral-instruct"
-    # local_model: str = Field(default='TheBloke/Mistral-7B-Instruct-v0.2-GGUF/mistral-7b-instruct-v0.2.Q4_K_M.gguf', description="Local model")
-    local_model: str = Field(default='TheBloke/CapybaraHermes-2.5-Mistral-7B-GGUF/capybarahermes-2.5-mistral-7b.Q4_K_M.gguf', description="Local model")
+    # local_model: str = Field(default='TheBloke/Mixtral-8x7B-Instruct-v0.1-GGUF/mixtral-8x7b-instruct-v0.1.Q4_K_M.gguf', description="Local model")
+    local_model: str = Field(default='TheBloke/Mistral-7B-Instruct-v0.2-GGUF/mistral-7b-instruct-v0.2.Q4_K_M.gguf', description="Local model")
     local_gpu_model: str = Field(default='TheBloke/Mistral-7B-OpenOrca-GPTQ', description="Local GPU model")
     local_functionary_model: str = Field(default="meetkai/functionary-7b-v2-GGUF/functionary-7b-v2.q4_0.gguf", description="Local functionary model")
     hosted_model: str = Field(default="openai/gpt-3.5-turbo", description="Hosted model")

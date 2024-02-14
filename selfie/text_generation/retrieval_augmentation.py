@@ -20,7 +20,7 @@ async def augment(request: CompletionRequest | ChatCompletionRequest, completion
         while i >= 0 and len(context) < 512 and len(context.split("\n")) < 15:
             message = request.messages[i]
             if message.role != "system":
-                context = f"{message.content}\n{context}"
+                context = f"{message.role}: {message.content}\n{context}"
             i -= 1
     else:
         context = request.prompt

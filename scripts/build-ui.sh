@@ -5,9 +5,8 @@ set -e
 # Step 1: Build Next.js App
 echo "Building Next.js app..."
 cd selfie-ui
-yarn install
-# NODE_ENV=production yarn install --production --frozen-lockfile
-yarn run build
+yarn install --frozen-lockfile
+NODE_ENV=production yarn run build
 
 # Step 2: Move the out/ directory to FastAPI static file serving directory
 echo "Moving built files to FastAPI app..."
