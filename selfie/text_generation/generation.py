@@ -49,6 +49,8 @@ async def completion(request: CompletionRequest | ChatCompletionRequest) -> Self
             method="llama.cpp",
             n_ctx=8192,
             n_gpu_layers=-1 if config.gpu else 0,
+            # Special-case models whose embedded prompt templates do not work well
+            **({ 'chat_format': "mistrallite"} if "mistral" in model or "mixtral" in model else {})
         ).generator.llm
 
         completion_fn = (llm.create_chat_completion if chat_mode else llm.create_completion)

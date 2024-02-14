@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import CodeSnippet from "./components/CodeSnippet";
 import { Chat } from "./components/Chat";
 import { DocumentTable } from "./components/DocumentTable";
 import { DataSourceTable } from "./components/DataSourceTable";
 import { DataSource, Documents, DocumentStats } from "./types";
+import { apiBaseUrl } from "./config";
 
 const SelfieManager = () => {
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
@@ -61,14 +62,9 @@ const SelfieManager = () => {
     }
   }, [bio]);
 
-
-  useEffect(() => {
-    fetchDataSources();
-  }, []);
-
-  const fetchDataSources = async () => {
+  const fetchDataSources = useCallback(async () => {
     try {
-      const response = await fetch('/v1/data-sources');
+      const response = await fetch(`${apiBaseUrl}/v1/data-sources`);
       const data = await response.json();
       setDataSources(data);
       data.forEach((dataSource: any) => fetchDocuments(dataSource.id));
@@ -77,11 +73,15 @@ const SelfieManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchDataSources();
+  }, [fetchDataSources]);
 
   const fetchDocuments = async (sourceId: string) => {
     try {
-      const response = await fetch(`/v1/documents?source_id=${sourceId}`);
+      const response = await fetch(`${apiBaseUrl}/v1/documents?source_id=${sourceId}`);
       const docs = await response.json();
       setDocuments(prevDocs => ({ ...prevDocs, [sourceId]: docs }));
     } catch (error) {
@@ -106,13 +106,12 @@ const SelfieManager = () => {
   }, [documents, dataSources, selectedDocuments]);
 
   const handleScan = async (sourceId: string) => {
-    await fetch(`/v1/data-sources/${sourceId}/scan`, { method: 'POST' });
+    await fetch(`${apiBaseUrl}/v1/data-sources/${sourceId}/scan`, { method: 'POST' });
     await fetchDocuments(sourceId);
   };
 
   const handleIndex = async (sourceId: string) => {
-    // await fetch(`http://localhost:8181/v1/data-sources/${sourceId}/index`, { method: 'POST' });
-    await fetch(`/v1/data-sources/${sourceId}/index`, { method: 'POST' });
+    await fetch(`${apiBaseUrl}/v1/data-sources/${sourceId}/index`, { method: 'POST' });
   };
 
   const toggleDocumentSelection = (docId: string) => {
@@ -143,7 +142,7 @@ const SelfieManager = () => {
 
   const handleAddDataSource = async (dataSourceName: string, selectedDirectory: string) => {
     try {
-      const response = await fetch('/v1/data-sources', {
+      const response = await fetch(`${apiBaseUrl}/v1/data-sources`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -187,7 +186,7 @@ const SelfieManager = () => {
     console.log(`${deleteInstead ? 'Unindexing' : 'Indexing'} documents:`, documentIds);
 
     try {
-      const response = await fetch(`/v1/documents/${ deleteInstead ? 'unindex' : 'index'}`, {
+      const response = await fetch(`${apiBaseUrl}/v1/documents/${ deleteInstead ? 'unindex' : 'index'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -217,7 +216,7 @@ const SelfieManager = () => {
 
   const handleDeleteDataSource = async (dataSourceId: string) => {
     try {
-      const response = await fetch(`/v1/data-sources/${dataSourceId}`, {
+      const response = await fetch(`${apiBaseUrl}/v1/data-sources/${dataSourceId}`, {
         method: 'DELETE'
       });
 

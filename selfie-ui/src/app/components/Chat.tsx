@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { RequestDetails } from "deep-chat/dist/types/interceptors";
-
+import { apiBaseUrl } from "../config";
 
 const DeepChat = dynamic(
   () => import('deep-chat-react').then((mod) => ({ default: mod.DeepChat })),
@@ -102,7 +102,7 @@ export const Chat = ({
     ]}
     stream={true}
     request={{
-      url: '/v1/chat/completions',
+      url: `${apiBaseUrl}/v1/chat/completions`,
       method: 'POST',
       headers: {
         'Authorization': 'bearer ignored',
