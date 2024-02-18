@@ -47,10 +47,11 @@ On the LLM side, Selfie uses tools like LiteLLM and txtai to support forwarding 
 
 To launch Selfie, ensure that [python](https://www.python.org), [poetry](https://python-poetry.org), and [yarn](https://yarnpkg.com) are installed. Then run the following commands in the project directory:
 
-1. `cp selfie/.env.example selfie/.env`.
-2. `./scripts/build-ui.sh` (requires `yarn`)
-3. `poetry install`, enable GPU or Metal acceleration via llama.cpp by subsequently installing GPU-enabled llama-cpp-python, see Scripts.
-4. `poetry run python -m selfie`, or `poetry run python -m selfie --gpu` if your device is GPU-enabled. The first time you run this, it will download ~4GB of model weights. While you wait, you can download your WhatsApp or Google Takeout data for the next step.
+1. `git clone git@github.com:vana-com/selfie.git`
+2. `cp selfie/.env.example selfie/.env`
+3. `./scripts/build-ui.sh` (requires `yarn`)
+4. `poetry install`, enable GPU or Metal acceleration via llama.cpp by subsequently installing GPU-enabled llama-cpp-python, see Scripts. _Note: if you do not have poetry installed, run `brew install poetry`_
+5. `poetry run python -m selfie`, or `poetry run python -m selfie --gpu` if your device is GPU-enabled. The first time you run this, it will download ~4GB of model weights. While you wait, you can download your WhatsApp or Google Takeout data for the next step.
 
 [//]: # (Disable this note about installing with GPU support until supported via transformers, etc.)
 [//]: # (3. `poetry install` or `poetry install -E gpu` &#40;to enable GPU devices via transformers&#41;. Enable GPU or Metal acceleration via llama.cpp by installing GPU-enabled llama-cpp-python, see Scripts.)
