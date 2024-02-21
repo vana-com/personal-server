@@ -50,7 +50,7 @@ To launch Selfie, ensure that [python](https://www.python.org), [poetry](https:/
 1. `git clone git@github.com:vana-com/selfie.git`
 2. `cp selfie/.env.example selfie/.env`
 3. `./scripts/build-ui.sh` (requires `yarn`)
-4. `poetry install`, enable GPU or Metal acceleration via llama.cpp by subsequently installing GPU-enabled llama-cpp-python, see Scripts. _Note: if you do not have poetry installed, run `brew install poetry`_
+4. `poetry install`, enable GPU or Metal acceleration via llama.cpp by subsequently installing GPU-enabled llama-cpp-python, see Scripts. _Note: if you are on macOS and do not have poetry installed, you can run `brew install poetry`_.
 5. `poetry run python -m selfie`, or `poetry run python -m selfie --gpu` if your device is GPU-enabled. The first time you run this, it will download ~4GB of model weights. While you wait, you can download your WhatsApp or Google Takeout data for the next step.
 
 [//]: # (Disable this note about installing with GPU support until supported via transformers, etc.)
