@@ -89,8 +89,8 @@ Ensure you ask permission of the friends who are also in the chats you export.
 
 1. Place your exported chat logs in a directory on your computer, e.g. `/home/alice/chats`.
 2. Open the UI at http://localhost:8181.
-3. Add your directory as a Data Source. Give it a name (e.g. My Chats), enter the **absolute** path, and click `Add Directory`.
-4. In the Documents table, select the exported chat logs you want to import, and click `Index Selected`.
+3. Add your directory as a Data Source. Give it a name (e.g. My Chats), enter the **absolute** path, and click `Add Directory`. This must be a directory (i.e. folder), not a file. Example absolute path would be: `/Users/{you}/Projects/selfie/example-chats`
+4. In the Documents table, select the exported chat logs you want to import, and click `Index`.
 
 If this process is successful, your selected chat logs will show as indexed in the table. You can now use the API to connect to your LLM and generate personalized text completions.
 
