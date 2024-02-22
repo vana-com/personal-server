@@ -37,6 +37,8 @@ async def create_document_connection(request: DocumentConnectionRequest):
                 name=document_dto.name,
                 size=document_dto.size
             )
+            document_dto.id = document_model.id
+            document_dto.document_connection_id = document_connection
 
         embedding_documents = connector_instance.transform_for_embedding(request.configuration, document_dtos)
         # Save embedding_documents to Vector DB

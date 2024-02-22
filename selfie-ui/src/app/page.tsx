@@ -126,10 +126,10 @@ const SelfieManager = () => {
     });
   };
 
-  const columnNames = useMemo(() => {
-    const firstDoc = documents[dataSources[0]?.id]?.[0];
-    return firstDoc ? Object.keys(firstDoc.metadata) : [];
-  }, [documents, dataSources]);
+  // const columnNames = useMemo(() => {
+  //   const firstDoc = documents[dataSources[0]?.id]?.[0];
+  //   return firstDoc ? Object.keys(firstDoc.metadata) : [];
+  // }, [documents, dataSources]);
 
 
   // const handleDirectoryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -309,8 +309,10 @@ const SelfieManager = () => {
                 type="checkbox"
                 className="toggle mx-2"
                 title={!hasIndexedDocuments ? 'Add and index some documents to enable augmentation.' : ''}
-                disabled={disabled}
-                checked={hasIndexedDocuments && !disableAugmentation}
+                disabled={false}
+                // disabled={disabled}
+                // checked={hasIndexedDocuments && !disableAugmentation}
+                checked={!disableAugmentation}
                 onChange={() => setDisableAugmentation(!disableAugmentation)}
               />
               {!hasIndexedDocuments && <Tooltip tip="Add and index some documents to enable augmentation."/> }
@@ -323,7 +325,8 @@ const SelfieManager = () => {
           </button>
           <Chat assistantName={name}
                 assistantBio={bio}
-                disableAugmentation={!hasIndexedDocuments || disableAugmentation}
+                disableAugmentation={disableAugmentation}
+                // disableAugmentation={!hasIndexedDocuments || disableAugmentation}
                 shouldClear={shouldClear}
                 instruction={ hasIndexedDocuments ? '' : 'You have no indexed documents. You can still use the playground, but your data will not be used to generate responses. Add and index documents to enable augmentation.' }
           />
@@ -366,26 +369,26 @@ const SelfieManager = () => {
         <Playground disabled={!hasIndexedDocuments} />
       </div>
 
-      <h1 className="text-4xl font-bold mb-4">Document Directories</h1>
+      {/*<h1 className="text-4xl font-bold mb-4">Document Directories</h1>*/}
 
-      <p className="mb-4">
-        Add the directories on your device that contain the documents you want to add to the knowledge bank. Example
-        documents are available, see the README for details.
-      </p>
+      {/*<p className="mb-4">*/}
+      {/*  Add the directories on your device that contain the documents you want to add to the knowledge bank. Example*/}
+      {/*  documents are available, see the README for details.*/}
+      {/*</p>*/}
 
-      <div className="overflow-x-auto mb-8">
-        <DataSourceTable
-          dataSources={dataSources}
-          onAddDataSource={handleAddDataSource}
-          onDeleteDataSource={(dataSource) => handleDeleteDataSource(dataSource.id)}
-        />
-      </div>
+      {/*<div className="overflow-x-auto mb-8">*/}
+      {/*  <DataSourceTable*/}
+      {/*    dataSources={dataSources}*/}
+      {/*    onAddDataSource={handleAddDataSource}*/}
+      {/*    onDeleteDataSource={(dataSource) => handleDeleteDataSource(dataSource.id)}*/}
+      {/*  />*/}
+      {/*</div>*/}
 
-      <h1 className="text-4xl font-bold mb-4">Documents</h1>
+      {/*<h1 className="text-4xl font-bold mb-4">Documents</h1>*/}
 
-      <p className="mb-4">
-        Index documents to add them to the knowledge bank. Once indexed, data will be used automatically by the AI.
-      </p>
+      {/*<p className="mb-4">*/}
+      {/*  Index documents to add them to the knowledge bank. Once indexed, data will be used automatically by the AI.*/}
+      {/*</p>*/}
 
       {(runningTaskMessage || completedTaskMessage) &&
           <div className="toast toast-top toast-end z-10">
@@ -395,22 +398,22 @@ const SelfieManager = () => {
           </div>
       }
 
-      <div className="overflow-x-auto">
-        <DocumentTable
-          dataSources={dataSources}
-          documents={documents}
-          columnNames={columnNames}
-          selectedDocuments={selectedDocuments}
-          disabled={isTaskPending}
-          setSelectedDocuments={setSelectedDocuments}
-          onToggleDocumentSelection={toggleDocumentSelection}
-          onIndexDocument={(doc) => handleIndexSelected([doc.id])}
-          onUnindexDocument={(doc) => handleIndexDocument(doc.id, true)}
-          onIndexDocuments={() => handleIndexSelected()}
-          onUnindexDocuments={() => handleIndexSelected(undefined, true)}
-          stats={stats}
-        />
-      </div>
+      {/*<div className="overflow-x-auto">*/}
+      {/*  <DocumentTable*/}
+      {/*    dataSources={dataSources}*/}
+      {/*    documents={documents}*/}
+      {/*    columnNames={columnNames}*/}
+      {/*    selectedDocuments={selectedDocuments}*/}
+      {/*    disabled={isTaskPending}*/}
+      {/*    setSelectedDocuments={setSelectedDocuments}*/}
+      {/*    onToggleDocumentSelection={toggleDocumentSelection}*/}
+      {/*    onIndexDocument={(doc) => handleIndexSelected([doc.id])}*/}
+      {/*    onUnindexDocument={(doc) => handleIndexDocument(doc.id, true)}*/}
+      {/*    onIndexDocuments={() => handleIndexSelected()}*/}
+      {/*    onUnindexDocuments={() => handleIndexSelected(undefined, true)}*/}
+      {/*    stats={stats}*/}
+      {/*  />*/}
+      {/*</div>*/}
     </div>
 
   );

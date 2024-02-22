@@ -127,7 +127,7 @@ class DataManager:
 
             if delete_indexed_data:
                 index = DataIndex("n/a")
-                await index.delete_documents_with_source_documents([document.source_id])
+                await index.delete_documents_with_source_documents([document.document_connection.id])
 
             document.delete_instance()
 

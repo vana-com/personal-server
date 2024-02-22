@@ -171,6 +171,10 @@ class DataIndex:
                 source=source,
             )
 
+            # TODO: confirm that id being a field in the model is not a problem for mapping with
+            if document.id is None:
+                del document.id
+
             if source_document_id:
                 document.source_document_id = source_document_id
 

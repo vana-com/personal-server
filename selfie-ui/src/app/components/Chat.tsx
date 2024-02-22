@@ -141,7 +141,7 @@ export const Chat = ({
 
       return details;
     }}
-    responseInterceptor={(details: any) => ({ text: details.choices[0].delta.content })}
+    responseInterceptor={(details: any) => ({ text: details.choices?.[0].delta.content })}
 
   >
     {showIntroPanel && <div
