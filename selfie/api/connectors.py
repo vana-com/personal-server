@@ -26,9 +26,9 @@ async def get_connectors() -> ConnectorsResponse:
     return ConnectorsResponse(connectors=connectors)
 
 
-@router.get("/connectors/{connector_name}")
-async def get_connector(connector_name: str) -> Connector:
-    connector_instance = ConnectorFactory.get_connector(connector_name=connector_name)
+@router.get("/connectors/{connector_id}")
+async def get_connector(connector_id: str) -> Connector:
+    connector_instance = ConnectorFactory.get_connector(connector_name=connector_id)
     return Connector(
         id=connector_instance.id,
         name=connector_instance.name,
