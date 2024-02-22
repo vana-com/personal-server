@@ -5,7 +5,6 @@ type DocumentSourceSelectorProps = {
   onSelect: (selectedId: string) => void;
 };
 
-// Define a type for the option to increase readability and maintainability
 type OptionType = {
   value: string;
   label: string;
@@ -39,6 +38,7 @@ const DocumentSourceSelector = ({ onSelect }: DocumentSourceSelectorProps) => {
       options={sources}
       onChange={handleChange}
       placeholder="Select a document source..."
+      className="mb-4"
     />
   );
 };

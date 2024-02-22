@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from 'react';
-import Form from '@rjsf/core';
+import TailwindForm from "../components/rjsf"
 import validator from '@rjsf/validator-ajv8';
 
-import DocumentSourceSelector from '../components/DocumentSourceSelector'; // Assume this is the component from Step 1
+import DocumentSourceSelector from '../components/DocumentSourceSelector';
 
 const DataManagementInterface = () => {
   const [selectedSource, setSelectedSource] = useState('');
@@ -26,17 +26,17 @@ const DataManagementInterface = () => {
   };
 
   return (
-    <div>
-      <h1>Add your data</h1>
-      <div>Step 1: Choose your document source</div>
-      <br />
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Add your data</h1>
+      <div className="mb-2 font-medium">Step 1: Choose your document source</div>
       <DocumentSourceSelector onSelect={handleSourceSelect} />
       {formSchema && (
-        <Form
+        <TailwindForm
           schema={formSchema}
           uiSchema={uiSchema || {}}
           onSubmit={({formData}) => console.log('Data submitted:', formData)}
           validator={validator}
+          className="mt-4"
         />
       )}
     </div>
@@ -44,5 +44,3 @@ const DataManagementInterface = () => {
 };
 
 export default DataManagementInterface;
-
-
