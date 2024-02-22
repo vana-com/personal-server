@@ -60,6 +60,7 @@ async def delete_index_documents():
     return {"message": "All documents deleted successfully"}
 
 
+# TODO: Deprecate this endpoint, it should be not be allowed to embed documents that are not tracked
 @router.post("/index_documents/llama-hub-loader")
 async def load_data(request: DataLoaderRequest):
     # TODO: extract document metadata from request?
@@ -89,23 +90,24 @@ async def load_data(request: DataLoaderRequest):
         text_chunks.extend(cur_text_chunks)
         doc_idxs.extend([doc_idx] * len(cur_text_chunks))
 
-    documents = []
+    embedding_documents = []
     for idx, text_chunk in enumerate(text_chunks):
         src_doc = documents[doc_idxs[idx]]
         document = Document(
             text=text_chunk,
-            source=request.loader_module,
+            # source=request.loader_module,
             # importance=0.0,
             # timestamp=datetime.strptime(src_doc.metadata['last_modified'], "%Y-%m-%d"),
             # use last_modified if available, otherwise use current time
-            timestamp=datetime.strptime(src_doc.metadata["last_modified"], "%Y-%m-%d")
-            if "last_modified" in src_doc.metadata
+            timestamp=datetime.strptime(src_doc["last_modified"], "%Y-%m-%d")
+            # source_document_id=src_doc["id"]
+            if "last_modified" in src_doc
             else datetime.now(),
         )
 
-        documents.append(document)
+        embedding_documents.append(document)
 
-    return {"documents": await DataIndex("n/a").index(documents, extract_importance=False)}
+    return {"documents": await DataIndex("n/a").index(embedding_documents, extract_importance=False)}
 
 
 @router.post("/index_documents/chat-processor")
