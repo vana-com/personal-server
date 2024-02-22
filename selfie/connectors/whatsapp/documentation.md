@@ -1,4 +1,4 @@
-# Export Whatsapp chats
+# Export WhatsApp chats
 
 <details>
   <summary>iOS</summary>

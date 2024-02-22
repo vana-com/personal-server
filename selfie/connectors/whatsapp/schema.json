@@ -1,10 +1,10 @@
 {
-  "title": "Whatsapp Files",
+  "title": "WhatsApp Files",
   "type": "object",
   "properties": {
     "files": {
       "type": "array",
-      "title": "Upload Whatsapp .txt files",
+      "title": "Upload WhatsApp .txt files",
       "items": {
         "type": "string",
         "format": "data-url"

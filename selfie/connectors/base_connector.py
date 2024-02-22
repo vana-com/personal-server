@@ -12,9 +12,9 @@ class BaseConnector(abc.ABC):
         self.id = "base_connector"
         self.name = "Base Connector"
 
+    @abc.abstractmethod
     def load_document(self, configuration: dict[str, Any]) -> List[DocumentDTO]:
-        self.validate_configuration(configuration)
-        return []
+        raise NotImplementedError
 
     @abc.abstractmethod
     def validate_configuration(self, configuration: dict[str, Any]):

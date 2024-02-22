@@ -72,7 +72,7 @@ Export chats that you use frequently and contain information you want the LLM to
 
 The following links provide instructions for exporting chat logs from popular messaging platforms:
 
-* [Whatsapp](https://faq.whatsapp.com/1180414079177245/?cms_platform=android) 
+* [WhatsApp](https://faq.whatsapp.com/1180414079177245/?cms_platform=android)
 * [Google](https://takeout.google.com/settings/takeout) (select Messages from the list)
 
 These platforms are not yet supported, but you can create a parser in selfie/parsers/chats to support them (please contribute!):
@@ -96,7 +96,7 @@ If this process is successful, your selected chat logs will show as indexed in t
 
 [//]: # (1. Open http://localhost:8181/docs)
 [//]: # (2. Find `POST /v1/index_documents/chat-processor`)
-[//]: # (3. Upload one or more exported chat log files. To get these files, export them from platforms that you use frequently and contain information you want the LLM to know. Exports: [Whatsapp]&#40;https://faq.whatsapp.com/1180414079177245/?cms_platform=android&#41; | [Google]&#40;https://takeout.google.com/settings/takeout&#41; | [Instagram]&#40;https://help.instagram.com/181231772500920&#41; | [Facebook Messenger]&#40;https://www.facebook.com/help/messenger-app/713635396288741/?cms_platform=iphone-app&helpref=platform_switcher&#41; | [Telegram]&#40;https://www.maketecheasier.com/export-telegram-chat-history/&#41;. Ensure you ask permission of the friend who is also in the chat you export. You can also redact their name, messages, and other personal information in later steps.)
+[//]: # (3. Upload one or more exported chat log files. To get these files, export them from platforms that you use frequently and contain information you want the LLM to know. Exports: [WhatsApp]&#40;https://faq.whatsapp.com/1180414079177245/?cms_platform=android&#41; | [Google]&#40;https://takeout.google.com/settings/takeout&#41; | [Instagram]&#40;https://help.instagram.com/181231772500920&#41; | [Facebook Messenger]&#40;https://www.facebook.com/help/messenger-app/713635396288741/?cms_platform=iphone-app&helpref=platform_switcher&#41; | [Telegram]&#40;https://www.maketecheasier.com/export-telegram-chat-history/&#41;. Ensure you ask permission of the friend who is also in the chat you export. You can also redact their name, messages, and other personal information in later steps.)
 [//]: # (4. Copy, paste, and edit the example parser_configs JSON. Include one configuration object in the list for each file you upload.)
 [//]: # ()
 [//]: # (![chat-processor.png]&#40;docs/images/chat-processor.png&#41;)
