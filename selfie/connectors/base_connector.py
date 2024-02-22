@@ -1,7 +1,10 @@
 import abc
 import json
 import os
-from typing import Any
+from typing import Any, List
+
+from selfie.database import SelfieDocument
+from selfie.embeddings import Document
 
 
 class BaseConnector(abc.ABC):
@@ -10,11 +13,15 @@ class BaseConnector(abc.ABC):
         self.name = "Base Connector"
 
     @abc.abstractmethod
-    def load_document(self, configuration: dict[str, Any]):
+    def load_document(self, configuration: dict[str, Any]) -> List[SelfieDocument]:
         self.validate_configuration(configuration)
 
     @abc.abstractmethod
     def validate_configuration(self, configuration: dict[str, Any]):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def transform_for_embedding(self, configuration: dict[str, Any], documents: List[SelfieDocument]) -> List[Document]:
         raise NotImplementedError
 
     def get_form_schema(self):
