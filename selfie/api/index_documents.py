@@ -6,7 +6,7 @@ from selfie.api.data_sources import DataLoaderRequest
 from selfie.parsers.chat import ChatFileParser
 from selfie.parsers.chat.chat_file_parsing_helper import get_files_with_configs, delete_uploaded_files
 from selfie.embeddings import DataIndex
-from selfie.embeddings.document_types import Document
+from selfie.embeddings.document_types import EmbeddingDocumentModel
 
 from llama_index.core.node_parser.text import SentenceSplitter
 from datetime import datetime
@@ -31,7 +31,7 @@ async def get_index_documents_summary(topic: str, limit: Optional[int] = 5, min_
 
 
 @router.post("/index_documents")
-async def create_index_document(document: Document):
+async def create_index_document(document: EmbeddingDocumentModel):
     return (await DataIndex("n/a").index([document]))[0]
 
 
@@ -41,7 +41,7 @@ async def get_index_document(document_id: int):
 
 
 @router.put("/index_documents/{document_id}")
-async def update_index_document(document_id: int, document: Document):
+async def update_index_document(document_id: int, document: EmbeddingDocumentModel):
     await DataIndex("n/a").update_document(document_id, document)
     return {"message": "Document updated successfully"}
 
@@ -93,7 +93,7 @@ async def load_data(request: DataLoaderRequest):
     embedding_documents = []
     for idx, text_chunk in enumerate(text_chunks):
         src_doc = documents[doc_idxs[idx]]
-        document = Document(
+        document = EmbeddingDocumentModel(
             text=text_chunk,
             # source=request.loader_module,
             # importance=0.0,

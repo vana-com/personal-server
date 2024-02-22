@@ -22,9 +22,13 @@ from playhouse.shortcuts import model_to_dict
 
 from selfie.config import get_app_config
 from selfie.embeddings import DataIndex
-from selfie.embeddings.document_types import Document
+from selfie.embeddings.document_types import EmbeddingDocumentModel
 
 import logging
+
+# TODO: This module should not be aware of DocumentDTO. Refactor its usage out of this module.
+from selfie.types.documents import DocumentDTO
+
 logger = logging.getLogger(__name__)
 
 database_proxy = Proxy()
@@ -53,7 +57,7 @@ class BaseModel(Model):
 #
 #     class Meta:
 #         table_name = 'selfie_datasource'
-class DocumentConnection(BaseModel):
+class DocumentConnectionModel(BaseModel):
     id = AutoField()
     #     name = CharField()
     connector_name = CharField()
@@ -72,9 +76,9 @@ class DocumentConnection(BaseModel):
 #
 #     class Meta:
 #         table_name = 'selfie_document'
-class SelfieDocument(BaseModel):
+class DocumentModel(BaseModel):
     id = AutoField()
-    document_connection = ForeignKeyField(DocumentConnection, backref='documents')
+    document_connection = ForeignKeyField(DocumentConnectionModel, backref='documents')
     content = TextField()
     content_type = CharField()
     name = CharField()
@@ -84,7 +88,7 @@ class SelfieDocument(BaseModel):
         table_name = 'selfie_document'
 
 
-class Settings(BaseModel):
+class SettingsModel(BaseModel):
     id = AutoField()
     key = CharField(unique=True)
     value = TextField()
@@ -100,14 +104,14 @@ class DataManager:
         self.db = SqliteDatabase(os.path.join(storage_path, config.db_name))
         database_proxy.initialize(self.db)
         self.db.connect()
-        self.db.create_tables([DocumentConnection, SelfieDocument])
+        self.db.create_tables([DocumentConnectionModel, DocumentModel])
 
     def add_document_connection(
         self,
         connector_name: str,
         configuration: Dict[str, Any],
     ) -> int:
-        return DocumentConnection.create(
+        return DocumentConnectionModel.create(
             connector_name=connector_name,
             configuration=json.dumps(configuration)
         )
@@ -117,7 +121,7 @@ class DataManager:
 
     async def remove_document(self, document_id: int, delete_indexed_data: bool = True):
         with self.db.atomic():
-            document = SelfieDocument.get_by_id(document_id)
+            document = DocumentModel.get_by_id(document_id)
             if document is None:
                 raise ValueError(f"No document found with ID {document_id}")
 
@@ -128,34 +132,32 @@ class DataManager:
             document.delete_instance()
 
     async def remove_document_connection(self, document_connection_id: int, delete_documents: bool = True, delete_indexed_data: bool = True):
-        document_connection = self.get_document_connection(document_connection_id)
-        if document_connection is None:
+        if self.get_document_connection(document_connection_id) is None:
             raise ValueError(f"No document connection found with ID {document_connection_id}")
 
         if delete_indexed_data:
-            source_document_ids = [doc.id for doc in SelfieDocument.select().where(SelfieDocument.document_connection == document_connection_id)]
+            source_document_ids = [doc.id for doc in DocumentModel.select().where(DocumentModel.document_connection == document_connection_id)]
             await DataIndex("n/a").delete_documents_with_source_documents(source_document_ids)
 
         with self.db.atomic():
             if delete_documents:
-                SelfieDocument.delete().where(SelfieDocument.document_connection == document_connection_id).execute()
+                DocumentModel.delete().where(DocumentModel.document_connection == document_connection_id).execute()
 
-            DocumentConnection.delete().where(DocumentConnection.id == document_connection_id).execute()
+            DocumentConnectionModel.delete().where(DocumentConnectionModel.id == document_connection_id).execute()
 
     def scan_document_connections(self, connection_ids: List[int]) -> Dict[str, Any]:
         changes = {}
         for connection_id in connection_ids:
-            document_connection = DocumentConnection.get_by_id(connection_id)
+            document_connection = DocumentConnectionModel.get_by_id(connection_id)
 
             connection_config = json.loads(document_connection.configuration)
-            print(connection_config)
             if connection_config["loader_name"].startswith("selfie"):
                 # TODO: last_loaded_timestamp is not currently defined
                 connection_config["load_data_kwargs"]["earliest_date"] = document_connection.last_loaded_timestamp
 
             documents = self._fetch_documents(connection_config)
             for doc in documents:
-                document, created = SelfieDocument.get_or_create(
+                document, created = DocumentModel.get_or_create(
                     document_connection=document_connection,
                     content=doc.content,  # TODO: This, if doc.content_type matches text, otherwise key should be object
                     defaults={
@@ -167,7 +169,7 @@ class DataManager:
                 changes[document.id] = "Created" if created else "Updated"
         return changes
 
-    def _fetch_documents(self, configuration: Dict[str, Any]) -> List[SelfieDocument]:
+    def _fetch_documents(self, configuration: Dict[str, Any]) -> List[DocumentDTO]:
         # TODO: Replace this with DocumentConnector implementation. Maybe it shouldn't return Peewee models directly.
         module_name, class_name = configuration["loader_name"].rsplit(".", 1)
         module = importlib.import_module(module_name)
@@ -177,7 +179,7 @@ class DataManager:
         )
         loader_docs = loader.load_data(*configuration["load_data_args"], **configuration["load_data_kwargs"])
         return [
-            SelfieDocument(
+            DocumentDTO(
                 content=doc.text,
                 content_type="text",
                 name="N/A",
@@ -196,7 +198,7 @@ class DataManager:
                 value = getattr(value, key, None)
         return value
 
-    async def index_documents(self, document_connection: DocumentConnection):
+    async def index_documents(self, document_connection: DocumentConnectionModel):
         print("Indexing documents")
 
         self.scan_document_connections([document_connection.id])
@@ -212,7 +214,7 @@ class DataManager:
 
         return {"message": f"{len(documents)} documents indexed successfully"}
 
-    async def index_document(self, document: SelfieDocument, selfie_documents_to_index_documents: Callable[[SelfieDocument], List[Document]] = None):
+    async def index_document(self, document: DocumentDTO, selfie_documents_to_index_documents: Callable[[DocumentDTO], List[EmbeddingDocumentModel]] = None):
         print("Indexing document")
 
         if selfie_documents_to_index_documents is None:
@@ -226,20 +228,17 @@ class DataManager:
         return await DataIndex("n/a").index(index_documents, extract_importance=False)
 
     @staticmethod
-    def _map_selfie_documents_to_index_documents(selfie_document: SelfieDocument):
-        text_parser = SentenceSplitter(chunk_size=1024)
-        documents = []
-
-        for text_chunk in text_parser.split_text(selfie_document.content):
-            documents.append(Document(
+    def _map_selfie_documents_to_index_documents(selfie_document: DocumentDTO):
+        return [
+            EmbeddingDocumentModel(
                 text=text_chunk,
                 # source=selfie_document.document_connection.connector_name,
                 source="Unknown",
                 timestamp=DataManager._extract_timestamp(selfie_document),
                 source_document_id=selfie_document.id,
-            ))
-
-        return documents
+            )
+            for text_chunk in SentenceSplitter(chunk_size=1024).split_text(selfie_document.content)
+        ]
 
     @staticmethod
     def _extract_timestamp(doc):
@@ -247,12 +246,7 @@ class DataManager:
 
     @staticmethod
     def get_document_connection(document_connection_id: int):
-        try:
-            return DocumentConnection.get_by_id(document_connection_id)
-        except DoesNotExist:
-            return {"error": "Document connection not found"}
-        except Exception as e:
-            return {"error": str(e)}
+        return DocumentConnectionModel.get_by_id(document_connection_id)
 
     def get_document_connections(self):
         return [
@@ -263,15 +257,15 @@ class DataManager:
             #     "loader_module": source.loader_module,
             #     "config": json.loads(source.config),
             # }
-            for source in DocumentConnection.select()
+            for source in DocumentConnectionModel.select()
         ]
 
     def get_documents(self, document_connection_id: Optional[int] = None):
         if document_connection_id:
-            documents = SelfieDocument.select().where(SelfieDocument.document_connection == document_connection_id)
+            documents = DocumentModel.select().where(DocumentModel.document_connection == document_connection_id)
             doc_ids = [str(document.id) for document in documents]
         else:
-            documents = SelfieDocument.select()
+            documents = DocumentModel.select()
             doc_ids = None
 
         one_embedding_document_per_document = DataIndex("n/a").get_one_document_per_source_document(doc_ids)
@@ -288,7 +282,7 @@ class DataManager:
         ]
 
     def get_document(self, document_id: str):
-        return SelfieDocument.get_by_id(document_id)
+        return DocumentModel.get_by_id(document_id)
 
 
 if __name__ == "__main__":

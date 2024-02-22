@@ -3,7 +3,7 @@ from dateutil import parser
 import math
 
 from selfie.embeddings.base_scorer import BaseScorer
-from selfie.embeddings.document_types import Document
+from selfie.embeddings.document_types import EmbeddingDocumentModel
 
 from datetime import timezone
 
@@ -14,7 +14,7 @@ class RecencyScorer(BaseScorer):
         self.current_time = current_time
 
     def calculate_raw_score(
-        self, document: Document, document_index: int = None, num_documents: int = None
+        self, document: EmbeddingDocumentModel, document_index: int = None, num_documents: int = None
     ):
         """
         Calculate recency score using an exponential decay function.
