@@ -13,6 +13,7 @@ from selfie.api.data_sources import router as data_sources_router
 from selfie.api.documents import router as documents_router
 from selfie.api.index_documents import router as index_documents_router
 from selfie.api.models import router as models_router
+from selfie.api.connectors import router as connectors_router
 from selfie.config import get_app_config
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,7 @@ app.include_router(data_sources_router)
 app.include_router(documents_router)
 app.include_router(index_documents_router)
 app.include_router(models_router)
+app.include_router(connectors_router)
 
 
 @app.get("/", response_class=HTMLResponse)
