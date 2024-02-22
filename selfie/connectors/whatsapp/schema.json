@@ -1,0 +1,14 @@
+{
+  "title": "Whatsapp Files",
+  "type": "object",
+  "properties": {
+    "files": {
+      "type": "array",
+      "title": "Upload Whatsapp .txt files",
+      "items": {
+        "type": "string",
+        "format": "data-url"
+      }
+    }
+  }
+}
