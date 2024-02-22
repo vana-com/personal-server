@@ -12,7 +12,7 @@ class WhatsappConnector(BaseConnector, ABC):
 
     def load_document(self, configuration: dict[str, Any]):
         super().load_document(configuration)
-        # TODO: read configuration (file path), and save file contents to DB
+        # TODO: read configuration (file path), return the parsed document
 
     def validate_configuration(self, configuration: dict[str, Any]):
         # TODO: check if file can be read from path
