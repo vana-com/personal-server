@@ -2,8 +2,8 @@ from abc import ABC
 from typing import Any, List
 
 from selfie.connectors.base_connector import BaseConnector
-from selfie.database import SelfieDocument
-from selfie.embeddings import Document
+from selfie.embeddings import EmbeddingDocumentModel
+from selfie.types.documents import DocumentDTO
 
 
 class WhatsappConnector(BaseConnector, ABC):
@@ -12,7 +12,7 @@ class WhatsappConnector(BaseConnector, ABC):
         self.id = "whatsapp"
         self.name = "Whatsapp"
 
-    def load_document(self, configuration: dict[str, Any]) -> List[SelfieDocument]:
+    def load_document(self, configuration: dict[str, Any]) -> List[DocumentDTO]:
         super().load_document(configuration)
         # TODO: read configuration (file path), return the parsed document
         return []
@@ -21,6 +21,6 @@ class WhatsappConnector(BaseConnector, ABC):
         # TODO: check if file can be read from path
         pass
 
-    def transform_for_embedding(self, configuration: dict[str, Any], documents: List[SelfieDocument]) -> List[Document]:
-        # TODO: Transform a SelfieDocument into a ShareGPT document so it can be inserted into a Vector DB
+    def transform_for_embedding(self, configuration: dict[str, Any], documents: List[DocumentDTO]) -> List[EmbeddingDocumentModel]:
+        # TODO: Transform a Document into a ShareGPT document so it can be inserted into a Vector DB
         return []

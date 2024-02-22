@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, model_validator
 
 
-class Document(BaseModel):
+class EmbeddingDocumentModel(BaseModel):
     id: Optional[int] = Field(None, description="ID of the document, auto-generated")
     text: str = Field(..., description="Formatted conversation or content of the document")
     source: str = Field(..., description="Source of the document, e.g., API")
@@ -32,7 +32,7 @@ class Document(BaseModel):
         return values
 
 
-class ScoredDocument(Document):
+class ScoredEmbeddingDocumentModel(EmbeddingDocumentModel):
     score: float = Field(..., description="Overall score of the document, for a query, [0, 1]")
     importance: Optional[float] = Field(..., description="Importance score of the document, [0, 1]")
     relevance: float = Field(..., description="Relevance score of the document, for a query, [0, 1]")

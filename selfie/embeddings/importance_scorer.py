@@ -2,7 +2,7 @@ import json
 
 from selfie.config import get_app_config
 from selfie.embeddings.base_scorer import BaseScorer
-from selfie.embeddings.document_types import Document
+from selfie.embeddings.document_types import EmbeddingDocumentModel
 
 config = get_app_config()
 
@@ -12,7 +12,7 @@ class ImportanceScorer(BaseScorer):
         super().__init__(score_weight)
         self.use_local_llm = use_local_llm
 
-    def calculate_raw_score(self, document: Document):
+    def calculate_raw_score(self, document: EmbeddingDocumentModel):
         """
         Calculate the raw importance score for a document using OpenAI's API.
         """
