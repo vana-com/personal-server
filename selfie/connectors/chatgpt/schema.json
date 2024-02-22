@@ -1,0 +1,14 @@
+{
+  "title": "Chat GPT export",
+  "type": "object",
+  "properties": {
+    "files": {
+      "type": "array",
+      "title": "Upload \"conversations.json\" file",
+      "items": {
+        "type": "string",
+        "format": "data-url"
+      }
+    }
+  }
+}

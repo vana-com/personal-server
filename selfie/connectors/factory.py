@@ -1,10 +1,12 @@
 from selfie.connectors.whatsapp.connector import WhatsappConnector
+from selfie.connectors.chatgpt.connector import ChatGPTConnector
 
 
 class ConnectorFactory:
     # Register all document connectors here
     connector_registry = [
-        WhatsappConnector
+        WhatsappConnector,
+        ChatGPTConnector
     ]
 
     connector_map = {}
