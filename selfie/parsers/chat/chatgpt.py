@@ -1,62 +1,83 @@
-from datetime import datetime
-from typing import Dict, Any, List
-
+# TODO: Currently this parser fails pydantic but working
 from pydantic import BaseModel
-
+from typing import Any, List
 from selfie.parsers.chat.base import JsonBasedChatParser
 from selfie.types.share_gpt import ShareGPTConversation
 
 
 class Author(BaseModel):
-    name: str
+    role: str
+    name: str | None
+    metadata: dict
+
+
+class Content(BaseModel):
+    content_type: str
+    parts: List[str]
 
 
 class Message(BaseModel):
+    id: str
     author: Author
-    content: str
-    timestamp: datetime
+    create_time: float
+    update_time: float | None
+    content: Content
+    status: str
+    end_turn: bool | None
+    weight: float
+    metadata: dict
+    recipient: str
 
 
-class DiscordData(BaseModel):
-    messages: List[Message]
+class Node(BaseModel):
+    id: str
+    message: Message | None
+    parent: str | None
+    children: List[str]
 
 
-# TODO: This is a hypothetical parser for Discord data. It's not tested.
-# TODO: Consider compatibility with https://github.com/run-llama/llama-hub/blob/main/llama_hub/discord/base.py
-class DiscordParser(JsonBasedChatParser):
-    SUPPORTED_SCHEMAS = [
-        DiscordData
-    ]
+class ChatGPTData(BaseModel):
+    title: str
+    create_time: float
+    update_time: float
+    mapping: dict[str, Node]
+    moderation_results: List
+    current_node: str
+    plugin_ids: List | None
+    conversation_id: str
+    conversation_template_id: str | None
+    gizmo_id: str | None
+    is_archived: bool
+    safe_urls: List
+    id: str
 
-    def extract_conversations(self, data: Any) -> ShareGPTConversation:
+
+class ChatGPTParser(JsonBasedChatParser):
+    SUPPORTED_SCHEMAS = [ChatGPTData]
+
+    def extract_conversations(self, data: ChatGPTData) -> ShareGPTConversation:
         """
-        Extract conversations from parsed Discord JSON data.
+        Extract conversations from a list of parsed ChatGPT JSON data.
 
         Args:
-            data (Any): The parsed JSON data should have a structure like:
-                        {
-                            "messages": [
-                                {"author": {"name": "Alice"}, "content": "Hi", "timestamp": "2021-01-01T12:00:00Z"},
-                                {"author": {"name": "Bob"}, "content": "Hello", "timestamp": "2021-01-01T12:01:00Z"}
-                            ]
-                        }
+            data (List[ChatGPTData]): The list of parsed JSON data
 
         Returns:
-            Dict: A dictionary containing the parsed chat data.
-                  Example structure:
-                  {
-                      "conversations": [
-                          {"from": "Alice", "value": "Hi", "timestamp": "2021-01-01T12:00:00Z"},
-                          {"from": "Bob", "value": "Hello", "timestamp": "2021-01-01T12:01:00Z"}
-                      ]
-                  }
+            List[dict]: A list of conversation dictionaries
         """
-        return ShareGPTConversation(
-            conversations=[
-                {
-                    "from": msg['author']['name'],
-                    "value": msg['content'],
-                    "timestamp": msg['timestamp']
-                } for msg in data['messages']
-            ]
-        )
+        conversations = []
+        for conversation in data:
+            for node_id, node in conversation["mapping"].items():
+                if node["message"]:
+                    message = node["message"]
+                    author_name = message["author"]["name"] if message["author"]["name"] else message["author"]["role"]
+                    message_content = ' '.join(message["content"]["parts"])
+                    message_timestamp = message["create_time"]
+
+                    conversations.append({
+                        "from": author_name,
+                        "value": message_content,
+                        "timestamp": message_timestamp
+                    })
+
+        return ShareGPTConversation(conversations=conversations)
