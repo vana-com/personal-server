@@ -1,27 +1,16 @@
 from abc import ABC
 from typing import Any, List
-import base64
-from io import BytesIO
 
 from selfie.connectors.base_connector import BaseConnector
 from selfie.database import BaseModel
 from selfie.embeddings import EmbeddingDocumentModel, DataIndex
 from selfie.parsers.chat import ChatFileParser
 from selfie.types.documents import DocumentDTO
+from selfie.utils import data_uri_to_string
 
 
 class WhatsAppConfiguration(BaseModel):
     files: List[str]
-
-
-def data_uri_to_string(data_uri):
-    metadata, encoded = data_uri.split(',', 1)
-    data = base64.b64decode(encoded)
-    mime_type = metadata.split(';')[0].split(':')[1]
-    with BytesIO(data) as buffer:
-        content = buffer.read()
-        string_content = content.decode('utf-8')
-        return string_content
 
 
 class WhatsAppConnector(BaseConnector, ABC):
