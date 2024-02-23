@@ -160,8 +160,10 @@ Method is optional and defaults to `litellm` when `api_base` is specified.
 Selfie can use hosted model providers through [litellm](https://litellm.vercel.app). In completion requests, specify the `litellm` method (optional) and ensure that your model is prefixed correctly according to [litellm's documentation for your provider](https://docs.litellm.ai/docs/providers).
 
 ```json
-"method": "litellm",
-"model": "replicate/llama-2-70b-chat:2796ee9483c3fd7aa2e171d38f4ca12251a30609463dcfd4cd76703f22e96cdf",
+{
+  "method": "litellm",
+  "model": "replicate/llama-2-70b-chat:2796ee9483c3fd7aa2e171d38f4ca12251a30609463dcfd4cd76703f22e96cdf"
+}
 ```
 
 In general, you need an API key for your provided loaded into your environment. A quick way to do that is to specify it when you start the server:
@@ -245,7 +247,7 @@ Besides `build-ui.sh`, scripts are provided in scripts/ to help with useful task
 
 ### llama-cpp-python-cublas.sh
 
-To install llama.cpp with CUDA support for better performance, run `./scripts/llama-cpp-python-cublas.sh`. [ROCm](https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/tag/rocm) and [Metal](https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/tag/metal) versions should be installed manually.
+To install llama.cpp with hardware acceleration for better performance, run `./scripts/llama-cpp-python-cublas.sh`.
 
 Alternatively, you can build `llama-cpp-python` manually with the flags of your choice by following [the instructions](https://github.com/abetlen/llama-cpp-python?tab=readme-ov-file#installation).
 
