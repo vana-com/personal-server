@@ -7,8 +7,8 @@ interface DocumentTableRowProps {
   dataSource: DataSource;
   columnNames: string[];
   onToggle: (docId: string) => void;
-  onIndexDocument: (doc: Document) => void | Promise<void>;
-  onUnindexDocument: (doc: Document) => void | Promise<void>;
+  // onIndexDocument: (doc: Document) => void | Promise<void>;
+  // onUnindexDocument: (doc: Document) => void | Promise<void>;
   isSelected?: boolean;
   disabled?: boolean;
 }
@@ -18,8 +18,8 @@ const DocumentTableRow = React.memo<DocumentTableRowProps>(({
   dataSource,
   columnNames,
   onToggle,
-  onIndexDocument,
-  onUnindexDocument,
+  // onIndexDocument,
+  // onUnindexDocument,
   isSelected = false,
   disabled = false,
 }) => {
@@ -56,21 +56,21 @@ const DocumentTableRow = React.memo<DocumentTableRowProps>(({
       </td>
       {columnNames.map((colName) => (
         <td key={`${doc.id}-${colName}`} className={`p-2 ${colName}`}>
-          <div className="truncate max-w-xs" title={doc.metadata[colName]}>
-            {isDateString(doc.metadata[colName]) ? formatDate(doc.metadata[colName]) : doc.metadata[colName]}
+          <div className="truncate max-w-xs" title={String(doc[colName])}>
+            {isDateString(doc[colName]) ? formatDate(doc[colName]) : String(doc[colName])}
           </div>
         </td>
       ))}
       <td>
         {!doc.is_indexed && <button
-            onClick={() => onIndexDocument(doc)}
+            // onClick={() => onIndexDocument(doc)}
             className="btn btn-xs"
             disabled={disabled}
         >
             Index
         </button>}
         {doc.is_indexed && <button
-            onClick={() => onUnindexDocument(doc)}
+            // onClick={() => onUnindexDocument(doc)}
             className="btn btn-xs btn-error btn-outline"
             disabled={disabled}
         >

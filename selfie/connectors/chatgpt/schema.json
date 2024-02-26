@@ -1,10 +1,11 @@
 {
-  "title": "Chat GPT export",
+  "title": "Upload ChatGPT Conversations",
   "type": "object",
   "properties": {
     "files": {
       "type": "array",
-      "title": "Upload \"conversations.json\" file",
+      "title": "Files",
+      "description": "Upload conversations.json files exported from ChatGPT",
       "items": {
         "type": "string",
         "format": "data-url"
