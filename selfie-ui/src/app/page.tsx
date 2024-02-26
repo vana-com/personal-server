@@ -6,8 +6,8 @@ import { ThemeChanger } from "@/app/components/ThemeChanger";
 import { AddData } from "@/app/components/AddData";
 import useAsyncTask from "@/app/hooks/useAsyncTask";
 import TaskToast from "@/app/components/TaskToast";
-import Playground from "@/app/components/Playground";
 import DataManager from "@/app/components/DataManager";
+import { Playground } from "@/app/components/Playground";
 
 const pages = [
   { component: Playground, id: 'playground' },
@@ -88,7 +88,7 @@ const App = () => {
             ))}
             <li></li>
             <li>
-              <a className="link link-hover" href={`${apiBaseUrl}/docs`}>
+              <a className="link link-hover" href={`${apiBaseUrl}/docs`} target="_blank">
                 API Docs
               </a>
             </li>
