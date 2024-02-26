@@ -1,4 +1,6 @@
-# Export WhatsApp chats
+## Export Instructions
+
+In order to export your WhatsApp chat history, you will need to use the WhatsApp app on your phone. Expand the section below for your device type to see the instructions.
 
 <details>
   <summary>iOS</summary>

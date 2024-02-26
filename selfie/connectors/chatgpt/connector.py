@@ -17,7 +17,7 @@ class ChatGPTConnector(BaseConnector, ABC):
     def __init__(self):
         super().__init__()
         self.id = "chatgpt"
-        self.name = "Chat GPT"
+        self.name = "ChatGPT"
 
     def load_document(self, configuration: dict[str, Any]) -> List[DocumentDTO]:
         config = ChatGPTConfiguration(**configuration)
