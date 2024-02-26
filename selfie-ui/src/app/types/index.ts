@@ -1,15 +1,20 @@
-export interface Document {
-  id: string
-  metadata: {
-    [key: string]: any
-  }
-  is_indexed: boolean
-  num_index_documents?: number
-}
+// TODO: define this type
+export type Document = any
+// export interface Document {
+//   id: string
+//   metadata: {
+//     [key: string]: any
+//   }
+//   is_indexed: boolean
+//   num_index_documents?: number
+// }
 
 export interface Documents {
   [sourceId: string]: Document[]
 }
+
+// TODO: define this type
+export type DocumentConnection = any
 
 export interface DataSource {
   id: string;

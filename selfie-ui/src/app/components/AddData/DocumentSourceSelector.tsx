@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 
 type DocumentSourceSelectorProps = {
   onSelect: (selectedId: string) => void;
@@ -27,7 +27,7 @@ const DocumentSourceSelector = ({ onSelect }: DocumentSourceSelectorProps) => {
   }, []);
 
   // const handleChange = (selectedOption: SingleValue<OptionType>, actionMeta: ActionMeta<OptionType>) => {
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const selectedOption = e.target;
     // console.log(e)
     if (selectedOption) {
@@ -36,8 +36,8 @@ const DocumentSourceSelector = ({ onSelect }: DocumentSourceSelectorProps) => {
   };
 
   return (
-    <select className="select select-bordered w-full max-w-sm" onChange={handleChange}>
-      <option disabled selected>Select a document source...</option>
+    <select className="select select-bordered w-full max-w-sm" onChange={handleChange} defaultValue={''}>
+      <option disabled value="">Select a data source...</option>
       {sources.map((source) => (
         <option key={source.value} value={source.value}>
           {source.label}
