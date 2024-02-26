@@ -8,6 +8,7 @@ import yaml
 from selfie.parsers.chat.discord import DiscordParser
 from selfie.parsers.chat.whatsapp import WhatsAppParser
 from selfie.parsers.chat.google import GoogleTakeoutMessagesParser
+from selfie.parsers.chat.chatgpt import ChatGPTParser
 from selfie.types.share_gpt import ShareGPTConversation, ShareGPTMessage
 
 import logging
@@ -45,6 +46,7 @@ class Parser(Enum):
     WHATSAPP = WhatsAppParser
     DISCORD = DiscordParser
     GOOGLE_MESSAGES = GoogleTakeoutMessagesParser
+    CHATGPT = ChatGPTParser
 
 
 class ChatFileParser:

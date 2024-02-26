@@ -12,10 +12,10 @@ interface DocumentTableProps {
   selectedDocuments: Set<string>;
   setSelectedDocuments: (selected: Set<string>) => void;
   onToggleDocumentSelection: (docId: string) => void;
-  onIndexDocument: (doc: Document) => void | Promise<void>;
-  onUnindexDocument: (doc: Document) => void | Promise<void>;
-  onIndexDocuments: () => void | Promise<void>;
-  onUnindexDocuments: () => void | Promise<void>;
+  // onIndexDocument: (doc: Document) => void | Promise<void>;
+  // onUnindexDocument: (doc: Document) => void | Promise<void>;
+  // onIndexDocuments: () => void | Promise<void>;
+  // onUnindexDocuments: () => void | Promise<void>;
   disabled?: boolean;
   stats?: DocumentStats;
 }
@@ -27,10 +27,10 @@ const DocumentTable = ({
                          selectedDocuments,
                          setSelectedDocuments,
                          onToggleDocumentSelection,
-                         onIndexDocument,
-                         onUnindexDocument,
-                         onIndexDocuments,
-                         onUnindexDocuments,
+                         // onIndexDocument,
+                         // onUnindexDocument,
+                         // onIndexDocuments,
+                         // onUnindexDocuments,
                          disabled = false,
                          stats,
                        }: DocumentTableProps) => {
@@ -90,8 +90,8 @@ const DocumentTable = ({
   return (
     <>
       <DocumentTableActionBar
-        onIndexDocuments={onIndexDocuments}
-        onUnindexDocuments={onUnindexDocuments}
+        // onIndexDocuments={onIndexDocuments}
+        // onUnindexDocuments={onUnindexDocuments}
         indexableDocuments={indexableDocuments}
         unindexableDocuments={unindexableDocuments}
         hasSelectedDocuments={selectedDocuments.size > 0}
@@ -134,8 +134,8 @@ const DocumentTable = ({
               columnNames={columnNames}
               isSelected={selectedDocuments.has(doc.id)}
               onToggle={onToggleDocumentSelection}
-              onIndexDocument={(doc) => onIndexDocument(doc)}
-              onUnindexDocument={(doc) => onUnindexDocument(doc)}
+              // onIndexDocument={(doc) => onIndexDocument(doc)}
+              // onUnindexDocument={(doc) => onUnindexDocument(doc)}
               disabled={disabled}
             />
           ))

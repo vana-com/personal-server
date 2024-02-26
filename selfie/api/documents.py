@@ -51,14 +51,14 @@ async def index_documents(request: IndexDocumentsRequest):
         await manager.index_document(manager.get_document(document_id),
                                      lambda document: DataIndex.map_share_gpt_data(
                                          parser.parse_document(
-                                             document.text,
+                                             document.content,
                                              None,
                                              speaker_aliases,
                                              False,
                                              document.id
                                          ).conversations,
-                                         document.source.name,
-                                         document.id
+                                         #source=document.source.name,
+                                         source_document_id=document.id
                                      ) if is_chat else None)
         for document_id in document_ids
     ]

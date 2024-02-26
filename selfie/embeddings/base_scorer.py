@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from selfie.embeddings.document_types import Document
+from selfie.embeddings.document_types import EmbeddingDocumentModel
 
 
 class BaseScorer(ABC):
@@ -21,7 +21,7 @@ class BaseScorer(ABC):
         """
         return max(0, min(1, score))  # Default normalization logic
 
-    def calculate_score(self, document: Document, *args, **kwargs):
+    def calculate_score(self, document: EmbeddingDocumentModel, *args, **kwargs):
         """
         Wrapper method to calculate and then normalize the score.
         """

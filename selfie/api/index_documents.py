@@ -6,7 +6,7 @@ from selfie.api.data_sources import DataLoaderRequest
 from selfie.parsers.chat import ChatFileParser
 from selfie.parsers.chat.chat_file_parsing_helper import get_files_with_configs, delete_uploaded_files
 from selfie.embeddings import DataIndex
-from selfie.embeddings.document_types import Document
+from selfie.embeddings.document_types import EmbeddingDocumentModel
 
 from llama_index.core.node_parser.text import SentenceSplitter
 from datetime import datetime
@@ -21,8 +21,8 @@ async def get_documents(offset: int = 0, limit: int = 10):
 
 
 @router.get("/index_documents/summary")
-async def get_index_documents_summary(topic: str, limit: Optional[int] = 5, min_score: Optional[float] = None):
-    result = await DataIndex("n/a").recall(topic, limit=limit, min_score=min_score)
+async def get_index_documents_summary(topic: str, limit: Optional[int] = 5, min_score: Optional[float] = None, include_summary: Optional[bool] = True):
+    result = await DataIndex("n/a").recall(topic, limit=limit, min_score=min_score, include_summary=include_summary)
     return {
         "summary": result["summary"],
         "score": result["mean_score"],
@@ -31,7 +31,7 @@ async def get_index_documents_summary(topic: str, limit: Optional[int] = 5, min_
 
 
 @router.post("/index_documents")
-async def create_index_document(document: Document):
+async def create_index_document(document: EmbeddingDocumentModel):
     return (await DataIndex("n/a").index([document]))[0]
 
 
@@ -41,7 +41,7 @@ async def get_index_document(document_id: int):
 
 
 @router.put("/index_documents/{document_id}")
-async def update_index_document(document_id: int, document: Document):
+async def update_index_document(document_id: int, document: EmbeddingDocumentModel):
     await DataIndex("n/a").update_document(document_id, document)
     return {"message": "Document updated successfully"}
 
@@ -60,6 +60,7 @@ async def delete_index_documents():
     return {"message": "All documents deleted successfully"}
 
 
+# TODO: Deprecate this endpoint, it should be not be allowed to embed documents that are not tracked
 @router.post("/index_documents/llama-hub-loader")
 async def load_data(request: DataLoaderRequest):
     # TODO: extract document metadata from request?
@@ -89,23 +90,24 @@ async def load_data(request: DataLoaderRequest):
         text_chunks.extend(cur_text_chunks)
         doc_idxs.extend([doc_idx] * len(cur_text_chunks))
 
-    documents = []
+    embedding_documents = []
     for idx, text_chunk in enumerate(text_chunks):
         src_doc = documents[doc_idxs[idx]]
-        document = Document(
+        document = EmbeddingDocumentModel(
             text=text_chunk,
-            source=request.loader_module,
+            # source=request.loader_module,
             # importance=0.0,
             # timestamp=datetime.strptime(src_doc.metadata['last_modified'], "%Y-%m-%d"),
             # use last_modified if available, otherwise use current time
-            timestamp=datetime.strptime(src_doc.metadata["last_modified"], "%Y-%m-%d")
-            if "last_modified" in src_doc.metadata
+            timestamp=datetime.strptime(src_doc["last_modified"], "%Y-%m-%d")
+            # source_document_id=src_doc["id"]
+            if "last_modified" in src_doc
             else datetime.now(),
         )
 
-        documents.append(document)
+        embedding_documents.append(document)
 
-    return {"documents": await DataIndex("n/a").index(documents, extract_importance=False)}
+    return {"documents": await DataIndex("n/a").index(embedding_documents, extract_importance=False)}
 
 
 @router.post("/index_documents/chat-processor")

@@ -13,7 +13,7 @@ from selfie.data_generators.chat_training_data import (
     ChatTrainingDataGenerator,
 )
 from selfie.types.share_gpt import ShareGPTMessage
-from selfie.embeddings.document_types import Document, ScoredDocument
+from selfie.embeddings.document_types import EmbeddingDocumentModel, ScoredEmbeddingDocumentModel
 from selfie.embeddings.importance_scorer import ImportanceScorer
 from selfie.embeddings.recency_scorer import RecencyScorer
 from selfie.embeddings.relevance_scorer import RelevanceScorer
@@ -149,7 +149,7 @@ class DataIndex:
     @staticmethod
     def map_share_gpt_data(
         conversation: List[ShareGPTMessage], source: str = "Unknown", source_document_id: int = None
-    ) -> List[Document]:
+    ) -> List[EmbeddingDocumentModel]:
         chunks = ChatTrainingDataGenerator.group_messages_into_chunks(
             conversation, overlap=1, max_messages=8, max_characters=0
         )
@@ -165,11 +165,15 @@ class DataIndex:
                 for msg in conv
             ).strip()
 
-            document = Document(
+            document = EmbeddingDocumentModel(
                 text=formatted_conversation,
                 timestamp=conv[0].timestamp,
                 source=source,
             )
+
+            # TODO: confirm that id being a field in the model is not a problem for mapping with
+            if document.id is None:
+                del document.id
 
             if source_document_id:
                 document.source_document_id = source_document_id
@@ -195,7 +199,7 @@ class DataIndex:
         ) / (importance_weight + recency_weight + relevance_weight)
 
     async def _summarize_documents(
-        self, character_name: str, documents: List[Document], context, model
+        self, character_name: str, documents: List[EmbeddingDocumentModel], context, model
     ):
         logger.info(f"Summarizing {len(documents)} documents")
 
@@ -231,7 +235,7 @@ class DataIndex:
             )
             return openai_response.choices[0].message.content
 
-    def map_document(self, document: Document, extract_importance=True):
+    def map_document(self, document: EmbeddingDocumentModel, extract_importance=True):
         return {
             **document.to_dict(),
             **(
@@ -255,7 +259,7 @@ class DataIndex:
     ) -> List[Dict[str, Any]]:
         parameters = parameters or {}
         query_components = [
-            f"SELECT score, {', '.join(Document.model_fields.keys())} FROM txtai"
+            f"SELECT score, {', '.join(EmbeddingDocumentModel.model_fields.keys())} FROM txtai"
         ]
 
         if where:
@@ -274,7 +278,7 @@ class DataIndex:
         logger.debug(f"Query looks like {' '.join(query_components)}")
         return self.embeddings.search(" ".join(query_components), parameters=parameters, limit=limit)
 
-    async def index(self, documents: List[Document], extract_importance=True, upsert=False):
+    async def index(self, documents: List[EmbeddingDocumentModel], extract_importance=True, upsert=False):
         start_time = time.time()
         logger.info(f"Indexing {len(documents)} documents started at {start_time}")
 
@@ -317,9 +321,9 @@ class DataIndex:
         self.embeddings.load(self.storage_path)
 
         results = self._query(where="similar(:topic)", parameters={"topic": topic}, limit=limit)
-        documents_list: List[ScoredDocument] = []
+        documents_list: List[ScoredEmbeddingDocumentModel] = []
         for result in results:
-            document = Document(
+            document = EmbeddingDocumentModel(
                 text=result["text"],
                 timestamp=result["timestamp"],
                 importance=result["importance"],
@@ -341,7 +345,7 @@ class DataIndex:
                 relevance_weight,
             )
             documents_list.append(
-                ScoredDocument(
+                ScoredEmbeddingDocumentModel(
                     **document.model_dump(),
                     score=retrieval_score,
                     relevance=relevance_score,
@@ -432,7 +436,7 @@ class DataIndex:
         # return self.embeddings.search(query)
         return self._query(where=where_in_clause, group_by="source_document_id", limit=999999)
 
-    async def find_existing_document(self, document: Document):
+    async def find_existing_document(self, document: EmbeddingDocumentModel):
         if not self.has_data():
             return None
         result = self._query(
@@ -454,7 +458,7 @@ class DataIndex:
             result[0]['id'] = int(result[0]['id'])
             result[0]['source_document_id'] = int(result[0]['source_document_id'])
 
-        return Document(**result[0]) if result else None
+        return EmbeddingDocumentModel(**result[0]) if result else None
 
     async def get_documents(self, offset=0, limit=10):
         if not self.has_data():
