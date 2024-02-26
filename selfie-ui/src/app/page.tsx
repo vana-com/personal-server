@@ -12,7 +12,7 @@ import { Playground } from "@/app/components/Playground";
 const pages = [
   { component: Playground, id: 'playground' },
   { component: AddData, id: 'addData' },
-  { component: DataManager, id: 'dataManager' },
+  //{ component: DataManager, id: 'dataManager' },
 ];
 
 const App = () => {
@@ -39,7 +39,7 @@ const App = () => {
     (component.displayName || component.name || 'Unknown').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (s: string) => s.toUpperCase())
 
   return (
-    <div className="bg-base-100 drawer lg:drawer-open">
+    <div className="bg-base-100 drawer lg:drawer-open text-base-content">
       <input id="my-drawer" type="checkbox" className="drawer-toggle"/>
       <div className="drawer-content flex flex-col">
 
