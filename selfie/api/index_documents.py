@@ -21,8 +21,8 @@ async def get_documents(offset: int = 0, limit: int = 10):
 
 
 @router.get("/index_documents/summary")
-async def get_index_documents_summary(topic: str, limit: Optional[int] = 5, min_score: Optional[float] = None):
-    result = await DataIndex("n/a").recall(topic, limit=limit, min_score=min_score)
+async def get_index_documents_summary(topic: str, limit: Optional[int] = 5, min_score: Optional[float] = None, include_summary: Optional[bool] = True):
+    result = await DataIndex("n/a").recall(topic, limit=limit, min_score=min_score, include_summary=include_summary)
     return {
         "summary": result["summary"],
         "score": result["mean_score"],
