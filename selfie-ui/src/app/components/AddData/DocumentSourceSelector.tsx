@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Select, { SingleValue, ActionMeta } from 'react-select';
 
 type DocumentSourceSelectorProps = {
   onSelect: (selectedId: string) => void;
@@ -27,19 +26,24 @@ const DocumentSourceSelector = ({ onSelect }: DocumentSourceSelectorProps) => {
       .catch((error) => console.error('Error fetching document sources:', error));
   }, []);
 
-  const handleChange = (selectedOption: SingleValue<OptionType>, actionMeta: ActionMeta<OptionType>) => {
+  // const handleChange = (selectedOption: SingleValue<OptionType>, actionMeta: ActionMeta<OptionType>) => {
+  const handleChange = (e) => {
+    const selectedOption = e.target;
+    // console.log(e)
     if (selectedOption) {
       onSelect(selectedOption.value);
     }
   };
 
   return (
-    <Select
-      options={sources}
-      onChange={handleChange}
-      placeholder="Select a document source..."
-      className="mb-4"
-    />
+    <select className="select select-bordered w-full max-w-sm" onChange={handleChange}>
+      <option disabled selected>Select a document source...</option>
+      {sources.map((source) => (
+        <option key={source.value} value={source.value}>
+          {source.label}
+        </option>
+      ))}
+    </select>
   );
 };
 

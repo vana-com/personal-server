@@ -1,12 +1,18 @@
 "use client";
 
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import { FaGithub } from "react-icons/fa";
 import CodeSnippet from "./components/CodeSnippet";
 import { Chat } from "./components/Chat";
 import { DocumentTable } from "./components/DocumentTable";
 import { DataSourceTable } from "./components/DataSourceTable";
 import { DataSource, Documents, DocumentStats } from "./types";
 import { apiBaseUrl } from "./config";
+import { AddData } from "./components/AddData";
+import { ThemeChanger } from "./components/ThemeChanger";
+
+const defaultAssistantName = 'Wilson';
+const defaultAssistantBio = 'Wilson was born in Nantucket. He loves fried chicken.';
 
 const SelfieManager = () => {
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
@@ -37,16 +43,16 @@ const SelfieManager = () => {
 
   const [name, setName] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('assistantName') || '';
+      return localStorage.getItem('assistantName') || defaultAssistantName;
     }
-    return '';
+    return defaultAssistantName;
   });
 
   const [bio, setBio] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('assistantBio') || '';
+      return localStorage.getItem('assistantBio') || defaultAssistantBio;
     }
-    return '';
+    return defaultAssistantBio;
   });
 
   // Effect hook to update localStorage when name or bio changes
@@ -350,7 +356,7 @@ const SelfieManager = () => {
             <label className="label">
               <span className="label-text">Assistant Bio</span>
             </label>
-            <textarea className="textarea textarea-md h-full"
+            <textarea className="textarea textarea-md h-full textarea-bordered"
                       placeholder={`Enter Assistant Bio, e.g. Tim is an Engineer at Vana, deeply motivated, independent thinker, creative problem solver, open to criticism, and team-oriented with a penchant for risk-taking.`}
                       value={bio}
                       onChange={(e) => setBio(e.target.value)}
@@ -361,62 +367,156 @@ const SelfieManager = () => {
     </>
   )
 
-  return (
-    <div className="container mx-auto p-4">
+  const App = () => {
+    const [activeDrawerItem, setActiveDrawerItem] = useState(window.location.hash.slice(1) || 'playground');
 
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-4">Playground</h1>
-        <Playground disabled={!hasIndexedDocuments} />
-      </div>
+    useEffect(() => {
+      window.location.hash = activeDrawerItem;
+    }, [activeDrawerItem]);
 
-      {/*<h1 className="text-4xl font-bold mb-4">Document Directories</h1>*/}
+    return (
+      <div className="bg-base-100 drawer lg:drawer-open">
 
-      {/*<p className="mb-4">*/}
-      {/*  Add the directories on your device that contain the documents you want to add to the knowledge bank. Example*/}
-      {/*  documents are available, see the README for details.*/}
-      {/*</p>*/}
+        <input id="my-drawer" type="checkbox" className="drawer-toggle"/>
+        <div className="drawer-content flex flex-col">
 
-      {/*<div className="overflow-x-auto mb-8">*/}
-      {/*  <DataSourceTable*/}
-      {/*    dataSources={dataSources}*/}
-      {/*    onAddDataSource={handleAddDataSource}*/}
-      {/*    onDeleteDataSource={(dataSource) => handleDeleteDataSource(dataSource.id)}*/}
-      {/*  />*/}
-      {/*</div>*/}
-
-      {/*<h1 className="text-4xl font-bold mb-4">Documents</h1>*/}
-
-      {/*<p className="mb-4">*/}
-      {/*  Index documents to add them to the knowledge bank. Once indexed, data will be used automatically by the AI.*/}
-      {/*</p>*/}
-
-      {(runningTaskMessage || completedTaskMessage) &&
-          <div className="toast toast-top toast-end z-10">
-              <div className={`alert alert-${completedTaskMessage && isTaskError ? 'error' : 'info'}`}>
-                  <span>{runningTaskMessage || completedTaskMessage}</span>
-              </div>
+          {/* Navbar for mobile */}
+          <div className="w-full navbar bg-base-300 lg:hidden">
+            <label htmlFor="my-drawer" className="btn btn-square btn-ghost">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                   className="inline-block w-6 h-6 stroke-current">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+            </label>
+            <div className="flex-1 px-2 mx-2 text-2xl">Selfie</div>
           </div>
-      }
 
-      {/*<div className="overflow-x-auto">*/}
-      {/*  <DocumentTable*/}
-      {/*    dataSources={dataSources}*/}
-      {/*    documents={documents}*/}
-      {/*    columnNames={columnNames}*/}
-      {/*    selectedDocuments={selectedDocuments}*/}
-      {/*    disabled={isTaskPending}*/}
-      {/*    setSelectedDocuments={setSelectedDocuments}*/}
-      {/*    onToggleDocumentSelection={toggleDocumentSelection}*/}
-      {/*    onIndexDocument={(doc) => handleIndexSelected([doc.id])}*/}
-      {/*    onUnindexDocument={(doc) => handleIndexDocument(doc.id, true)}*/}
-      {/*    onIndexDocuments={() => handleIndexSelected()}*/}
-      {/*    onUnindexDocuments={() => handleIndexSelected(undefined, true)}*/}
-      {/*    stats={stats}*/}
-      {/*  />*/}
-      {/*</div>*/}
-    </div>
+          {/* Page content here */}
 
+          <div className="px-6">
+            {(runningTaskMessage || completedTaskMessage) &&
+                <div className="toast toast-top toast-end z-10">
+                    <div className={`alert alert-${completedTaskMessage && isTaskError ? 'error' : 'info'}`}>
+                        <span>{runningTaskMessage || completedTaskMessage}</span>
+                    </div>
+                </div>
+            }
+
+            {(()=>{
+              switch (activeDrawerItem) {
+                case 'playground':
+                  return <div className="container mx-auto py-4">
+                    <h1 className="text-2xl font-bold mb-4">Playground</h1>
+                    <Playground disabled={!hasIndexedDocuments}/>
+                  </div>;
+                case 'addData':
+                  return <AddData/>;
+                default:
+                  return <Playground disabled={!hasIndexedDocuments}/>;
+              }
+            })()}
+          </div>
+        </div>
+        <div className="drawer-side">
+          {/* Sidebar content here */}
+          <label htmlFor="my-drawer" className="drawer-overlay"></label>
+          <aside className="bg-base-200 min-h-screen">
+            <h1 className="lg:flex hidden px-4 pt-4 text-2xl">Selfie</h1>
+            <ul className="menu p-4 overflow-y-auto w-60">
+              {/* Sidebar content here */}
+              <li><a onClick={() => setActiveDrawerItem('playground')}>Playground</a></li>
+              <li><a onClick={() => setActiveDrawerItem('addData')}>Add Data</a></li>
+              <li></li>
+              <li>
+                <a className="link link-hover" href={`${apiBaseUrl}/docs`}>
+                  API Docs
+                </a>
+              </li>
+              <li>
+                <a className="link link-hover" href="https://github.com/vana-com/selfie" target="_blank"
+                   rel="noopener noreferrer">
+                  {/*<FaGithub className="w-6 h-6 mr-4"/> GitHub*/}
+                  GitHub
+                </a>
+              </li>
+              <li>
+                <ThemeChanger />
+              </li>
+            </ul>
+          </aside>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <App/>
   );
+
+
+  // return (
+  //   <div className="container mx-auto p-4">
+  //     {(runningTaskMessage || completedTaskMessage) &&
+  //         <div className="toast toast-top toast-end z-10">
+  //             <div className={`alert alert-${completedTaskMessage && isTaskError ? 'error' : 'info'}`}>
+  //                 <span>{runningTaskMessage || completedTaskMessage}</span>
+  //             </div>
+  //         </div>
+  //     }
+  //
+  //     <div className="mb-8">
+  //       <h1 className="text-4xl font-bold mb-4">Playground</h1>
+  //       <Playground disabled={!hasIndexedDocuments}/>
+  //     </div>
+  //
+  //     <div className="mb-8">
+  //       <DataManagementInterface/>
+  //     </div>
+  //
+  //
+  //     {/* Old Components */}
+  //
+  //     {/*<h1 className="text-4xl font-bold mb-4">Document Directories</h1>*/}
+  //
+  //     {/*<p className="mb-4">*/}
+  //     {/*  Add the directories on your device that contain the documents you want to add to the knowledge bank. Example*/}
+  //     {/*  documents are available, see the README for details.*/}
+  //     {/*</p>*/}
+  //
+  //     {/*<div className="overflow-x-auto mb-8">*/}
+  //     {/*  <DataSourceTable*/}
+  //     {/*    dataSources={dataSources}*/}
+  //     {/*    onAddDataSource={handleAddDataSource}*/}
+  //     {/*    onDeleteDataSource={(dataSource) => handleDeleteDataSource(dataSource.id)}*/}
+  //     {/*  />*/}
+  //     {/*</div>*/}
+  //
+  //     {/*<h1 className="text-4xl font-bold mb-4">Documents</h1>*/}
+  //
+  //     {/*<p className="mb-4">*/}
+  //     {/*  Index documents to add them to the knowledge bank. Once indexed, data will be used automatically by the AI.*/}
+  //     {/*</p>*/}
+  //
+  //
+  //     {/*<div className="overflow-x-auto">*/}
+  //     {/*  <DocumentTable*/}
+  //     {/*    dataSources={dataSources}*/}
+  //     {/*    documents={documents}*/}
+  //     {/*    columnNames={columnNames}*/}
+  //     {/*    selectedDocuments={selectedDocuments}*/}
+  //     {/*    disabled={isTaskPending}*/}
+  //     {/*    setSelectedDocuments={setSelectedDocuments}*/}
+  //     {/*    onToggleDocumentSelection={toggleDocumentSelection}*/}
+  //     {/*    onIndexDocument={(doc) => handleIndexSelected([doc.id])}*/}
+  //     {/*    onUnindexDocument={(doc) => handleIndexDocument(doc.id, true)}*/}
+  //     {/*    onIndexDocuments={() => handleIndexSelected()}*/}
+  //     {/*    onUnindexDocuments={() => handleIndexSelected(undefined, true)}*/}
+  //     {/*    stats={stats}*/}
+  //     {/*  />*/}
+  //     {/*</div>*/}
+  //   </div>
+  //
+  // );
 };
 
 SelfieManager.displayName = 'SelfieManager';
