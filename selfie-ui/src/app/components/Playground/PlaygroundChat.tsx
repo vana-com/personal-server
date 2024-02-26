@@ -37,7 +37,7 @@ const PlaygroundChat = ({ disabled = false, hasIndexedDocuments = true }: { disa
 
   return (<>
     <p className="mb-4">
-      Explore what Selfie can do by chatting with an AI that uses your data or by searching your data directly. If you haven't already, add some data in the "Add Data" tab.
+      Explore what Selfie can do by chatting with an AI that uses your data or by searching your data directly. If you haven&apos;t already, add some data in the &quot;Add Data&quot; tab.
     </p>
     <h2 className="text-xl font-bold mb-4">Chat</h2>
     <div className="flex flex-col lg:flex-row gap-4 w-full">
