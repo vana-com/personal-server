@@ -1,8 +1,9 @@
 import base64
 import json
 from typing import Any
+from urllib.parse import quote
 
-from fastapi import APIRouter, Request, UploadFile, Form
+from fastapi import APIRouter, Request, UploadFile, Form, HTTPException, Depends
 from pydantic import BaseModel
 
 from selfie.connectors.factory import ConnectorFactory
@@ -19,7 +20,8 @@ class DocumentConnectionRequest(BaseModel):
 
 async def file_to_data_uri(file: UploadFile):
     encoded = base64.b64encode(await file.read()).decode()
-    return f"data:{file.content_type};base64,{encoded}"
+    safe_filename = quote(file.filename)
+    return f"data:{file.content_type};name={safe_filename};base64,{encoded}"
 
 
 # Replace placeholders in configuration with data URIs
@@ -49,14 +51,25 @@ async def replace_file_references_with_files(configuration, form_data):
     # print("Processed configuration:", configuration)
 
 
-# TODO: this version requires Content-Type: multipart/form-data, create a version that accepts JSON (for which files must already be data URIs)
+async def parse_create_document_connection_request(request: Request):
+    if request.headers['content-type'].startswith('multipart/form-data'):
+        form_data = await request.form()
+        connector_id = form_data.get("connector_id")
+        configuration = json.loads(form_data.get("configuration"))
+        await replace_file_references_with_files(configuration, form_data)
+    elif request.headers['content-type'] == 'application/json':
+        json_data = await request.json()
+        connector_id = json_data.get("connector_id")
+        configuration = json_data.get("configuration")
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported Content Type")
+
+    return connector_id, configuration
+
+
 @router.post("/document-connections")
-async def create_document_connection(request: Request, connector_id: str = Form(...), configuration: str = Form(...)):
-    form_data = await request.form()
-    configuration = json.loads(configuration)
-
-    await replace_file_references_with_files(configuration, form_data)
-
+async def create_document_connection(request: Request, parsed_data: tuple = Depends(parse_create_document_connection_request)):
+    connector_id, configuration = parsed_data
     connector_instance = ConnectorFactory.get_connector(connector_name=connector_id)
     connector_instance.validate_configuration(configuration=configuration)
     document_dtos = connector_instance.load_document(configuration)
@@ -82,3 +95,5 @@ async def create_document_connection(request: Request, connector_id: str = Form(
         embedding_documents = connector_instance.transform_for_embedding(configuration, document_dtos)
         # Save embedding_documents to Vector DB
         await DataIndex("n/a").index(embedding_documents, extract_importance=False)
+
+    return {"message": "Document connection created successfully"}
