@@ -12,11 +12,11 @@ import {Markdown} from "../../components/Markdown";
 import useAsyncTask from "@/app/hooks/useAsyncTask";
 import TaskToast from "@/app/components/TaskToast";
 
-const NativeFileInput = ({ options, onChange }) => {
+const NativeFileInput = ({ options, onChange }: { options: any, onChange: (files: File[]) => void }) => {
     const inputRef = useRef(null);
 
-    const handleFileChange = (event) => {
-        const files = event.target.files;
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files ?? [];
         if (files.length > 0) {
             // Prepare files for multipart/form-data submission by storing File objects
             // For simplicity, we're directly passing the FileList, but you could also
@@ -41,7 +41,7 @@ const NativeFileInput = ({ options, onChange }) => {
  * replacing the file object with a placeholder string. The placeholder can then be used to reference the file in the
  * configuration object.
  */
-const replaceFilesWithReferences = (obj: any, path: string, formData: FormData) => {
+const replaceFilesWithReferences = (obj: any, path: string, formData: FormData): string | object | any[]  => {
     if (obj instanceof File) {
         const placeholder = `file-${path}`;
         formData.append(placeholder, obj, obj.name);
