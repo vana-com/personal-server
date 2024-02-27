@@ -20,4 +20,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'yarn'
+          cache-dependency-path: selfie-ui/yarn.lock
+
       - run: sh scripts/build-ui.sh
