@@ -13,13 +13,35 @@ jobs:
         node-version: [18, 20]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            selfie-ui/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('selfie-ui/**/yarn.lock') }}-${{ hashFiles('selfie-ui/**/*.js', 'selfie-ui/**/*.jsx', 'selfie-ui/**/*.ts', 'selfie-ui/**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('selfie-ui/**/yarn.lock') }}-
+
+      - name: Use Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies with Poetry
+        run: poetry install
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'yarn'
           cache-dependency-path: selfie-ui/yarn.lock
 
-      - run: sh scripts/build-ui.sh
+      - name: Install dependencies with Yarn
+        run: sh scripts/build-ui.sh
