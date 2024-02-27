@@ -14,6 +14,7 @@ const fetchDocuments = async (topic: string, limit?: number, minScore?: number, 
     return response.json();
   } catch (error) {
     console.error('Error fetching documents:', error);
+    throw error;
   }
 };
 

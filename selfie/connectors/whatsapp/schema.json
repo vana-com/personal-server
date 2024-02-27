@@ -7,8 +7,7 @@
       "title": "Files",
       "description": "Upload .txt files exported from WhatsApp",
       "items": {
-        "type": "string",
-        "format": "data-url"
+        "type": "object"
       }
     }
   }

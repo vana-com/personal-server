@@ -7,8 +7,7 @@
       "title": "Files",
       "description": "Upload conversations.json files exported from ChatGPT",
       "items": {
-        "type": "string",
-        "format": "data-url"
+        "type": "object"
       }
     }
   }
