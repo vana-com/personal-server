@@ -1,8 +1,10 @@
-# TODO: Currently this parser fails pydantic but working
-from pydantic import BaseModel
-from typing import Any, List
+from typing import List, Any, Optional
+
+from pydantic import BaseModel, RootModel
+
 from selfie.parsers.chat.base import JsonBasedChatParser
 from selfie.types.share_gpt import ShareGPTConversation
+from selfie.utils import check_nested
 
 
 class Author(BaseModel):
@@ -13,13 +15,13 @@ class Author(BaseModel):
 
 class Content(BaseModel):
     content_type: str
-    parts: List[str]
+    parts: Optional[List[Any]] = None
 
 
 class Message(BaseModel):
     id: str
     author: Author
-    create_time: float
+    create_time: float | None
     update_time: float | None
     content: Content
     status: str
@@ -36,7 +38,7 @@ class Node(BaseModel):
     children: List[str]
 
 
-class ChatGPTData(BaseModel):
+class ChatGPTConversation(BaseModel):
     title: str
     create_time: float
     update_time: float
@@ -53,14 +55,14 @@ class ChatGPTData(BaseModel):
 
 
 class ChatGPTParser(JsonBasedChatParser):
-    SUPPORTED_SCHEMAS = [ChatGPTData]
+    SUPPORTED_SCHEMAS = [RootModel[List[ChatGPTConversation]]]
 
-    def extract_conversations(self, data: ChatGPTData) -> ShareGPTConversation:
+    def extract_conversations(self, data: List[ChatGPTConversation]) -> ShareGPTConversation:
         """
         Extract conversations from a list of parsed ChatGPT JSON data.
 
         Args:
-            data (List[ChatGPTData]): The list of parsed JSON data
+            data (List[ChatGPTConversation]): The list of parsed JSON data
 
         Returns:
             List[dict]: A list of conversation dictionaries
@@ -68,11 +70,13 @@ class ChatGPTParser(JsonBasedChatParser):
         conversations = []
         for conversation in data:
             for node_id, node in conversation["mapping"].items():
-                if node["message"]:
+                if (check_nested(node, "message", "content", "parts") and
+                        isinstance(node["message"]["content"]["parts"], list) and
+                        all(isinstance(elem, str) for elem in node["message"]["content"]["parts"])):
                     message = node["message"]
                     author_name = message["author"]["name"] if message["author"]["name"] else message["author"]["role"]
                     message_content = ' '.join(message["content"]["parts"])
-                    message_timestamp = message["create_time"]
+                    message_timestamp = message["create_time"] or conversation["create_time"]
 
                     conversations.append({
                         "from": author_name,
