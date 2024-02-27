@@ -39,7 +39,7 @@ class Node(BaseModel):
 
 
 class ChatGPTConversation(BaseModel):
-    title: str
+    title: str | None
     create_time: float
     update_time: float
     mapping: dict[str, Node]
