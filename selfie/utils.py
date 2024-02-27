@@ -9,3 +9,15 @@ def data_uri_to_string(data_uri):
     with BytesIO(data) as buffer:
         content = buffer.read()
         return content.decode('utf-8')
+
+
+def check_nested(obj, *keys):
+    """
+    Recursively check if nested keys exist in a dictionary.
+    """
+    for key in keys:
+        try:
+            obj = obj[key]
+        except (KeyError, TypeError):
+            return False
+    return True

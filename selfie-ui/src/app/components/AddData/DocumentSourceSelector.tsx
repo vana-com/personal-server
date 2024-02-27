@@ -1,4 +1,5 @@
 import { ChangeEvent, useEffect, useState } from 'react';
+import { apiBaseUrl } from "@/app/config";
 
 type DocumentSourceSelectorProps = {
   onSelect: (selectedId: string) => void;
@@ -13,7 +14,7 @@ const DocumentSourceSelector = ({ onSelect }: DocumentSourceSelectorProps) => {
   const [sources, setSources] = useState<OptionType[]>([]);
 
   useEffect(() => {
-    fetch('http://localhost:8181/v1/connectors')
+    fetch(`${apiBaseUrl}/v1/connectors`)
       .then((response) => response.json())
       .then((data) => {
         const options: OptionType[] = data.connectors.map(
