@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import Tooltip from '../Tooltip';
-import {apiBaseUrl} from "@/app/config";
+import React, { useState } from "react";
+import { apiBaseUrl } from "@/app/config";
 import useAsyncTask from "@/app/hooks/useAsyncTask";
 import TaskToast from "@/app/components/TaskToast";
 
@@ -13,23 +12,24 @@ const fetchDocuments = async (topic: string, limit?: number, minScore?: number, 
     const response = await fetch(url);
     return response.json();
   } catch (error) {
-    console.error('Error fetching documents:', error);
+    console.error("Error fetching documents:", error);
     throw error;
   }
 };
 
 const PlaygroundQuery = () => {
   const { isTaskRunning, taskMessage, executeTask } = useAsyncTask();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [documents, setDocuments] = useState([]);
-  const [summary, setSummary] = useState('');
+  const [summary, setSummary] = useState("");
+  const [isSummaryLoading, setSummaryLoading] = useState(false);
   const [score, setScore] = useState(0);
   const [limit, setLimit] = useState<number | undefined>();
   const [minScore, setMinScore] = useState<number | undefined>();
   const [includeSummary, setIncludeSummary] = useState(true);
 
   const handleInputChange = (setter: React.Dispatch<React.SetStateAction<any>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.type === 'number' ? Number(e.target.value) || undefined : e.target.value;
+    const value = e.target.type === "number" ? Number(e.target.value) || undefined : e.target.value;
     setter(value);
   };
 
@@ -43,16 +43,18 @@ const PlaygroundQuery = () => {
     executeTask(async () => {
       setScore(0);
       setDocuments([]);
-      setSummary('');
+      setSummary("");
+      setSummaryLoading(true);
       const results = await fetchDocuments(query, limit, minScore, includeSummary);
       setScore(results.score);
       setDocuments(results.documents);
       setSummary(results.summary);
-      console.log('Searching with:', query, limit, minScore, includeSummary);
-    },  {
-      start: 'Searching...',
-      success: 'Search complete',
-      error: 'Search failed',
+      setSummaryLoading(false);
+      console.log("Searching with:", query, limit, minScore, includeSummary);
+    }, {
+      start: "Searching...",
+      success: "Search complete",
+      error: "Search failed",
     });
   };
 
@@ -75,7 +77,7 @@ const PlaygroundQuery = () => {
         </div>
       </div>
     );
-  }
+  };
 
   return (
     <div>
@@ -88,13 +90,13 @@ const PlaygroundQuery = () => {
           <form className="form max-w-full" onSubmit={handleQuery}>
             <div className="form-control mb-2">
               {/*<label className="label">*/}
-                {/*<span className="label-text">Limit</span>*/}
+              {/*<span className="label-text">Limit</span>*/}
               {/*</label>*/}
               <input
                 type="number"
                 className="input input-sm input-bordered"
                 placeholder="Number of documents (optional)"
-                value={limit === undefined ? '' : limit}
+                value={limit === undefined ? "" : limit}
                 onChange={(e) => setLimit(Number(e.target.value) || undefined)}
                 min="1"
               />
@@ -108,7 +110,7 @@ const PlaygroundQuery = () => {
                 type="number"
                 className="input input-sm input-bordered"
                 placeholder="Minimum score (optional)"
-                value={minScore === undefined ? '' : minScore}
+                value={minScore === undefined ? "" : minScore}
                 onChange={(e) => setMinScore(Number(e.target.value) || undefined)}
                 min="0"
                 max="1"
@@ -138,20 +140,15 @@ const PlaygroundQuery = () => {
                 onChange={handleQueryChange}
               />
               <button type="submit" className="button">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
-                     className="w-4 h-4 opacity-70">
-                  <path fillRule="evenodd"
-                        d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
-                        clipRule="evenodd"/>
-                </svg>
+                {isSummaryLoading ? <LoadingIcon /> : <SearchIcon />}
               </button>
             </label>
           </form>
         </div>
         {!!score && <div className="lg:w-1/2 mb-4">
           {/*<Tooltip tip="Search for anything" />*/}
-            <p>{summary}</p>
-            <p className="mt-4">Result Score: {score.toFixed(2)}</p>
+          <p>{summary}</p>
+          <p className="mt-4">Result Score: {score.toFixed(2)}</p>
         </div>}
       </div>
       {!!score && <div>
@@ -161,6 +158,22 @@ const PlaygroundQuery = () => {
   );
 };
 
-PlaygroundQuery.displayName = 'PlaygroundQuery';
+const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                              className="w-4 h-4 opacity-70">
+  <path fillRule="evenodd"
+        d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+        clipRule="evenodd" />
+</svg>;
+
+const LoadingIcon = () => <svg xmlns="http://www.w3.org/2000/svg"
+                               width="16px" height="16px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
+  <circle cx="50" cy="50" fill="none" stroke="currentColor" strokeWidth="10" r="35"
+          strokeDasharray="164.93361431346415 56.97787143782138">
+    <animateTransform attributeName="transform" type="rotate" repeatCount="indefinite" dur="1s"
+                      values="0 50 50;360 50 50" keyTimes="0;1"></animateTransform>
+  </circle>
+</svg>;
+
+PlaygroundQuery.displayName = "PlaygroundQuery";
 
 export default PlaygroundQuery;
