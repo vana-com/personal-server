@@ -25,7 +25,7 @@ class TelegramConnector(BaseConnector, ABC):
         return [
             DocumentDTO(
                 content=data_uri_to_string(data_uri),
-                content_type="text/plain",
+                content_type="text/html",
                 name="todo",
                 size=len(data_uri_to_string(data_uri).encode('utf-8'))
             )
