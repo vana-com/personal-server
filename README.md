@@ -22,7 +22,8 @@ Selfie personalizes text generation, augmenting both local and hosted Large Lang
 * Directly and selectively query loaded data.
 
 On the roadmap:
-* Load data using any [LlamaHub loader](https://llamahub.ai/?tab=loaders).
+
+[//]: # (* Load data using any [LlamaHub loader]&#40;https://llamahub.ai/?tab=loaders&#41;.)
 * Easy deployment with Docker and pre-built executables.
 
 ## Overview
