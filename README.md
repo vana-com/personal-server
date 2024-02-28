@@ -45,7 +45,7 @@ On the LLM side, Selfie uses tools like LiteLLM and txtai to support forwarding 
 
 ## Getting Started
 
-To launch Selfie, ensure that [python](https://www.python.org), [poetry](https://python-poetry.org), and [yarn](https://yarnpkg.com) are installed. Then run the following commands in the project directory:
+To launch Selfie, ensure that [python](https://www.python.org) 3.11, [poetry](https://python-poetry.org), and [yarn](https://yarnpkg.com) are installed. Then run the following commands in the project directory:
 
 1. `git clone git@github.com:vana-com/selfie.git`
 2. `cp selfie/.env.example selfie/.env`
