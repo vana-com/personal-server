@@ -1,5 +1,6 @@
 {
   "files": {
+    "ui:widget": "nativeFile",
     "ui:options": {
       "accept": ".json"
     }
