@@ -1,0 +1,14 @@
+{
+  "title": "Upload Google Messages Conversations",
+  "type": "object",
+  "properties": {
+    "files": {
+      "type": "array",
+      "title": "Files",
+      "description": "Upload .json files exported from Google Messages",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}

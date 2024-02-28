@@ -1,3 +1,6 @@
+from selfie.connectors.text_files.connector import TextFilesConnector
+from selfie.connectors.google_messages.connector import GoogleMessagesConnector
+from selfie.connectors.telegram.connector import TelegramConnector
 from selfie.connectors.whatsapp.connector import WhatsAppConnector
 from selfie.connectors.chatgpt.connector import ChatGPTConnector
 
@@ -5,8 +8,11 @@ from selfie.connectors.chatgpt.connector import ChatGPTConnector
 class ConnectorFactory:
     # Register all document connectors here
     connector_registry = [
+        ChatGPTConnector,
+        GoogleMessagesConnector,
+        TelegramConnector,
+        TextFilesConnector,
         WhatsAppConnector,
-        ChatGPTConnector
     ]
 
     connector_map = {}

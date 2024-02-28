@@ -1,0 +1,14 @@
+{
+  "title": "Upload Text Files",
+  "type": "object",
+  "properties": {
+    "files": {
+      "type": "array",
+      "title": "Files",
+      "description": "Upload files containing text",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}

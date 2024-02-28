@@ -7,6 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
+beautifulsoup4 = "^4.12.3"
 fastapi = "^0.109.0"
 uvicorn = "^0.27.0"
 humanize = "^4.9.0"

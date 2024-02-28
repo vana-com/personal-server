@@ -5,6 +5,7 @@ from enum import unique, Enum
 from typing import Dict
 import yaml
 
+from selfie.parsers.chat.telegram import TelegramParser
 from selfie.parsers.chat.discord import DiscordParser
 from selfie.parsers.chat.whatsapp import WhatsAppParser
 from selfie.parsers.chat.google import GoogleTakeoutMessagesParser
@@ -47,6 +48,7 @@ class Parser(Enum):
     DISCORD = DiscordParser
     GOOGLE_MESSAGES = GoogleTakeoutMessagesParser
     CHATGPT = ChatGPTParser
+    TELEGRAM = TelegramParser
 
 
 class ChatFileParser:

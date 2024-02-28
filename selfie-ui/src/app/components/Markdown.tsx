@@ -5,7 +5,7 @@ import rehypeSanitize from 'rehype-sanitize';
 export const Markdown = ({ content }: { content: string }) => {
   return (
     <ReactMarkdown
-      className="prose prose-sm"
+      className="prose prose-sm max-w-full"
       rehypePlugins={[rehypeRaw, rehypeSanitize]}
       // rehypePlugins={[rehypeHighlight]}
     >
