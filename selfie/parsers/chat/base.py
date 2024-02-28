@@ -211,3 +211,17 @@ class JsonBasedChatParser(ChatParser):
         """
         raise NotImplementedError
 
+
+class HtmlBasedChatParser(JsonBasedChatParser):
+    def _parse_html_to_model_hook(self, html_string: str) -> Any:
+        raise NotImplementedError("This method should be implemented by subclasses.")
+
+    def _can_parse_hook(self, document: str) -> bool:
+        try:
+            return super()._can_parse_hook(json.dumps(self._parse_html_to_model_hook(document).dict()))
+        except NotImplementedError:
+            return False
+
+    def _parse_chat_hook(self, document: str) -> ShareGPTConversation:
+        model = self._parse_html_to_model_hook(document)
+        return self.extract_conversations(model)

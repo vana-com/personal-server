@@ -10,6 +10,8 @@
 
 Selfie personalizes text generation, augmenting both local and hosted Large Language Models (LLMs) with your personal data. Selfie exposes an OpenAI-compatible API that wraps the LLM of your choice, and automatically injects relevant context into each text generation request.
 
+<img alt="selfie-augmentation" src="./docs/images/playground-augmentation.png" width="100%">
+
 ## Features
 
 * Automatically mix your data into chat and text completions using OpenAI-compatible clients like [OpenAI SDKs](https://platform.openai.com/docs/libraries), [SillyTavern](https://sillytavernai.com), and [Instructor](https://github.com/jxnl/instructor)* (untested).
@@ -17,10 +19,10 @@ Selfie personalizes text generation, augmenting both local and hosted Large Lang
 * Runs locally by default to keep your data private.
 * Unopinionated compatibility with your LLM or provider of choice.
 * Easily switch to vanilla text generation modes.
+* Directly and selectively query loaded data.
 
 On the roadmap:
-* Load data using any [LlamaHub loader](https://llamahub.ai/?tab=loaders) (partial support is available through the API).
-* Directly and selectively query loaded data.
+* Load data using any [LlamaHub loader](https://llamahub.ai/?tab=loaders).
 * Easy deployment with Docker and pre-built executables.
 
 ## Overview
@@ -60,56 +62,29 @@ This starts a local web server and should launch the UI in your browser at http:
 
 > Note: You can host selfie at a publicly-accessible URL with [ngrok](https://ngrok.com). Add your ngrok token (and optionally, ngrok domain) in `selfie/.env` and run `poetry run python -m selfie --share`.
 
-### Step 1:  Gather Messaging Data
+### Step 1: Import Your Data
 
-Future versions of Selfie will support loading any text data. For now, you can import chat logs from popular messaging platforms.
+Selfie supports importing text data, with special processing for certain data formats, like chat logs from WhatsApp and ChatGPT.
 
-> Note: If you don't have any chat logs or want to try the app first, you can use the example chat logs provided in the `example-chats` directory.)
+> Note: You can try the example files in the `example-chats` directory if you want to try a specific data format that you don't have ready for import.
 
-Export chats that you use frequently and contain information you want the LLM to know.
+To import data into Selfie:
 
-#### Export Instructions
+1. **Open the Add Data Page**: Access the UI and locate the Add Data section.
+2. **Select Data Source**: Choose the type of data you are uploading (e.g., WhatsApp, Text Files). Choose the type that most closely matches your data format.
+3. **Upload Files**: Choose your files and submit them for upload.
 
-The following links provide instructions for exporting chat logs from popular messaging platforms:
+Ensure you obtain consent from participants in the chats you wish to export.
 
-* [WhatsApp](https://faq.whatsapp.com/1180414079177245/?cms_platform=android)
-* [Google](https://takeout.google.com/settings/takeout) (select Messages from the list)
+Support for new types of data can be added by creating new data connectors in `selfie/connectors/` (instructions [here](./selfie/connectors/README.md), please contribute!).
 
-These platforms are not yet supported, but you can create a parser in selfie/parsers/chats to support them (please contribute!):
+### Step 2: Engage with Your Data
 
-* [Instagram](https://help.instagram.com/181231772500920)
-* [Facebook Messenger](https://www.facebook.com/help/messenger-app/713635396288741/?cms_platform=iphone-app&helpref=platform_switcher)
-* [Telegram](https://www.maketecheasier.com/export-telegram-chat-history/)
+The Playground page includes a chat interface and a Search feature. Write an LLM persona by entering a name and bio, and try interacting with your data through conversation. You can also search your data for specific topics under Search.
 
-Ensure you ask permission of the friends who are also in the chats you export.
+You can interact with your data via the API directly, for instance, try viewing this link in your web browser: http://localhost:8181/v1/index_documents/summary?topic=travel. Detailed API documentation is available [here](http://localhost:8181/docs).
 
-[//]: # (You can also redact their name, messages, and other personal information in later steps.)
-
-### Step 2: Import Messaging Data
-
-1. Place your exported chat logs in a directory on your computer, e.g. `/home/alice/chats`.
-2. Open the UI at http://localhost:8181.
-3. Add your directory as a Data Source. Give it a name (e.g. My Chats), enter the **absolute** path, and click `Add Directory`. This must be a directory (i.e. folder), not a file. Example absolute path would be: `/Users/{you}/Projects/selfie/example-chats`
-4. In the Documents table, select the exported chat logs you want to import, and click `Index`.
-
-If this process is successful, your selected chat logs will show as indexed in the table. You can now use the API to connect to your LLM and generate personalized text completions.
-
-[//]: # (1. Open http://localhost:8181/docs)
-[//]: # (2. Find `POST /v1/index_documents/chat-processor`)
-[//]: # (3. Upload one or more exported chat log files. To get these files, export them from platforms that you use frequently and contain information you want the LLM to know. Exports: [WhatsApp]&#40;https://faq.whatsapp.com/1180414079177245/?cms_platform=android&#41; | [Google]&#40;https://takeout.google.com/settings/takeout&#41; | [Instagram]&#40;https://help.instagram.com/181231772500920&#41; | [Facebook Messenger]&#40;https://www.facebook.com/help/messenger-app/713635396288741/?cms_platform=iphone-app&helpref=platform_switcher&#41; | [Telegram]&#40;https://www.maketecheasier.com/export-telegram-chat-history/&#41;. Ensure you ask permission of the friend who is also in the chat you export. You can also redact their name, messages, and other personal information in later steps.)
-[//]: # (4. Copy, paste, and edit the example parser_configs JSON. Include one configuration object in the list for each file you upload.)
-[//]: # ()
-[//]: # (![chat-processor.png]&#40;docs/images/chat-processor.png&#41;)
-[//]: # ()
-[//]: # (Setting `extract_importance` to `true` will give you better query results, but usually causes the import to take a while.)
-
-### Step 3: Generate Personalized Text
-
-You can quickly verify if everything is in order by visiting the summarization endpoint in your browser: http://localhost:8181/v1/index_documents/summary?topic=travel ([docs](http://localhost:8181/docs#/default/get_index_documents_summary_v1_index_documents_summary_get)).
-
-Next, scroll down to the Playground section in the UI. Enter your name and a simple bio, and try asking some questions whose answers are in your chat logs.
-
-## Usage Guide
+## API Usage Guide
 
 By default, Selfie augments text completions with local models using llama.cpp and a local txtai embeddings database.
 

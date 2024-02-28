@@ -1,0 +1,14 @@
+{
+  "title": "Upload Telegram Conversations",
+  "type": "object",
+  "properties": {
+    "files": {
+      "type": "array",
+      "title": "Files",
+      "description": "Upload .html files exported from Telegram",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}
