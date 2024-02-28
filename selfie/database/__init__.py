@@ -1,5 +1,9 @@
+import importlib
+import json
+import logging
 import os
 from datetime import datetime
+from typing import List, Dict, Any, Callable
 
 from llama_index.core.node_parser import SentenceSplitter
 from peewee import (
@@ -9,23 +13,15 @@ from peewee import (
     TextField,
     ForeignKeyField,
     AutoField,
-    DoesNotExist,
     Proxy,
     IntegerField,
     DateTimeField,
 )
-import json
-import importlib
-from typing import List, Dict, Any, Optional, Callable
-
 from playhouse.shortcuts import model_to_dict
 
 from selfie.config import get_app_config
 from selfie.embeddings import DataIndex
 from selfie.embeddings.document_types import EmbeddingDocumentModel
-
-import logging
-
 # TODO: This module should not be aware of DocumentDTO. Refactor its usage out of this module.
 from selfie.types.documents import DocumentDTO
 
@@ -62,6 +58,7 @@ class DocumentConnectionModel(BaseModel):
     #     name = CharField()
     connector_name = CharField()
     configuration = TextField()
+
     #     last_loaded_timestamp = CharField(null=True)
 
     class Meta:
@@ -107,9 +104,9 @@ class DataManager:
         self.db.create_tables([DocumentConnectionModel, DocumentModel])
 
     def add_document_connection(
-        self,
-        connector_name: str,
-        configuration: Dict[str, Any],
+            self,
+            connector_name: str,
+            configuration: Dict[str, Any],
     ) -> int:
         return DocumentConnectionModel.create(
             connector_name=connector_name,
@@ -131,12 +128,14 @@ class DataManager:
 
             document.delete_instance()
 
-    async def remove_document_connection(self, document_connection_id: int, delete_documents: bool = True, delete_indexed_data: bool = True):
+    async def remove_document_connection(self, document_connection_id: int, delete_documents: bool = True,
+                                         delete_indexed_data: bool = True):
         if self.get_document_connection(document_connection_id) is None:
             raise ValueError(f"No document connection found with ID {document_connection_id}")
 
         if delete_indexed_data:
-            source_document_ids = [doc.id for doc in DocumentModel.select().where(DocumentModel.document_connection == document_connection_id)]
+            source_document_ids = [doc.id for doc in DocumentModel.select().where(
+                DocumentModel.document_connection == document_connection_id)]
             await DataIndex("n/a").delete_documents_with_source_documents(source_document_ids)
 
         with self.db.atomic():
@@ -205,7 +204,8 @@ class DataManager:
 
         documents = self._fetch_documents(json.loads(document_connection.configuration))
         documents = [
-            document for doc in documents for document in self._map_selfie_documents_to_index_documents(selfie_document=doc)
+            document for doc in documents for document in
+            self._map_selfie_documents_to_index_documents(selfie_document=doc)
         ]
 
         await DataIndex("n/a").index(documents, extract_importance=False)
@@ -214,7 +214,8 @@ class DataManager:
 
         return {"message": f"{len(documents)} documents indexed successfully"}
 
-    async def index_document(self, document: DocumentDTO, selfie_documents_to_index_documents: Callable[[DocumentDTO], List[EmbeddingDocumentModel]] = None):
+    async def index_document(self, document: DocumentDTO, selfie_documents_to_index_documents: Callable[
+        [DocumentDTO], List[EmbeddingDocumentModel]] = None):
         print("Indexing document")
 
         if selfie_documents_to_index_documents is None:
@@ -260,26 +261,22 @@ class DataManager:
             for source in DocumentConnectionModel.select()
         ]
 
-    def get_documents(self, document_connection_id: Optional[int] = None):
-        if document_connection_id:
-            documents = DocumentModel.select().where(DocumentModel.document_connection == document_connection_id)
-            doc_ids = [str(document.id) for document in documents]
-        else:
-            documents = DocumentModel.select()
-            doc_ids = None
+    def get_documents(self):
+        documents = DocumentModel.select(DocumentModel.id, DocumentModel.name, DocumentModel.size,
+                                         DocumentModel.created_at, DocumentModel.updated_at,
+                                         DocumentModel.content_type, DocumentConnectionModel.connector_name).join(
+            DocumentConnectionModel)
 
-        one_embedding_document_per_document = DataIndex("n/a").get_one_document_per_source_document(doc_ids)
-        indexed_documents = list(set([doc['source_document_id'] for doc in one_embedding_document_per_document]))
-
-        return [
-            {
-                **model_to_dict(doc),
-                "is_indexed": doc.id in indexed_documents,
-                # TODO: for some reason, initializing Embeddings in DataIndex with the SQLAlchemy driver returns indexed_documents as strings, not ints (requires str(doc.id)).
-                "num_index_documents": DataIndex("n/a").get_document_count([str(doc.id)])
-            }
-            for doc in documents
-        ]
+        result = []
+        for doc in documents:
+            doc_dict = model_to_dict(doc, backrefs=True, only=[
+                DocumentModel.id, DocumentModel.name, DocumentModel.size,
+                DocumentModel.created_at, DocumentModel.updated_at,
+                DocumentModel.content_type, DocumentConnectionModel.connector_name
+            ])
+            doc_dict['connector_name'] = doc.document_connection.connector_name
+            result.append(doc_dict)
+        return result
 
     def get_document(self, document_id: str):
         return DocumentModel.get_by_id(document_id)

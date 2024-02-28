@@ -1,11 +1,11 @@
-from typing import Optional, List
+from typing import List
 
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from selfie.database import DataManager
-from selfie.parsers.chat import ChatFileParser
 from selfie.embeddings import DataIndex
+from selfie.parsers.chat import ChatFileParser
 
 router = APIRouter()
 
@@ -20,8 +20,8 @@ class IndexDocumentsRequest(BaseModel):
 
 
 @router.get("/documents")
-async def get_documents(source_id: Optional[int] = None):
-    return DataManager().get_documents(source_id)
+async def get_documents():
+    return DataManager().get_documents()
 
 
 @router.delete("/documents/{document_id}")
@@ -57,12 +57,11 @@ async def index_documents(request: IndexDocumentsRequest):
                                              False,
                                              document.id
                                          ).conversations,
-                                         #source=document.source.name,
+                                         # source=document.source.name,
                                          source_document_id=document.id
                                      ) if is_chat else None)
         for document_id in document_ids
     ]
-
 
 # @app.delete("/documents/{document-id}")
 # async def delete_data_source(document_id: int):
