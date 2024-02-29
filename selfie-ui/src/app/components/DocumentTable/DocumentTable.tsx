@@ -10,28 +10,20 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   SortingState,
-  useReactTable
+  useReactTable,
+  ColumnDef,
 } from '@tanstack/react-table';
 import { rankItem } from '@tanstack/match-sorter-utils'
 
-interface Document {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  content_type: string;
-  name: string;
-  size: number;
-  connector_name: string;
-}
 
-const fuzzyFilter = (row, columnId, value, addMeta) => {
+const fuzzyFilter = (row: any, columnId: string, value: any, addMeta: any) => {
   const itemRank = rankItem(row.getValue(columnId), value)
   addMeta({ itemRank })
   return itemRank.passed
 }
 
 const columnHelper = createColumnHelper<Document>();
-const customColumnDefinitions = {
+const customColumnDefinitions: Partial<Record<keyof Document, { header: string, cell?: (value: any) => JSX.Element | string }>> = {
   id: {
     header: 'ID',
   },
@@ -60,12 +52,18 @@ const generateColumns = (data: Document[]) => {
 
     return columnHelper.accessor(id, {
       header: () => <span>{custom?.header || id.toString().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>,
-      cell: custom?.cell ? (info) => custom.cell(info.getValue()) : (info) => info.getValue(),
+      cell: custom?.cell ? (info) => custom?.cell?.(info.getValue()) : (info) => info.getValue(),
     });
   });
 };
 
-const DocumentTable = ({ data, onDeleteDocuments, onSelectionChange = (data: string[]) => {} }) => {
+interface DocumentTableProps {
+  data: Document[];
+  onDeleteDocuments: (docIds: string[]) => void;
+  onSelectionChange?: (selectedIds: string[]) => void;
+}
+
+const DocumentTable: React.FC<DocumentTableProps> = ({ data, onDeleteDocuments, onSelectionChange = () => {} }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [globalFilter, setGlobalFilter] = useState('');
@@ -73,16 +71,16 @@ const DocumentTable = ({ data, onDeleteDocuments, onSelectionChange = (data: str
   const allRowsSelected = data.length > 0 && data.every(({ id }) => selectedRows[id]);
 
   useEffect(() => {
-    setSelectedRows((prevSelectedRows) => {
-      const newDataIds = new Set(data.map(d => d.id));
-      return Object.keys(prevSelectedRows).reduce((acc, cur) => {
+    const newDataIds = new Set(data.map(item => item.id));
+    setSelectedRows(prevSelectedRows => {
+      return Object.keys(prevSelectedRows).reduce((acc: Record<string, boolean>, cur: string) => {
         if (newDataIds.has(cur)) {
           acc[cur] = prevSelectedRows[cur];
         }
         return acc;
       }, {});
     });
-  }, [data]);
+  }, [data]);;
 
   useEffect(() => {
     onSelectionChange(Object.keys(selectedRows).filter((id) => selectedRows[id]));
@@ -92,7 +90,7 @@ const DocumentTable = ({ data, onDeleteDocuments, onSelectionChange = (data: str
     if (allRowsSelected) {
       setSelectedRows({});
     } else {
-      const newSelectedRows = {};
+      const newSelectedRows: Record<string, boolean> = {};
       data.forEach(({ id }) => {
         newSelectedRows[id] = true;
       });
@@ -137,7 +135,7 @@ const DocumentTable = ({ data, onDeleteDocuments, onSelectionChange = (data: str
         </button>
       ),
     }) : null].filter(Boolean),
-  ], [data, selectedRows, onDeleteDocuments]);
+  ].filter((column): column is ColumnDef<Document, any> => column !== null), [data, selectedRows, onDeleteDocuments, allRowsSelected, toggleAllRowsSelected]);
 
   const table = useReactTable({
     data: data ?? [],

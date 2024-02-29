@@ -68,19 +68,17 @@ export const Chat = ({
     }
   };
 
-  const auxiliaryStyle = {
-    scrollbar: {
-      width: '10px',
-      height: '10px',
-      thumb: {
-        backgroundColor: 'oklch(var(--n))',
-        borderRadius: '5px'
-      },
-      track: {
-        backgroundColor: 'unset'
-      }
-    }
+  const auxiliaryStyle=`::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
   }
+  ::-webkit-scrollbar-thumb {
+    background-color: oklch(var(--n));
+    border-radius: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background-color: unset;
+  }`
 
   useEffect(() => {
     setShowIntroPanel(!!instruction);

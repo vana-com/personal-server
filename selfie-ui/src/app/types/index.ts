@@ -1,13 +1,14 @@
 // TODO: define this type
-export type Document = any
-// export interface Document {
-//   id: string
-//   metadata: {
-//     [key: string]: any
-//   }
-//   is_indexed: boolean
-//   num_index_documents?: number
-// }
+
+export interface Document {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  content_type: string;
+  name: string;
+  size: number;
+  connector_name: string;
+}
 
 export interface Documents {
   [sourceId: string]: Document[]

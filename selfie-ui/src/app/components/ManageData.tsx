@@ -1,7 +1,7 @@
 "use client";
 
 import React, {useCallback, useEffect, useState} from 'react';
-import {Documents} from "@/app/types";
+import {Document} from "@/app/types";
 import {apiBaseUrl} from "@/app/config";
 import TaskToast from "@/app/components/TaskToast";
 import useAsyncTask from "@/app/hooks/useAsyncTask";
@@ -9,7 +9,7 @@ import {DocumentTable} from "@/app/components/DocumentTable";
 
 
 const ManageData = () => {
-  const [documents, setDocuments] = useState<Documents>({});
+  const [documents, setDocuments] = useState<Document[]>([]);
 
   const { isTaskRunning, taskMessage, executeTask } = useAsyncTask();
 
@@ -22,7 +22,7 @@ const ManageData = () => {
       success: 'Documents loaded',
       error: 'Failed to load documents',
     });
-  }, [executeTask, apiBaseUrl]);
+  }, [executeTask]);
 
   useEffect(() => {
     fetchDocuments();
@@ -62,7 +62,7 @@ const ManageData = () => {
       ].join(' ')}>
 
         <DocumentTable
-          data={Object.values(documents).flat()}
+          data={documents}
           onDeleteDocuments={deleteDocuments}
         />
       </div>

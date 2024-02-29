@@ -15,6 +15,7 @@
     "@rjsf/utils": "^5.17.1",
     "@rjsf/validator-ajv8": "^5.17.1",
     "@tailwindcss/typography": "^0.5.10",
+    "@tanstack/match-sorter-utils": "^8.11.8",
     "@tanstack/react-table": "^8.13.2",
     "daisyui": "^4.6.1",
     "deep-chat-react": "^1.4.11",
