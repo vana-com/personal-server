@@ -19,9 +19,21 @@ class IndexDocumentsRequest(BaseModel):
     document_ids: List[str] = []
 
 
+class DeleteDocumentsRequest(BaseModel):
+    document_ids: List[str] = []
+
+
 @router.get("/documents")
 async def get_documents():
     return DataManager().get_documents()
+
+
+@router.delete("/documents")
+async def index_documents(request: DeleteDocumentsRequest):
+    print(request)
+    print(request.document_ids)
+    await DataManager().remove_documents([int(document_id) for document_id in request.document_ids])
+    return {"message": "Documents removed successfully"}
 
 
 @router.delete("/documents/{document_id}")

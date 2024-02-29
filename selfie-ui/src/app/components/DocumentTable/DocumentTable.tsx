@@ -1,148 +1,216 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { FaRegTrashAlt } from 'react-icons/fa';
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/20/solid";
-import { DataSource, Document, DocumentStats } from "@/app/types";
-import { isDateString, isNumeric } from "@/app/utils";
-import { DocumentTableActionBar } from "./DocumentTableActionBar";
-import DocumentTableRow from './DocumentTableRow';
+import { Document } from "@/app/types";
+import { filesize } from 'filesize';
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable
+} from '@tanstack/react-table';
+import { rankItem } from '@tanstack/match-sorter-utils'
 
-interface DocumentTableProps {
-  dataSources: DataSource[];
-  documents: { [sourceId: string]: Document[] };
-  columnNames: string[];
-  selectedDocuments: Set<string>;
-  setSelectedDocuments: (selected: Set<string>) => void;
-  onToggleDocumentSelection: (docId: string) => void;
-  // onIndexDocument: (doc: Document) => void | Promise<void>;
-  // onUnindexDocument: (doc: Document) => void | Promise<void>;
-  // onIndexDocuments: () => void | Promise<void>;
-  // onUnindexDocuments: () => void | Promise<void>;
-  disabled?: boolean;
-  stats?: DocumentStats;
+interface Document {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  content_type: string;
+  name: string;
+  size: number;
+  connector_name: string;
 }
 
-const DocumentTable = ({
-                         dataSources,
-                         documents,
-                         columnNames,
-                         selectedDocuments,
-                         setSelectedDocuments,
-                         onToggleDocumentSelection,
-                         // onIndexDocument,
-                         // onUnindexDocument,
-                         // onIndexDocuments,
-                         // onUnindexDocuments,
-                         disabled = false,
-                         stats,
-                       }: DocumentTableProps) => {
-  const [sortField, setSortField] = useState<string | undefined>();
-  const [sortDirection, setSortDirection] = useState<'asc'|'desc'>('asc');
-  const [selectAll, setSelectAll] = useState(false);
+const fuzzyFilter = (row, columnId, value, addMeta) => {
+  const itemRank = rankItem(row.getValue(columnId), value)
+  addMeta({ itemRank })
+  return itemRank.passed
+}
 
-  const handleToggleSelectAll = () => {
-    setSelectAll(!selectAll);
-    if (!selectAll) {
-      const allDocIds = Object.values(documents).flat().map(doc => doc.id);
-      setSelectedDocuments(new Set(allDocIds));
-    } else {
-      setSelectedDocuments(new Set());
-    }
-  };
+const columnHelper = createColumnHelper<Document>();
+const customColumnDefinitions = {
+  id: {
+    header: 'ID',
+  },
+  created_at: {
+    header: 'Created At',
+    cell: (value: string) => new Date(value).toLocaleString(),
+  },
+  updated_at: {
+    header: 'Updated At',
+    cell: (value: string) => new Date(value).toLocaleString(),
+  },
+  size: {
+    header: 'Size',
+    cell: (value: number) => filesize(value),
+  },
+  connector_name: {
+    header: 'Connector',
+  },
+};
 
-  const handleHeaderClick = (fieldName: string) => {
-    if (sortField === fieldName) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(fieldName);
-      setSortDirection('asc');
-    }
-  };
+const generateColumns = (data: Document[]) => {
+  const sample = data[0] || {};
+  return Object.keys(sample).map((key) => {
+    const id = key as keyof Document;
+    const custom = customColumnDefinitions[id];
 
-  const getSortableValue = (value: any) => {
-    if (isDateString(value)) {
-      return new Date(value).getTime();
-    } else if (isNumeric(value)) {
-      return parseFloat(value);
-    }
-    return value.toString();
-  };
+    return columnHelper.accessor(id, {
+      header: () => <span>{custom?.header || id.toString().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>,
+      cell: custom?.cell ? (info) => custom.cell(info.getValue()) : (info) => info.getValue(),
+    });
+  });
+};
 
-  const sortedDocuments = useMemo(() => {
-    if (!sortField) return documents;
+const DocumentTable = ({ data, onDeleteDocuments, onSelectionChange = (data: string[]) => {} }) => {
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
+  const [globalFilter, setGlobalFilter] = useState('');
 
-    return Object.keys(documents).reduce((sortedDocs: any, key: string) => {
-      sortedDocs[key] = [...documents[key]].sort((a, b) => {
-        const aValue = getSortableValue(a.metadata[sortField]);
-        const bValue = getSortableValue(b.metadata[sortField]);
+  const allRowsSelected = data.length > 0 && data.every(({ id }) => selectedRows[id]);
 
-        if (sortDirection === 'asc') {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
+  useEffect(() => {
+    setSelectedRows((prevSelectedRows) => {
+      const newDataIds = new Set(data.map(d => d.id));
+      return Object.keys(prevSelectedRows).reduce((acc, cur) => {
+        if (newDataIds.has(cur)) {
+          acc[cur] = prevSelectedRows[cur];
         }
-      });
-      return sortedDocs;
-    }, {});
-  }, [documents, sortField, sortDirection]);
+        return acc;
+      }, {});
+    });
+  }, [data]);
 
-  const indexableDocuments = Array.from(Object.keys(documents).map((coll) => documents[coll].filter(doc => !doc.is_indexed)).flat().filter(doc => selectedDocuments.has(doc.id)));
-  const unindexableDocuments = Array.from(Object.keys(documents).map((coll) => documents[coll].filter(doc => doc.is_indexed)).flat().filter(doc => selectedDocuments.has(doc.id)));
+  useEffect(() => {
+    onSelectionChange(Object.keys(selectedRows).filter((id) => selectedRows[id]));
+  }, [selectedRows, onSelectionChange]);
+
+  const toggleAllRowsSelected = () => {
+    if (allRowsSelected) {
+      setSelectedRows({});
+    } else {
+      const newSelectedRows = {};
+      data.forEach(({ id }) => {
+        newSelectedRows[id] = true;
+      });
+      setSelectedRows(newSelectedRows);
+    }
+  };
+
+  const handleSelectRow = (id: string) => {
+    setSelectedRows((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const columns = useMemo(() => [
+    // Checkbox column
+    columnHelper.display({
+      id: 'selection',
+      header: () => (
+        <input
+          type="checkbox"
+          checked={allRowsSelected}
+          onChange={toggleAllRowsSelected}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      cell: ({ row }) => (
+        <input
+          type="checkbox"
+          checked={selectedRows[row.original.id] || false}
+          onChange={() => handleSelectRow(row.original.id)}
+        />
+      ),
+    }),
+    ...generateColumns(data),
+    ...[onDeleteDocuments ? columnHelper.display({
+      id: 'delete',
+      header: () => <span>Delete</span>,
+      cell: ({ row }) => (
+        <button onClick={() => onDeleteDocuments([row.original.id])} className="text-red-500 hover:text-red-700">
+          <FaRegTrashAlt className="w-5 h-5 inline"/>
+        </button>
+      ),
+    }) : null].filter(Boolean),
+  ], [data, selectedRows, onDeleteDocuments]);
+
+  const table = useReactTable({
+    data: data ?? [],
+    columns: columns,
+    state: {
+      sorting,
+      globalFilter
+    },
+    initialState: {
+      columnOrder: ['selection', 'id', 'name', 'content_type', 'connector_name', 'document_connection_id', 'size', 'created_at', 'updated_at', 'delete'],
+    },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: fuzzyFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
+
+  const selectedDocuments = Object.keys(selectedRows).filter((id) => selectedRows[id]);
 
   return (
-    <>
-      <DocumentTableActionBar
-        // onIndexDocuments={onIndexDocuments}
-        // onUnindexDocuments={onUnindexDocuments}
-        indexableDocuments={indexableDocuments}
-        unindexableDocuments={unindexableDocuments}
-        hasSelectedDocuments={selectedDocuments.size > 0}
-        disabled={disabled}
-        stats={stats}
-      />
-      <table className="table w-full">
+    <div>
+      <div className="flex justify-between p-1">
+          <button
+            type="button"
+            className="btn btn-sm btn-error btn-outline"
+            disabled={selectedDocuments.length === 0}
+            onClick={(event) => onDeleteDocuments(selectedDocuments)}
+          >
+            Delete {selectedDocuments.length}
+          </button>
+
+        <input
+          value={globalFilter ?? ''}
+          onChange={e => setGlobalFilter(e.target.value)}
+          placeholder="Search all columns..."
+          className="input input-sm input-bordered"
+        />
+      </div>
+
+      <table className="table table-zebra my-4 w-full">
         <thead>
-        <tr className="cursor-pointer">
-          <th className="p-2" style={{lineHeight: 0}}>
-            <input
-              type="checkbox"
-              checked={selectAll}
-              onChange={handleToggleSelectAll}
-              className="checkbox"
-            />
-          </th>
-          {/* TODO: make sortable */}
-          <th className="p-2 cursor-default">Source</th>
-          <th className="p-2 cursor-default">Is Indexed</th>
-          {columnNames.map((colName) => (
-            <th key={colName} onClick={() => handleHeaderClick(colName)}>
-              {colName}
-              {sortField === colName && (
-                sortDirection === 'asc' ? <ChevronUpIcon className="h-4 w-4 float-right" /> :
-                  <ChevronDownIcon className="h-4 w-4 float-right" />
-              )}
+        <tr>
+          {table.getFlatHeaders().map((header) => (
+            <th
+              key={header.id}
+              onClick={header.column.getToggleSortingHandler()} // Attach sorting toggle click handler
+              className={header.column.getCanSort() ? 'cursor-pointer select-none' : ''}
+            >
+              {flexRender(header.column.columnDef.header, header.getContext())}
+              {/* Show sorting direction icons */}
+              {header.column.getIsSorted() ? (
+                header.column.getIsSorted() === 'desc' ? <ChevronDownIcon className="w-4 h-4 inline"/> :
+                  <ChevronUpIcon className="w-4 h-4 inline"/>
+              ) : null}
             </th>
           ))}
-          <th>Actions</th>
         </tr>
         </thead>
         <tbody>
-        {dataSources.flatMap(dataSource =>
-          sortedDocuments[dataSource.id]?.map((doc: Document) => (
-            <DocumentTableRow
-              key={doc.id}
-              doc={doc}
-              dataSource={dataSource}
-              columnNames={columnNames}
-              isSelected={selectedDocuments.has(doc.id)}
-              onToggle={onToggleDocumentSelection}
-              // onIndexDocument={(doc) => onIndexDocument(doc)}
-              // onUnindexDocument={(doc) => onUnindexDocument(doc)}
-              disabled={disabled}
-            />
-          ))
-        )}
+        {table.getRowModel().rows.map((row) => (
+          <tr key={row.id}>
+            {row.getVisibleCells().map((cell) => (
+              <td key={cell.id}>
+                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+              </td>
+            ))}
+          </tr>
+        ))}
         </tbody>
       </table>
-    </>
+    </div>
   );
 };
 

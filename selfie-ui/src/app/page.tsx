@@ -6,13 +6,13 @@ import { ThemeChanger } from "@/app/components/ThemeChanger";
 import { AddData } from "@/app/components/AddData";
 import useAsyncTask from "@/app/hooks/useAsyncTask";
 import TaskToast from "@/app/components/TaskToast";
-import DataManager from "@/app/components/DataManager";
+import ManageData from "@/app/components/ManageData";
 import { Playground } from "@/app/components/Playground";
 
 const pages = [
   { component: Playground, id: 'playground' },
   { component: AddData, id: 'addData' },
-  //{ component: DataManager, id: 'dataManager' },
+  { component: ManageData, id: 'manageData' },
 ];
 
 const App = () => {

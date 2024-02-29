@@ -6,7 +6,7 @@ from selfie.database import BaseModel
 from selfie.embeddings import EmbeddingDocumentModel, DataIndex
 from selfie.parsers.chat import ChatFileParser
 from selfie.types.documents import DocumentDTO
-from selfie.utils import data_uri_to_string
+from selfie.utils import data_uri_to_dict
 
 
 class TelegramConfiguration(BaseModel):
@@ -24,10 +24,10 @@ class TelegramConnector(BaseConnector, ABC):
 
         return [
             DocumentDTO(
-                content=data_uri_to_string(data_uri),
-                content_type="text/html",
-                name="todo",
-                size=len(data_uri_to_string(data_uri).encode('utf-8'))
+                content=(parsed := data_uri_to_dict(data_uri))['content'],
+                content_type=parsed['content_type'],
+                name=parsed['name'],
+                size=len(parsed['content'].encode('utf-8'))
             )
             for data_uri in config.files
         ]

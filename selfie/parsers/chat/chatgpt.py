@@ -65,7 +65,7 @@ class ChatGPTParser(JsonBasedChatParser):
             data (List[ChatGPTConversation]): The list of parsed JSON data
 
         Returns:
-            List[dict]: A list of conversation dictionaries
+            ShareGPTConversation: A conversation model containing the parsed chat data.
         """
         conversations = []
         for conversation in data:

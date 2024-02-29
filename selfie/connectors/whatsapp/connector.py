@@ -6,7 +6,7 @@ from selfie.database import BaseModel
 from selfie.embeddings import EmbeddingDocumentModel, DataIndex
 from selfie.parsers.chat import ChatFileParser
 from selfie.types.documents import DocumentDTO
-from selfie.utils import data_uri_to_string
+from selfie.utils import data_uri_to_dict
 
 
 class WhatsAppConfiguration(BaseModel):
@@ -24,10 +24,10 @@ class WhatsAppConnector(BaseConnector, ABC):
 
         return [
             DocumentDTO(
-                content=(content := data_uri_to_string(data_uri)),
-                content_type="text/plain",
-                name="todo",
-                size=len(content.encode('utf-8'))
+                content=(parsed := data_uri_to_dict(data_uri))['content'],
+                content_type=parsed['content_type'],
+                name=parsed['name'],
+                size=len(parsed['content'].encode('utf-8'))
             )
             for data_uri in config.files
         ]
