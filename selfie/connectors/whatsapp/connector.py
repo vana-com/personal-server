@@ -24,10 +24,10 @@ class WhatsAppConnector(BaseConnector, ABC):
 
         return [
             DocumentDTO(
-                content=data_uri_to_string(data_uri),
+                content=(content := data_uri_to_string(data_uri)),
                 content_type="text/plain",
                 name="todo",
-                size=len(data_uri_to_string(data_uri).encode('utf-8'))
+                size=len(content.encode('utf-8'))
             )
             for data_uri in config.files
         ]

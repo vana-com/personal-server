@@ -24,10 +24,10 @@ class ChatGPTConnector(BaseConnector, ABC):
 
         return [
             DocumentDTO(
-                content=data_uri_to_string(data_uri),
-                content_type="text/plain",
+                content=(content := data_uri_to_string(data_uri)),
+                content_type="application/json",
                 name="todo",
-                size=len(data_uri_to_string(data_uri).encode('utf-8'))
+                size=len(content.encode('utf-8'))
             )
             for data_uri in config.files
         ]
@@ -36,7 +36,8 @@ class ChatGPTConnector(BaseConnector, ABC):
         # TODO: check if file can be read from path
         pass
 
-    def transform_for_embedding(self, configuration: dict[str, Any], documents: List[DocumentDTO]) -> List[EmbeddingDocumentModel]:
+    def transform_for_embedding(self, configuration: dict[str, Any], documents: List[DocumentDTO]) -> List[
+        EmbeddingDocumentModel]:
         return [
             embeddingDocumentModel
             for document in documents
