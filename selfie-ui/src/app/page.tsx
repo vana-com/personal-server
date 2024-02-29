@@ -64,8 +64,8 @@ const App = () => {
           {pages.map(({ component: Component, id }) => (
             <div key={id} className={activeDrawerItem === id ? '' : 'hidden'}>
 
-              <div className="container mx-auto py-4">
-                <h1 className="text-2xl font-bold mb-4">{renderComponentName(Component)}</h1>
+              <div className="container mx-auto">
+                <h1 className="text-3xl font-bold my-6">{renderComponentName(Component)}</h1>
                 <Component />
               </div>
             </div>
@@ -75,7 +75,7 @@ const App = () => {
       <div className="drawer-side">
         {/* Sidebar content here */}
         <label htmlFor="my-drawer" className="drawer-overlay"></label>
-        <aside className="bg-base-200 min-h-screen">
+        <aside className="bg-base-300 min-h-screen">
           <h1 className="lg:flex hidden px-4 pt-4 text-2xl">Selfie</h1>
           <ul className="menu p-4 overflow-y-auto w-60">
             {/* Sidebar content here */}

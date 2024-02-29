@@ -9,9 +9,9 @@ export const ThemeChanger = () => {
     if (theme === 'system') {
       const systemThemeIsDark = window.matchMedia &&
         window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(systemThemeIsDark ? 'cupcake' : 'dark')
+      setTheme(systemThemeIsDark ? 'light' : 'dark')
     } else {
-      setTheme(theme === 'dark' ? 'cupcake' : 'dark')
+      setTheme(theme === 'dark' ? 'light' : 'dark')
     }
   }
 

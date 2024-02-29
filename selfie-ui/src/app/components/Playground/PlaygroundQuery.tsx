@@ -123,7 +123,7 @@ const PlaygroundQuery = () => {
                 <span className="label-text">Include Summary</span>
                 <input
                   type="checkbox"
-                  className="toggle toggle-sm toggle-accent"
+                  className="toggle toggle-sm"
                   checked={includeSummary}
                   onChange={(e) => setIncludeSummary(e.target.checked)}
                 />
@@ -145,10 +145,10 @@ const PlaygroundQuery = () => {
             </label>
           </form>
         </div>
-        {!!score && <div className="lg:w-1/2 mb-4">
+        {!!summary && <div className="lg:w-1/2 mb-4">
           {/*<Tooltip tip="Search for anything" />*/}
           <p>{summary}</p>
-          <p className="mt-4">Result Score: {score.toFixed(2)}</p>
+          {documents.length ? <p className="mt-4">Result Score: {score.toFixed(2)}</p> : null }
         </div>}
       </div>
       {!!score && <div>

@@ -30,8 +30,6 @@ async def get_documents():
 
 @router.delete("/documents")
 async def index_documents(request: DeleteDocumentsRequest):
-    print(request)
-    print(request.document_ids)
     await DataManager().remove_documents([int(document_id) for document_id in request.document_ids])
     return {"message": "Documents removed successfully"}
 
