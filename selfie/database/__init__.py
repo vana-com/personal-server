@@ -116,17 +116,19 @@ class DataManager:
     # def remove_data_source(self, source_id: int):
     #     DataSource.get_by_id(source_id).delete_instance()
 
+    async def remove_documents(self, document_ids: List[int], delete_indexed_data: bool = True):
+        if delete_indexed_data:
+            await DataIndex("n/a").delete_documents_with_source_documents(document_ids)
+
+        try:
+            with self.db.atomic():
+                DocumentModel.delete().where(DocumentModel.id.in_(document_ids)).execute()
+        except Exception as e:
+            logger.error(f"Error removing documents, but indexed data was removed: {e}")
+            raise e
+
     async def remove_document(self, document_id: int, delete_indexed_data: bool = True):
-        with self.db.atomic():
-            document = DocumentModel.get_by_id(document_id)
-            if document is None:
-                raise ValueError(f"No document found with ID {document_id}")
-
-            if delete_indexed_data:
-                index = DataIndex("n/a")
-                await index.delete_documents_with_source_documents([document.document_connection.id])
-
-            document.delete_instance()
+        return await self.remove_documents([document_id], delete_indexed_data)
 
     async def remove_document_connection(self, document_connection_id: int, delete_documents: bool = True,
                                          delete_indexed_data: bool = True):

@@ -42,26 +42,28 @@ const PlaygroundChat = ({ disabled = false, hasIndexedDocuments = true }: { disa
     <h2 className="text-xl font-bold mb-4">Chat</h2>
     <div className="flex flex-col lg:flex-row gap-4 w-full">
       <div className="w-full lg:w-1/2">
-        <div className="form-control w-100">
-          <label className="label cursor-pointer flex justify-start">
-            <span className="label-text">Data Augmentation Enabled</span>
+        <div className="flex justify-between items-center">
+          <div className="form-control w-100">
+            <label className="label cursor-pointer flex justify-start">
+              <span className="label-text">Reply using data</span>
 
-            <input
-              type="checkbox"
-              className="toggle mx-2"
-              title={!hasIndexedDocuments ? 'Add and index some documents to enable augmentation.' : ''}
-              disabled={disabled}
-              checked={hasIndexedDocuments && !disableAugmentation}
-              onChange={() => setDisableAugmentation(!disableAugmentation)}
-            />
-            {!hasIndexedDocuments && <Tooltip tip="Add and index some documents to enable augmentation."/>}
-          </label>
+              <input
+                type="checkbox"
+                className="toggle mx-2 toggle-sm"
+                title={!hasIndexedDocuments ? 'Add and index some documents to enable augmentation.' : ''}
+                disabled={disabled}
+                checked={hasIndexedDocuments && !disableAugmentation}
+                onChange={() => setDisableAugmentation(!disableAugmentation)}
+              />
+              {!hasIndexedDocuments && <Tooltip tip="Add and index some documents to enable augmentation."/>}
+            </label>
+          </div>
+          <button className="btn btn-xs btn-outline" onClick={(e) => {
+            e.preventDefault();
+            setShouldClear(prev => !prev)
+          }}>Clear Messages
+          </button>
         </div>
-        <button className="btn btn-sm mb-2" onClick={(e) => {
-          e.preventDefault();
-          setShouldClear(prev => !prev)
-        }}>Clear Messages
-        </button>
         <Chat assistantName={name}
               assistantBio={bio}
               disableAugmentation={!hasIndexedDocuments || disableAugmentation}

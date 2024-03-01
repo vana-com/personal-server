@@ -37,14 +37,19 @@ const DocumentSourceSelector = ({ onSelect }: DocumentSourceSelectorProps) => {
   };
 
   return (
-    <select className="select select-bordered w-full max-w-sm" onChange={handleChange} defaultValue={''}>
-      <option disabled value="">Select a data source...</option>
-      {sources.map((source) => (
-        <option key={source.value} value={source.value}>
-          {source.label}
-        </option>
-      ))}
-    </select>
+    <>
+      <p className="my-4">
+        Choose a data source and follow the instructions to upload new documents. Choose the method that most closely matches your data for the best results.
+      </p>
+      <select className="select select-bordered w-full max-w-sm" onChange={handleChange} defaultValue={''}>
+        <option disabled value="">Select a data source...</option>
+        {sources.map((source) => (
+          <option key={source.value} value={source.value}>
+            {source.label}
+          </option>
+        ))}
+      </select>
+    </>
   );
 };
 
