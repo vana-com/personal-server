@@ -8,34 +8,42 @@
 
 # Selfie
 
-Selfie personalizes text generation, augmenting both local and hosted Large Language Models (LLMs) with your personal data. Selfie exposes an OpenAI-compatible API that wraps the LLM of your choice, and automatically injects relevant context into each text generation request.
+Bring your personal data to life! Selfie offers OpenAI-compatible APIs that bring your data into LLM awareness. Selfie also empowers you to directly search your data with natural language. Selfie runs 100% locally by default to keep your data private.
 
 <img alt="selfie-augmentation" src="./docs/images/playground-augmentation.png" width="100%">
 
+## Quick Start
+
+1. Install [python](https://www.python.org) 3.9+, [poetry](https://python-poetry.org), and [Node.js](https://nodejs.org).
+2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
+3. Run `start.sh`.
+4. http://localhost:8181 will open in your default web browser.
+
+> **Tip**: Python 3.11 is recommended.
+
+> **Tip**: On macOS you can run `brew install poetry nodejs` with [brew](https://brew.sh).
+
 ## Features
 
-* Automatically mix your data into chat and text completions using OpenAI-compatible clients like [OpenAI SDKs](https://platform.openai.com/docs/libraries), [SillyTavern](https://sillytavernai.com), and [Instructor](https://github.com/jxnl/instructor)* (untested).
-* Quickly drop in personal messaging data exported from WhatsApp and Google Messages.
+* Mix your data into text completions using OpenAI-compatible clients like [OpenAI SDKs](https://platform.openai.com/docs/libraries) and [SillyTavern](https://sillytavernai.com).
+* Quickly drop in any text file, with enhanced support for conversations exported from messaging platforms.
 * Runs locally by default to keep your data private.
-* Unopinionated compatibility with your LLM or provider of choice.
-* Easily switch to vanilla text generation modes.
-* Directly and selectively query loaded data.
-
-On the roadmap:
+* Unopinionated compatibility with hosted LLMs from OpenAI, Replicate, etc.
+* APIs for directly and selectively querying your data in natural language.
 
 [//]: # (* Load data using any [LlamaHub loader]&#40;https://llamahub.ai/?tab=loaders&#41;.)
-* Easy deployment with Docker and pre-built executables.
+[//]: # (* Easy deployment with Docker and pre-built executables.)
 
 ## Overview
 
 Selfie is designed to compose well with tools on both sides of the text generation process. You can think of it as middleware that intelligently mixes your data into a request.
 
-Typical request:
+A typical request:
 ```
 Application -(request)-> LLM
 ```
 
-Request through Selfie:
+A request through Selfie:
 ```
 Application -(request)-> Selfie -(request x data)-> LLM
                             |
@@ -46,46 +54,70 @@ On the application side, Selfie exposes text generation APIs, including OpenAI-c
 
 On the LLM side, Selfie uses tools like LiteLLM and txtai to support forwarding data-augmented requests to your LLM of choice
 
-## Getting Started
 
-To launch Selfie, ensure that [python](https://www.python.org) 3.11, [poetry](https://python-poetry.org), and [yarn](https://yarnpkg.com) are installed. Then run the following commands in the project directory:
+## Installation
 
-1. `git clone git@github.com:vana-com/selfie.git`
-2. `cp selfie/.env.example selfie/.env`
-3. `./scripts/build-ui.sh` (requires `yarn`)
-4. `poetry install`, enable GPU or Metal acceleration via llama.cpp by subsequently installing GPU-enabled llama-cpp-python, see Scripts. _Note: if you are on macOS and do not have poetry installed, you can run `brew install poetry`_.
-5. `poetry run python -m selfie`, or `poetry run python -m selfie --gpu` if your device is GPU-enabled. The first time you run this, it will download ~4GB of model weights. While you wait, you can download your WhatsApp or Google Takeout data for the next step.
+For most users, the easiest way to install Selfie is to follow the [Quick Start](#quick-start) instructions. If that doesn't work, or if you just want to install Selfie manually, follow the detailed instructions below.
 
+<details>
+<summary>Manual Installation</summary>
+
+1. Ensure that [python](https://www.python.org) 3.9+, [poetry](https://python-poetry.org), and [Node.js](https://nodejs.org) are installed.
+2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
+3. In a terminal, navigate to the project directory.
+4. Run `cp selfie/.env.example selfie/.env` to create a `.env` file in which you can configure the default port that Selfie runs on and hosting with ngrok.
+5. Run `./scripts/build-ui.sh` to build the UI and copy it to the server.
+6. Run `poetry install` to install required Python dependencies.
+7. Optional: Run `./scripts/llama-cpp-python-cublas.sh` to enable hardware acceleration (for details, see [Scripts](#llama-cpp-python-cublassh)).
+8. Run `poetry run python -m selfie`, or `poetry run python -m selfie --gpu` if your device is GPU-enabled. The first time you run this, it will download ~4GB of model weights.
+
+[//]: # (1. `git clone
 [//]: # (Disable this note about installing with GPU support until supported via transformers, etc.)
 [//]: # (3. `poetry install` or `poetry install -E gpu` &#40;to enable GPU devices via transformers&#41;. Enable GPU or Metal acceleration via llama.cpp by installing GPU-enabled llama-cpp-python, see Scripts.)
 
-This starts a local web server and should launch the UI in your browser at http://localhost:8181. API documentation is available at http://localhost:8181/docs. Now that the server is running, you can use the API to import your data and connect to your LLM.
+[//]: # (This starts a local web server and should launch the UI in your browser at http://localhost:8181. API documentation is available at http://localhost:8181/docs. Now that the server is running, you can use the API to import your data and connect to your LLM.)
+</details>
 
-> Note: You can host selfie at a publicly-accessible URL with [ngrok](https://ngrok.com). Add your ngrok token (and optionally, ngrok domain) in `selfie/.env` and run `poetry run python -m selfie --share`.
+> **Note**: You can host selfie at a publicly-accessible URL with [ngrok](https://ngrok.com). Add your ngrok token (and optionally, ngrok domain) in `selfie/.env` and run `poetry run python -m selfie --share`.
 
-### Step 1: Import Your Data
+
+## Setting Up Selfie
+
+Selfie comes with a web-based UI that you can use to import your data and interact with it.
+
+### Import Your Data
 
 Selfie supports importing text data, with special processing for certain data formats, like chat logs from WhatsApp and ChatGPT.
 
-> Note: You can try the example files in the `example-chats` directory if you want to try a specific data format that you don't have ready for import.
+> **Note**: You can try the example files in the `example-chats` directory if you want to try a specific data format that you don't have ready for import.
 
 To import data into Selfie:
 
 1. **Open the Add Data Page**: Access the UI and locate the Add Data section.
 2. **Select Data Source**: Choose the type of data you are uploading (e.g., WhatsApp, Text Files). Choose the type that most closely matches your data format.
-3. **Upload Files**: Choose your files and submit them for upload.
-
-Ensure you obtain consent from participants in the chats you wish to export.
+3. **Configure and Submit**: Complete the required fields and submit the form.
 
 Support for new types of data can be added by creating new data connectors in `selfie/connectors/` (instructions [here](./selfie/connectors/README.md), please contribute!).
 
-### Step 2: Engage with Your Data
+> **Note**: Ensure you obtain consent from participants in the chats you wish to export.
 
-The Playground page includes a chat interface and a Search feature. Write an LLM persona by entering a name and bio, and try interacting with your data through conversation. You can also search your data for specific topics under Search.
+### Interact With Your Data
 
-You can interact with your data via the API directly, for instance, try viewing this link in your web browser: http://localhost:8181/v1/index_documents/summary?topic=travel. Detailed API documentation is available [here](http://localhost:8181/docs).
+Now you are ready to interact with your data!
+
+The Playground page includes a chat interface and a search feature. Write an LLM persona by entering a name and bio, and try interacting with your data through conversation. You can also search your data for specific topics under Search.
+
+Now you are ready to use the Selfie API!
 
 ## API Usage Guide
+
+To quickly see your API in action, try viewing this link in your web browser:
+
+http://localhost:8181/v1/index_documents/summary?topic=travel.
+
+Detailed API documentation is available [here](http://localhost:8181/docs).
+
+### How Text Completions Work
 
 By default, Selfie augments text completions with local models using llama.cpp and a local txtai embeddings database.
 
@@ -102,7 +134,7 @@ You can also include special parameters to direct Selfie in how your request sho
 
 Examples and more details are provided in the next sections.
 
-### Augmenting Local Models
+### Using Selfie With Local Models
 
 Selfie uses [txtai](https://neuml.github.io/txtai) to download local models and run them with [llama.cpp](https://github.com/ggerganov/llama.cpp). In completion requests, specify the `llama.cpp` method, or leave it off as the default, and ensure that your model is defined correctly, as a local path or HuggingFace model, according to [txtai's documentation](https://neuml.github.io/txtai/models).
 
@@ -131,7 +163,7 @@ You can even use a local Open-AI compatible API ([LiteLLM OpenAI-Compatible Endp
 ```
 Method is optional and defaults to `litellm` when `api_base` is specified.
 
-### Augmenting Hosted Models
+### Using Selfie with Hosted Models
 
 Selfie can use hosted model providers through [litellm](https://litellm.vercel.app). In completion requests, specify the `litellm` method (optional) and ensure that your model is prefixed correctly according to [litellm's documentation for your provider](https://docs.litellm.ai/docs/providers).
 
@@ -204,8 +236,22 @@ Note that model is empty:
 ![silly-tavern-local-api-model.png](docs/images/silly-tavern-local-api-model.png)
 We pass an extra parameter, `instruct_mode`, for text-generation-webui.
 ![silly-tavern-local-api.png](docs/images/silly-tavern-local-api.png)
-> Note: some OpenAI-compatible APIs may not properly handle SillyTavern's use of multiple system messages and non-alternating user/assistant messages (like [text-generation-webui](https://github.com/oobabooga/text-generation-webui)). A text-generation-webui workaround is described [here](https://github.com/SillyTavern/SillyTavern/issues/1722#issuecomment-1902619716).
 
+> **Note**: some OpenAI-compatible APIs may not properly handle SillyTavern's use of multiple system messages and non-alternating user/assistant messages (like [text-generation-webui](https://github.com/oobabooga/text-generation-webui)). A text-generation-webui workaround is described [here](https://github.com/SillyTavern/SillyTavern/issues/1722#issuecomment-1902619716).
+
+## Scripts
+
+The `scripts` directory contains a variety of scripts for setting up Selfie. Here's a brief overview of each script:
+
+### build-ui.sh
+
+To build the UI, run `./scripts/build-ui.sh`.
+
+### llama-cpp-python-cublas.sh
+
+To install llama.cpp with hardware acceleration for better performance, run `./scripts/llama-cpp-python-cublas.sh`.
+
+Alternatively, you can build `llama-cpp-python` manually with the flags of your choice by following [the instructions](https://github.com/abetlen/llama-cpp-python?tab=readme-ov-file#installation).
 
 ## Experimental Features
 
@@ -213,19 +259,11 @@ Selfie is a work in progress. Here are some features that are not yet fully supp
 
 ### Building an Executable
 
-Build an executable for your platform with `pyinstaller selfie.spec --noconfirm`.
+To build an executable for your platform:
 
-Start the built service with `./dist/selfie/selfie`.
-
-### Scripts
-
-Besides `build-ui.sh`, scripts are provided in scripts/ to help with useful tasks.
-
-### llama-cpp-python-cublas.sh
-
-To install llama.cpp with hardware acceleration for better performance, run `./scripts/llama-cpp-python-cublas.sh`.
-
-Alternatively, you can build `llama-cpp-python` manually with the flags of your choice by following [the instructions](https://github.com/abetlen/llama-cpp-python?tab=readme-ov-file#installation).
+1. Run `pip install pyinstaller`. *(pyinstaller is not compatible with Python >3.12 so it is not included by default)*
+2. Run `pyinstaller selfie.spec --noconfirm`.
+3. Start the built service with `./dist/selfie/selfie`.
 
 ## Contributing
 
