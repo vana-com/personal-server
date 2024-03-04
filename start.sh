@@ -8,7 +8,9 @@ else
 fi
 
 MISSING_DEPENDENCIES=""
-command -v python >/dev/null 2>&1 || MISSING_DEPENDENCIES="${MISSING_DEPENDENCIES} Python (https://www.python.org/downloads/)\n"
+
+PYTHON_COMMAND=$(command -v python3 || { command -v python &>/dev/null && python --version 2>&1 | grep -q "Python 3" && echo python; })
+[ -z "$PYTHON_COMMAND" ] && MISSING_DEPENDENCIES="${MISSING_DEPENDENCIES} Python 3 (https://www.python.org/downloads/)\n"
 command -v poetry >/dev/null 2>&1 || MISSING_DEPENDENCIES="${MISSING_DEPENDENCIES} Poetry (https://python-poetry.org/docs/#installation)\n"
 command -v yarn >/dev/null 2>&1 || MISSING_DEPENDENCIES="${MISSING_DEPENDENCIES} Yarn (https://yarnpkg.com/getting-started/install)\n"
 
@@ -38,4 +40,4 @@ else
 fi
 
 echo "Running selfie..."
-poetry run python -m selfie $ACCELERATION_FLAG
+poetry run $PYTHON_COMMAND -m selfie $ACCELERATION_FLAG

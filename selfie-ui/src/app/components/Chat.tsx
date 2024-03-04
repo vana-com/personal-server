@@ -35,20 +35,21 @@ export const Chat = ({
 
   const chatMessageStyle = {
     default: {
-      ai: { bubble: { backgroundColor: 'oklch(var(--b2))', color: 'oklch(var(--bc))' } }, // Slightly darker base color for AI bubble
+      ai: { bubble: { backgroundColor: 'oklch(var(--b3))', color: 'oklch(var(--bc))' } },
+      user: { bubble: { backgroundColor: 'oklch(var(--p))', color: 'oklch(var(--pc))' } },
     },
-    loading: {
-      bubble: { backgroundColor: 'oklch(var(--b2))', color: 'oklch(var(--bc))' },
-    }
+    // loading: {
+    //   bubble: { backgroundColor: 'oklch(var(--b3))', color: 'oklch(var(--bc))' },
+    // }
   };
 
   const chatInputStyle = {
     styles: {
       container: {
-        backgroundColor: 'oklch(var(--b3))', // Even more darker base color for input container
+        backgroundColor: 'oklch(var(--b3))',
         border: 'unset',
-        color: 'oklch(var(--bc))' // Base content color
-      }
+        color: 'oklch(var(--bc))'
+      },
     },
     placeholder: { text: "Say anything here...", style: { color: 'oklch(var(--bc))' } } // Use base-200 color for placeholder
   };
