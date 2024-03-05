@@ -20,7 +20,7 @@ Bring your personal data to life! Selfie offers OpenAI-compatible APIs that brin
 * Hosted LLMs from OpenAI, Replicate, etc. are supported too.
 * APIs for directly and selectively querying your data in natural language.
 
-### Personalized Chat 
+### Personalized Chat
 
 <img alt="selfie-augmentation" src="./docs/images/playground-use-data.png" height="300px">
 
@@ -50,14 +50,16 @@ curl -X POST 'http://localhost:8181/v1/chat/completions' \
 
 ## Quick Start
 
+For MacOS and Linux:
+
 1. Install [python](https://www.python.org) 3.9+, [poetry](https://python-poetry.org), and [Node.js](https://nodejs.org).
 2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
 3. Run `start.sh`.
 4. http://localhost:8181 will open in your default web browser.
 
-> **Tip**: Python 3.11 is recommended.
-
 > **Tip**: On macOS you can run `brew install poetry nodejs` with [brew](https://brew.sh).
+
+For Windows, please follow the instructions in [Installation](#installation).
 
 ## Overview
 
@@ -83,6 +85,8 @@ On the LLM side, Selfie uses tools like LiteLLM and txtai to support forwarding 
 ## Installation
 
 For most users, the easiest way to install Selfie is to follow the [Quick Start](#quick-start) instructions. If that doesn't work, or if you just want to install Selfie manually, follow the detailed instructions below.
+
+> **Tip**: Python 3.11 is recommended.
 
 <details>
 <summary>Manual Installation</summary>
