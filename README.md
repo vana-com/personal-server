@@ -95,10 +95,13 @@ docker run -p 8181:8181 \
   -v $(pwd)/data:/selfie/data \
   -v $(pwd)/selfie:/selfie/selfie \
   -v $(pwd)/selfie-ui:/selfie/selfie-ui \
+  -v $HOME/.cache/huggingface:/root/.cache/huggingface \
   selfie:latest
 ```
 This will start the server and the UI in your browser at http://0.0.0.0:8181/. 
 Your personal data will be stored in the `data` directory.
+This is also maps your hugingface cache to the container, so you don't have to download the models again if you already
+have them.
 
 ## Setting Up Selfie
 
