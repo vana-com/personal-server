@@ -100,7 +100,7 @@ docker run -p 8181:8181 \
 ```
 This will start the server and the UI in your browser at http://0.0.0.0:8181/. 
 Your personal data will be stored in the `data` directory.
-This is also maps your hugingface cache to the container, so you don't have to download the models again if you already
+This mounts your Hugging Face cache into the container so you don't have to download the models again if you already
 have them.
 
 ## Setting Up Selfie
