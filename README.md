@@ -80,7 +80,7 @@ For most users, the easiest way to install Selfie is to follow the [Quick Start]
 
 > **Note**: You can host selfie at a publicly-accessible URL with [ngrok](https://ngrok.com). Add your ngrok token (and optionally, ngrok domain) in `selfie/.env` and run `poetry run python -m selfie --share`.
 
-## Using docker
+## Using Docker
 
 You can also run Selfie using Docker. To do so, follow these steps:
 
