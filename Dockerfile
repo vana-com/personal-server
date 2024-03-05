@@ -45,5 +45,6 @@ RUN poetry run poetry add colorlog
 
 EXPOSE 8181
 
-# Run start.sh
-CMD ["/selfie/start.sh"]
+# Run start.sh, add --skip-deps and --skip-build to skip installing dependencies and building the UI
+# since that is done in the previous stages
+CMD ["/selfie/start.sh", "--skip-deps", "--skip-build"]
