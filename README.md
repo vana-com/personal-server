@@ -1,7 +1,7 @@
 <div align="center">
   <img alt="selfie" src="./docs/images/hero.png" height="300px">
   <br>
-  <a href="https://discord.gg/GhYDaDqENx" target="_blank"><img alt="selfie" src="https://dcbadge.vercel.app/api/server/GhYDaDqENx?style=flat&compact=true"></a>
+  <a href="https://discord.gg/GhYDaDqENx" target="_blank"><img alt="Join our Discord" src="https://dcbadge.vercel.app/api/server/GhYDaDqENx?style=flat&compact=true"></a>
 
 [//]: # (  <a href="https://vana.com/" target="_blank"><img alt="selfie" src="https://assets-global.website-files.com/62dfa5318bb52f5fea8dc489/62dfb34210f09278d8bce721_Vana_Logo.svg" style="background-color: #dbff00; padding: 5px; height: 20px; border-radius: 2px"></a>)
 </div>
@@ -10,25 +10,34 @@
 
 [Jump to Quick Start](#quick-start)
 
-Bring your personal data to life! Selfie offers OpenAI-compatible APIs that bring your data into LLM awareness. Selfie also empowers you to directly search your data with natural language. Selfie runs 100% locally by default to keep your data private.
+Imagine AI that is not just smart, but personal. Selfie turns your data into APIs for text generation and natural language search that can power chatbots, storytelling experiences, games, and more.
 
-## Features
+Selfie is a local-first, open-source project that runs on your device.
 
-* Mix your data into text completions using OpenAI-compatible clients like [OpenAI SDKs](https://platform.openai.com/docs/libraries) and [SillyTavern](https://sillytavernai.com).
-* Quickly drop in any text file, with enhanced support for conversations exported from messaging platforms.
-* Runs locally by default to keep your data private.
-* Hosted LLMs from OpenAI, Replicate, etc. are supported too.
-* APIs for directly and selectively querying your data in natural language.
+## Core Features
 
-### Personalized Chat
+Selfie offers a more personalized interaction between you and the digital world via:
+
+* **Text Completions:** Mix your data into text completions using any OpenAI-compatible tool (like [OpenAI SDKs](https://platform.openai.com/docs/libraries) and [SillyTavern](https://sillytavernai.com)) or the API.
+* **Simple Data Import**: Quickly import any text file, with enhanced support for messaging platform exports.
+* **Use Any LLM**: Use local (default) or hosted LLMs from OpenAI, Replicate, etc.
+* **Direct Queries**: Search your data with natural language.
+
+### Web-Based UI
+
+Selfie comes with a local UI for importing and interacting with your data.
+
+**Personalized Chat**
 
 <img alt="selfie-augmentation" src="./docs/images/playground-use-data.png" height="300px">
 
-### Natural Search
+**Semantic Search**
 
 <img alt="selfie-search" src="./docs/images/playground-search.png" height="250px">
 
-### API Support
+### Full API Support
+
+Selfie provides a full API for OpenAI-style text completions and search.
 
 ```bash
 curl -X POST 'http://localhost:8181/v1/chat/completions' \
@@ -56,6 +65,8 @@ For MacOS and Linux:
 2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
 3. Run `start.sh`.
 4. http://localhost:8181 will open in your default web browser.
+5. Head to the Add Data page in the UI and follow the instructions.
+6. Chat with your data in the Playground, connect it to a tool like SillyTavern, or integrate it with your own application.
 
 > **Tip**: On macOS you can run `brew install poetry nodejs` with [brew](https://brew.sh).
 
@@ -63,18 +74,16 @@ For Windows, please follow the instructions in [Installation](#installation).
 
 ## Overview
 
-Selfie is designed to compose well with tools on both sides of the text generation process. You can think of it as middleware that intelligently mixes your data into a request.
+Selfie's core feature is personalized text generation. You can think of it as middleware that intelligently mixes your data into a request.
 
 A typical request:
 ```
-Application -(request)-> LLM
+Application --prompt--> LLM
 ```
 
 A request through Selfie:
 ```
-Application -(request)-> Selfie -(request x data)-> LLM
-                            |
-                        Your Data
+Application --prompt--> Selfie --prompt+data--> LLM
 ```
 
 On the application side, Selfie exposes text generation APIs, including OpenAI-compatible endpoints.
