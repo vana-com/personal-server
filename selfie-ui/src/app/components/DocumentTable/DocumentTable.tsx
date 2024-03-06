@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/20/solid";
 import { Document } from "@/app/types";
@@ -80,13 +80,13 @@ const DocumentTable: React.FC<DocumentTableProps> = ({ data, onDeleteDocuments, 
         return acc;
       }, {});
     });
-  }, [data]);;
+  }, [data]);
 
   useEffect(() => {
     onSelectionChange(Object.keys(selectedRows).filter((id) => selectedRows[id]));
   }, [selectedRows, onSelectionChange]);
 
-  const toggleAllRowsSelected = () => {
+  const toggleAllRowsSelected = useCallback(() => {
     if (allRowsSelected) {
       setSelectedRows({});
     } else {
@@ -96,7 +96,7 @@ const DocumentTable: React.FC<DocumentTableProps> = ({ data, onDeleteDocuments, 
       });
       setSelectedRows(newSelectedRows);
     }
-  };
+  }, [allRowsSelected, data, setSelectedRows])
 
   const handleSelectRow = (id: string) => {
     setSelectedRows((prev) => ({

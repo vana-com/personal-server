@@ -8,31 +8,58 @@
 
 # Selfie
 
+[Jump to Quick Start](#quick-start)
+
 Bring your personal data to life! Selfie offers OpenAI-compatible APIs that bring your data into LLM awareness. Selfie also empowers you to directly search your data with natural language. Selfie runs 100% locally by default to keep your data private.
-
-<img alt="selfie-augmentation" src="./docs/images/playground-augmentation.png" width="100%">
-
-## Quick Start
-
-1. Install [python](https://www.python.org) 3.9+, [poetry](https://python-poetry.org), and [Node.js](https://nodejs.org).
-2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
-3. Run `start.sh`.
-4. http://localhost:8181 will open in your default web browser.
-
-> **Tip**: Python 3.11 is recommended.
-
-> **Tip**: On macOS you can run `brew install poetry nodejs` with [brew](https://brew.sh).
 
 ## Features
 
 * Mix your data into text completions using OpenAI-compatible clients like [OpenAI SDKs](https://platform.openai.com/docs/libraries) and [SillyTavern](https://sillytavernai.com).
 * Quickly drop in any text file, with enhanced support for conversations exported from messaging platforms.
 * Runs locally by default to keep your data private.
-* Unopinionated compatibility with hosted LLMs from OpenAI, Replicate, etc.
+* Hosted LLMs from OpenAI, Replicate, etc. are supported too.
 * APIs for directly and selectively querying your data in natural language.
+
+### Personalized Chat
+
+<img alt="selfie-augmentation" src="./docs/images/playground-use-data.png" height="300px">
+
+### Natural Search
+
+<img alt="selfie-search" src="./docs/images/playground-search.png" height="250px">
+
+### API Support
+
+```bash
+curl -X POST 'http://localhost:8181/v1/chat/completions' \
+-H 'Content-Type: application/json' \
+-d '{
+  "messages": [{"role": "user", "content": "As Alice, what is your proudest garden achievement?"}]
+}' | jq '.choices[0].message.content'
+
+# "I grew a 10-pound tomato!"
+```
+
+[Jump to API Usage](#api-usage-guide)
+
+[//]: # (TODO: build out integration recipes)
+[//]: # (*Check out [Integration Recipes]&#40;#integration-recipes&#41; for some example of what you can do with Selfie.*)
 
 [//]: # (* Load data using any [LlamaHub loader]&#40;https://llamahub.ai/?tab=loaders&#41;.)
 [//]: # (* Easy deployment with Docker and pre-built executables.)
+
+## Quick Start
+
+For MacOS and Linux:
+
+1. Install [python](https://www.python.org) 3.9+, [poetry](https://python-poetry.org), and [Node.js](https://nodejs.org).
+2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
+3. Run `start.sh`.
+4. http://localhost:8181 will open in your default web browser.
+
+> **Tip**: On macOS you can run `brew install poetry nodejs` with [brew](https://brew.sh).
+
+For Windows, please follow the instructions in [Installation](#installation).
 
 ## Overview
 
@@ -58,6 +85,8 @@ On the LLM side, Selfie uses tools like LiteLLM and txtai to support forwarding 
 ## Installation
 
 For most users, the easiest way to install Selfie is to follow the [Quick Start](#quick-start) instructions. If that doesn't work, or if you just want to install Selfie manually, follow the detailed instructions below.
+
+> **Tip**: Python 3.11 is recommended.
 
 <details>
 <summary>Manual Installation</summary>
@@ -218,7 +247,7 @@ Selfie can be used to augment text generation in a variety of applications. Here
 
 ### Powering the OpenAI SDK
 
-The OpenAI SDK is a popular way to access OpenAI's text generation models. You can use Selfie to augment the text completions that the SDK generates by setting the `apiBase` and `apiKey` parameters.
+The OpenAI SDK is a popular way to access OpenAI's text generation models. You can use Selfie to augment the text completions that the SDK generates simply by setting the `apiBase` and `apiKey` parameters.
 
 ```js
 import OpenAI from 'openai';
@@ -228,17 +257,16 @@ const openai = new OpenAI({
   apiKey: ''
 });
 
-const name = 'Alice';
 const chatCompletion = await openai.chat.completions.create({
-  // model: 'TheBloke/Mistral-7B-Instruct-v0.2-GGUF/mistral-7b-instruct-v0.2.Q5_K_M.gguf', // Optionally, customize the model used
   messages: [
-    { role: 'system', content: `Write ${name}'s next reply in a fictional chat with ${name} and their friends.` },
-    { role: 'user', content: 'Favorite ice cream?' },
+    { role: 'system', content: `Write Alice's next reply.` },
+    { role: 'user', content: 'What are your favorite snacks?' },
   ]
-} as any);
+});
 
 console.log(chatCompletion.choices[0].message.content);
-// "Alice enjoys Bahn Mi and Vietnamese coffee."
+
+// "I enjoy Bahn Mi and Vietnamese coffee."
 ```
 
 ### Powering SillyTavern
