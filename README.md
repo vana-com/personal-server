@@ -14,6 +14,15 @@ Imagine AI that is not just smart, but personal. Selfie turns your data into API
 
 Selfie is a local-first, open-source project that runs on your device.
 
+<div align="center">
+ <a href="https://www.loom.com/share/2b3abdaf35064d00a733c62f3d2fc006" target="_blank">
+   <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/2b3abdaf35064d00a733c62f3d2fc006-with-play.gif">
+ </a>
+</div>
+<div align="center">
+   <i style="font-size: 9.5pt">Check out the video tour!</i>
+</div>
+
 ## Core Features
 
 Selfie offers a more personalized interaction between you and the digital world via:
