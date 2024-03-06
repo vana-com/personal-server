@@ -58,7 +58,6 @@ class DataIndex:
 
             self.character_name = character_name
             self.embeddings = Embeddings(
-                path="sentence-transformers/all-MiniLM-L6-v2",
                 sqlite={"wal": True},
                 # For now, sqlite w/the default driver is the only way to use WAL.
                 content=True

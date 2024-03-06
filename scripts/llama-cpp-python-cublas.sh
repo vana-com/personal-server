@@ -21,18 +21,6 @@ detect_cpu_arch() {
     echo $CPU_ARCH
 }
 
-detect_platform() {
-    OS_NAME=$(uname -s)
-    OS_ARCH=$(uname -m)
-    if [ "$OS_NAME" == "Linux" ]; then
-        PLATFORM="manylinux_2_31_x86_64"
-    elif [ "$OS_NAME" == "Darwin" ]; then
-        PLATFORM="macosx_$(sw_vers -productVersion | cut -d. -f1-2)_$(uname -m)"
-    else
-        PLATFORM="unsupported"
-    fi
-    echo $PLATFORM
-}
 
 detect_gpu_acceleration() {
     CUDA_VERSION=""
@@ -40,57 +28,29 @@ detect_gpu_acceleration() {
     ACCELERATION="cpu"
 
     if command -v nvcc &> /dev/null; then
-        CUDA_VERSION=$(nvcc --version | grep "release" | awk '{print $6}' | cut -d'.' -f1-2 | sed 's/[^0-9]//g')
+        CUDA_VERSION=$(nvcc --version | awk '/release/ {print $5}' | cut -d',' -f1 | tr -cd '[0-9]')
+
         ACCELERATION="cu$CUDA_VERSION"
     elif command -v rocm-info &> /dev/null; then
-        ROCM_VERSION=$(rocm-info | grep -oP 'Version:\s+\K[0-9.]+')
+        ROCM_VERSION=$(rocm-info | awk '/Version:/ {print $2}' | tr -d '.')
         ACCELERATION="rocm$ROCM_VERSION"
     elif [ "$(uname -s)" == "Darwin" ]; then
-        ACCELERATION="metal"
+        ACCELERATION="cpu"
     fi
 
     echo "$ACCELERATION"
 }
 
-detect_latest_accelerated_version() {
+get_index_url() {
     CPU_ARCH=$(detect_cpu_arch)
-    PLATFORM=$(detect_platform)
     ACCELERATION=$(detect_gpu_acceleration)
-    PYTHON_VERSION=$(python --version 2>&1 | grep -oP 'Python \K[0-9]+\.[0-9]+')
-    PYTHON_VERSION_CONCATENATED=$(echo $PYTHON_VERSION | tr -d '.')  # Convert to e.g., 311
 
-    URL="https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/${CPU_ARCH}/${ACCELERATION}/llama-cpp-python/"
-    LATEST_WHEEL=$(curl -s $URL | grep -oP "href=\"\K(.*?cp${PYTHON_VERSION_CONCATENATED}.*?${PLATFORM}.*?\.whl)" | sort -V | tail -n 1)
-
-    if [ -z "$LATEST_WHEEL" ]; then
-        echo "No suitable wheel file found for the current configuration."
-        exit 1
-    fi
-
-    echo "$LATEST_WHEEL"
+    echo "https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/${CPU_ARCH}/${ACCELERATION}"
 }
 
-check_and_install() {
-    LATEST_WHEEL=$(detect_latest_accelerated_version)
-    if [ -z "$LATEST_WHEEL" ]; then
-        echo "WARNING: Unable to find a compatible wheel file, installing an unaccelerated version."
-        python -m pip install llama-cpp-python
-    fi
 
-    WHL_FILE=$(basename "$LATEST_WHEEL")
-    LATEST_VERSION=$(echo "$WHL_FILE" | grep -oP "llama_cpp_python-\K([0-9]+\.[0-9]+\.[0-9]+(\+[a-z0-9]+)?)")
-
-    INSTALLED_VERSION=$(pip list --format=freeze | grep "llama_cpp_python==" | cut -d'=' -f3 || echo "")
-
-    if [ "$INSTALLED_VERSION" = "$LATEST_VERSION" ]; then
-        echo "The latest version of llama-cpp-python ($LATEST_VERSION) is already installed."
-    else
-        echo "Installing the latest version of llama-cpp-python ($LATEST_VERSION) for your system ($INSTALLED_VERSION) is installed)"
-        python -m pip install --prefer-binary --force-reinstall "$LATEST_WHEEL"
-    fi
-}
-
-echo "Checking for llama-cpp-python installation..."
-check_and_install
+echo "Installing accelerated llama-cpp-python..."
+poetry run python -m pip install llama-cpp-python --prefer-binary --force-reinstall --extra-index-url="$(get_index_url)"
 
 echo "Installation complete. Please check for any errors above."
+

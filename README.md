@@ -1,53 +1,89 @@
 <div align="center">
   <img alt="selfie" src="./docs/images/hero.png" height="300px">
   <br>
-  <a href="https://discord.gg/GhYDaDqENx" target="_blank"><img alt="selfie" src="https://dcbadge.vercel.app/api/server/GhYDaDqENx?style=flat&compact=true"></a>
+  <a href="https://discord.gg/GhYDaDqENx" target="_blank"><img alt="Join our Discord" src="https://dcbadge.vercel.app/api/server/GhYDaDqENx?style=flat&compact=true"></a>
 
 [//]: # (  <a href="https://vana.com/" target="_blank"><img alt="selfie" src="https://assets-global.website-files.com/62dfa5318bb52f5fea8dc489/62dfb34210f09278d8bce721_Vana_Logo.svg" style="background-color: #dbff00; padding: 5px; height: 20px; border-radius: 2px"></a>)
 </div>
 
 # Selfie
 
-Bring your personal data to life! Selfie offers OpenAI-compatible APIs that bring your data into LLM awareness. Selfie also empowers you to directly search your data with natural language. Selfie runs 100% locally by default to keep your data private.
+[Jump to Quick Start](#quick-start)
 
-<img alt="selfie-augmentation" src="./docs/images/playground-augmentation.png" width="100%">
+Imagine AI that is not just smart, but personal. Selfie turns your data into APIs for text generation and natural language search that can power chatbots, storytelling experiences, games, and more.
+
+Selfie is a local-first, open-source project that runs on your device.
+
+## Core Features
+
+Selfie offers a more personalized interaction between you and the digital world via:
+
+* **Text Completions:** Mix your data into text completions using any OpenAI-compatible tool (like [OpenAI SDKs](https://platform.openai.com/docs/libraries) and [SillyTavern](https://sillytavernai.com)) or the API.
+* **Simple Data Import**: Quickly import any text file, with enhanced support for messaging platform exports.
+* **Use Any LLM**: Use local (default) or hosted LLMs from OpenAI, Replicate, etc.
+* **Direct Queries**: Search your data with natural language.
+
+### Web-Based UI
+
+Selfie comes with a local UI for importing and interacting with your data.
+
+**Personalized Chat**
+
+<img alt="selfie-augmentation" src="./docs/images/playground-use-data.png" height="300px">
+
+**Semantic Search**
+
+<img alt="selfie-search" src="./docs/images/playground-search.png" height="250px">
+
+### Full API Support
+
+Selfie provides a full API for OpenAI-style text completions and search.
+
+```bash
+curl -X POST 'http://localhost:8181/v1/chat/completions' \
+-H 'Content-Type: application/json' \
+-d '{
+  "messages": [{"role": "user", "content": "As Alice, what is your proudest garden achievement?"}]
+}' | jq '.choices[0].message.content'
+
+# "I grew a 10-pound tomato!"
+```
+
+[Jump to API Usage](#api-usage-guide)
+
+[//]: # (TODO: build out integration recipes)
+[//]: # (*Check out [Integration Recipes]&#40;#integration-recipes&#41; for some example of what you can do with Selfie.*)
+
+[//]: # (* Load data using any [LlamaHub loader]&#40;https://llamahub.ai/?tab=loaders&#41;.)
+[//]: # (* Easy deployment with Docker and pre-built executables.)
 
 ## Quick Start
+
+For MacOS and Linux:
 
 1. Install [python](https://www.python.org) 3.9+, [poetry](https://python-poetry.org), and [Node.js](https://nodejs.org).
 2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
 3. Run `start.sh`.
 4. http://localhost:8181 will open in your default web browser.
-
-> **Tip**: Python 3.11 is recommended.
+5. Head to the Add Data page in the UI and follow the instructions.
+6. Chat with your data in the Playground, connect it to a tool like SillyTavern, or integrate it with your own application.
 
 > **Tip**: On macOS you can run `brew install poetry nodejs` with [brew](https://brew.sh).
 
-## Features
-
-* Mix your data into text completions using OpenAI-compatible clients like [OpenAI SDKs](https://platform.openai.com/docs/libraries) and [SillyTavern](https://sillytavernai.com).
-* Quickly drop in any text file, with enhanced support for conversations exported from messaging platforms.
-* Runs locally by default to keep your data private.
-* Unopinionated compatibility with hosted LLMs from OpenAI, Replicate, etc.
-* APIs for directly and selectively querying your data in natural language.
-
-[//]: # (* Load data using any [LlamaHub loader]&#40;https://llamahub.ai/?tab=loaders&#41;.)
-[//]: # (* Easy deployment with Docker and pre-built executables.)
+For Windows, please follow the instructions in [Installation](#installation).
 
 ## Overview
 
-Selfie is designed to compose well with tools on both sides of the text generation process. You can think of it as middleware that intelligently mixes your data into a request.
+Selfie's core feature is personalized text generation. You can think of it as middleware that intelligently mixes your data into a request.
 
 A typical request:
 ```
-Application -(request)-> LLM
+Application --prompt--> LLM
 ```
 
 A request through Selfie:
 ```
-Application -(request)-> Selfie -(request x data)-> LLM
-                            |
-                        Your Data
+Application --prompt--> Selfie --prompt+data--> LLM
 ```
 
 On the application side, Selfie exposes text generation APIs, including OpenAI-compatible endpoints.
@@ -58,6 +94,8 @@ On the LLM side, Selfie uses tools like LiteLLM and txtai to support forwarding 
 ## Installation
 
 For most users, the easiest way to install Selfie is to follow the [Quick Start](#quick-start) instructions. If that doesn't work, or if you just want to install Selfie manually, follow the detailed instructions below.
+
+> **Tip**: Python 3.11 is recommended.
 
 <details>
 <summary>Manual Installation</summary>
@@ -196,7 +234,7 @@ Selfie can be used to augment text generation in a variety of applications. Here
 
 ### Powering the OpenAI SDK
 
-The OpenAI SDK is a popular way to access OpenAI's text generation models. You can use Selfie to augment the text completions that the SDK generates by setting the `apiBase` and `apiKey` parameters.
+The OpenAI SDK is a popular way to access OpenAI's text generation models. You can use Selfie to augment the text completions that the SDK generates simply by setting the `apiBase` and `apiKey` parameters.
 
 ```js
 import OpenAI from 'openai';
@@ -206,17 +244,16 @@ const openai = new OpenAI({
   apiKey: ''
 });
 
-const name = 'Alice';
 const chatCompletion = await openai.chat.completions.create({
-  // model: 'TheBloke/Mistral-7B-Instruct-v0.2-GGUF/mistral-7b-instruct-v0.2.Q5_K_M.gguf', // Optionally, customize the model used
   messages: [
-    { role: 'system', content: `Write ${name}'s next reply in a fictional chat with ${name} and their friends.` },
-    { role: 'user', content: 'Favorite ice cream?' },
+    { role: 'system', content: `Write Alice's next reply.` },
+    { role: 'user', content: 'What are your favorite snacks?' },
   ]
-} as any);
+});
 
 console.log(chatCompletion.choices[0].message.content);
-// "Alice enjoys Bahn Mi and Vietnamese coffee."
+
+// "I enjoy Bahn Mi and Vietnamese coffee."
 ```
 
 ### Powering SillyTavern

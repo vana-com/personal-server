@@ -49,7 +49,7 @@ const PlaygroundChat = ({ disabled = false, hasIndexedDocuments = true }: { disa
 
               <input
                 type="checkbox"
-                className="toggle mx-2 toggle-sm"
+                className="toggle mx-2 toggle-sm toggle-primary"
                 title={!hasIndexedDocuments ? 'Add and index some documents to enable augmentation.' : ''}
                 disabled={disabled}
                 checked={hasIndexedDocuments && !disableAugmentation}

@@ -123,7 +123,7 @@ const PlaygroundQuery = () => {
                 <span className="label-text">Include Summary</span>
                 <input
                   type="checkbox"
-                  className="toggle toggle-sm"
+                  className="toggle toggle-sm toggle-primary"
                   checked={includeSummary}
                   onChange={(e) => setIncludeSummary(e.target.checked)}
                 />
