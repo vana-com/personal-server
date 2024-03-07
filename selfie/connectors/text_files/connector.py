@@ -1,6 +1,9 @@
 from abc import ABC
 from typing import Any, List
 
+from selfie.config import get_app_config
+
+
 from llama_index.core.node_parser import SentenceSplitter
 
 from selfie.connectors.base_connector import BaseConnector
@@ -8,6 +11,8 @@ from selfie.database import BaseModel, DataManager
 from selfie.embeddings import EmbeddingDocumentModel
 from selfie.types.documents import DocumentDTO
 from selfie.utils import data_uri_to_dict
+
+config = get_app_config()
 
 
 class TextFilesConfiguration(BaseModel):
@@ -46,5 +51,8 @@ class TextFilesConnector(BaseConnector, ABC):
                 source_document_id=document.id,
             )
             for document in documents
-            for text_chunk in SentenceSplitter(chunk_size=1024).split_text(document.content)
+            for text_chunk in SentenceSplitter(
+                chunk_size=config.embedding_chunk_size,
+                chunk_overlap=config.embedding_chunk_overlap,
+            ).split_text(document.content)
         ]

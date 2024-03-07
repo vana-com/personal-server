@@ -7,6 +7,9 @@ import shutil
 from typing import Optional, List, Dict, Any, Coroutine, Callable
 
 import humanize
+import logging
+import tiktoken
+from llama_index.core.node_parser import SentenceSplitter
 
 from selfie.config import get_app_config
 from selfie.data_generators.chat_training_data import (
@@ -18,7 +21,6 @@ from selfie.embeddings.importance_scorer import ImportanceScorer
 from selfie.embeddings.recency_scorer import RecencyScorer
 from selfie.embeddings.relevance_scorer import RelevanceScorer
 from txtai.embeddings import Embeddings
-import logging
 
 from txtai.pipeline import LLM
 
@@ -28,12 +30,25 @@ default_importance = 0.3
 
 config = get_app_config()
 
-llm = LLM(
-    verbose=config.verbose,
-    path=config.local_model,
-    method="llama.cpp",
-    n_ctx=8192,
-    n_gpu_layers=-1 if config.gpu else 0,
+
+def get_default_completion():
+    return LLM(
+        verbose=config.verbose,
+        path=config.local_model,
+        method="llama.cpp",
+        n_ctx=8192,
+        n_gpu_layers=-1 if config.gpu else 0,
+    )
+
+
+# TODO: Probably a minor issue, so hard-coding the tokenizer for now:
+# 1. The default tokenizer should probably be based on the user's default/configured model
+# 2. If the user changes their default model, already-indexed documents could be larger than max_embedding_size_tokens
+tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
+splitter = SentenceSplitter(
+    tokenizer=tokenizer,
+    chunk_size=config.embedding_chunk_size,
+    chunk_overlap=config.embedding_chunk_overlap
 )
 
 
@@ -51,11 +66,7 @@ class DataIndex:
             self.storage_path = os.path.join(storage_path, "index")
             os.makedirs(storage_path, exist_ok=True)
 
-            async def completion_async(prompt):
-                return llm(prompt)
-
-            self.completion = completion or completion_async
-
+            self.completion = completion or get_default_completion()
             self.character_name = character_name
             self.embeddings = Embeddings(
                 sqlite={"wal": True},
@@ -149,11 +160,30 @@ class DataIndex:
     def map_share_gpt_data(
         conversation: List[ShareGPTMessage], source: str = "Unknown", source_document_id: int = None
     ) -> List[EmbeddingDocumentModel]:
-        chunks = ChatTrainingDataGenerator.group_messages_into_chunks(
-            conversation, overlap=1, max_messages=8, max_characters=0
+        conversation_with_chunked_messages = [
+            ShareGPTMessage(**{
+                "from": msg.from_user,
+                "value": chunk,
+                "timestamp": msg.timestamp,
+            })
+            for msg in conversation
+            for chunk in (
+                splitter.split_text(msg.value)
+                if len(tokenizer(msg.value)) > config.embedding_chunk_size
+                else [msg.value]
+            )
+        ]
+
+        message_chunks = ChatTrainingDataGenerator.group_messages_into_chunks(
+            conversation_with_chunked_messages,
+            overlap=2,
+            max_messages=32,
+            max_tokens=config.embedding_chunk_size,
+            tokenizer=tokenizer
         )
+
         documents = []
-        for i, conv in enumerate(chunks):
+        for i, conv in enumerate(message_chunks):
             if any("REDACTED" in msg.value for msg in conv):
                 continue
             last_user = ""
