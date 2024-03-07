@@ -19,14 +19,11 @@ if [ ! -z "$MISSING_DEPENDENCIES" ]; then
     exit 1
 fi
 
-detect_gpu_acceleration() {
-    if command -v nvcc &>/dev/null || command -v rocm-info &>/dev/null || [ "$(uname -m)" = "arm64" ]; then
-        GPU_FLAG="--gpu"
-    else
-        GPU_FLAG=""
-    fi
-    echo $GPU_FLAG
-}
+if command -v nvcc &>/dev/null || command -v rocm-info &>/dev/null || [ "$(uname -m)" = "arm64" ]; then
+    GPU_FLAG="--gpu"
+else
+    GPU_FLAG=""
+fi
 
 echo "Installing Python dependencies with Poetry..."
 poetry check || poetry install
@@ -38,4 +35,4 @@ echo "Running llama-cpp-python-cublas.sh to enable hardware acceleration..."
 ./scripts/llama-cpp-python-cublas.sh
 
 echo "Running selfie..."
-poetry run python -m selfie "$(detect_gpu_acceleration)"
+poetry run python -m selfie $GPU_FLAG

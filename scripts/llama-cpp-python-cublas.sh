@@ -28,10 +28,11 @@ detect_gpu_acceleration() {
     ACCELERATION="cpu"
 
     if command -v nvcc &> /dev/null; then
-        CUDA_VERSION=$(nvcc --version | awk '/release/ {print $6}' | cut -d'.' -f1-2 | tr -cd '[0-9.]')
+        CUDA_VERSION=$(nvcc --version | awk '/release/ {print $5}' | cut -d',' -f1 | tr -cd '[0-9]')
+
         ACCELERATION="cu$CUDA_VERSION"
     elif command -v rocm-info &> /dev/null; then
-        ROCM_VERSION=$(rocm-info | awk '/Version:/ {print $2}')
+        ROCM_VERSION=$(rocm-info | awk '/Version:/ {print $2}' | tr -d '.')
         ACCELERATION="rocm$ROCM_VERSION"
     elif [ "$(uname -s)" == "Darwin" ]; then
         ACCELERATION="cpu"
