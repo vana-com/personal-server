@@ -3,6 +3,20 @@
 # Run poetry shell, then pyinstaller cli.spec --noconfirm
 
 import os
+
+def collect_connector_files(base_path):
+    data_files = []
+    for root, dirs, files in os.walk(base_path):
+        for file in files:
+            if file.endswith('.py'):
+                continue
+            file_path = os.path.join(root, file)
+            relative_path = os.path.relpath(file_path, base_path)
+            data_files.append((file_path, os.path.join('selfie/connectors', relative_path)))
+    return data_files
+
+connector_files = collect_connector_files('./selfie/connectors/')
+
 a = Analysis(
     ['selfie/__main__.py'],
     debug=True,
@@ -11,6 +25,7 @@ a = Analysis(
     datas=[
         ('./selfie/parsers/chat/blacklist_patterns.yaml', 'selfie/parsers/chat/'),
         ('./selfie/web/', 'selfie/web/'),
+        *connector_files,
     ],
     hiddenimports=[
         'tiktoken_ext',
