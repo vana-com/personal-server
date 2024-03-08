@@ -32,13 +32,18 @@ config = get_app_config()
 
 
 def get_default_completion():
-    return LLM(
+    llm = LLM(
         verbose=config.verbose,
         path=config.local_model,
         method="llama.cpp",
         n_ctx=8192,
         n_gpu_layers=-1 if config.gpu else 0,
     )
+
+    async def completion(prompt):
+        return llm(prompt)
+
+    return completion
 
 
 # TODO: Probably a minor issue, so hard-coding the tokenizer for now:
