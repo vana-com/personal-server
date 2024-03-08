@@ -298,8 +298,8 @@ Selfie is a work in progress. Here are some features that are not yet fully supp
 
 To build an executable for your platform:
 
-1. Run `pip install pyinstaller`. *(pyinstaller is not compatible with Python >3.12 so it is not included by default)*
-2. Run `pyinstaller selfie.spec --noconfirm`.
+1. Run `poetry run pip install pyinstaller`. *(pyinstaller is not compatible with Python >3.12 so it is not included by default)*
+2. Run `poetry run pyinstaller selfie.spec --noconfirm`.
 3. Start the built service with `./dist/selfie/selfie`.
 
 ## Contributing
