@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         # os: [ubuntu-latest, macos-latest-xlarge, windows-latest]
-        os: [macos-latest-xlarge]
+        os: [flyci-macos-xlarge]
         python-version: [3.11]
 
     steps:
