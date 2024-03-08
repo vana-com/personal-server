@@ -3,8 +3,8 @@ name: Build with PyInstaller
 on:
   push:
     branches: [main, package]
-  pull_request:
-    branches: [main, package]
+  # pull_request:
+  #   branches: [main, package]
 
 jobs:
   build:
@@ -60,21 +60,22 @@ jobs:
         run: poetry run pyinstaller selfie.spec --noconfirm
         shell: bash
 
-#      - name: Archive Build Output
-#        run: |
-#          cd dist
-#          tar -czvf selfie-build.tar.gz *
-#        shell: bash
-#
-#      - name: Upload Artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: ${{ matrix.os }}-build
-#          path: dist/selfie-build.tar.gz
+      # - name: Archive Build Output
+      #   run: |
+      #     cd dist
+      #     tar -czvf selfie-build.tar.gz *
+      #   shell: bash
+
+      # - name: Upload Artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: ${{ matrix.os }}-build
+      #     path: dist/selfie-build.tar.gz
+      #     overwrite: true
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-build
-          path: .
+          path: dist
           overwrite: true
