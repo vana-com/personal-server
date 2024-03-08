@@ -1,0 +1,80 @@
+name: Build with PyInstaller
+
+on:
+  push:
+    branches: [main, package]
+  pull_request:
+    branches: [main, package]
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # os: [ubuntu-latest, macos-latest-xlarge, windows-latest]
+        os: [macos-latest-xlarge]
+        python-version: [3.11]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: poetry
+          cache-dependency-path: poetry.lock
+
+      - name: Install dependencies with Poetry
+        run: poetry install --no-dev
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+          cache-dependency-path: selfie-ui/yarn.lock
+
+      - name: Cache Next.js build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            selfie-ui/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('selfie-ui/**/yarn.lock') }}-${{ hashFiles('selfie-ui/**/*.js', 'selfie-ui/**/*.jsx', 'selfie-ui/**/*.ts', 'selfie-ui/**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('selfie-ui/**/yarn.lock') }}-
+
+      - name: Install dependencies with Yarn
+        run: sh scripts/build-ui.sh
+
+      - name: Install PyInstaller
+        run: poetry run pip install pyinstaller
+
+      - name: Build with PyInstaller
+        run: poetry run pyinstaller selfie.spec --noconfirm
+        shell: bash
+
+#      - name: Archive Build Output
+#        run: |
+#          cd dist
+#          tar -czvf selfie-build.tar.gz *
+#        shell: bash
+#
+#      - name: Upload Artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ${{ matrix.os }}-build
+#          path: dist/selfie-build.tar.gz
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-build
+          path: .
+          overwrite: true
