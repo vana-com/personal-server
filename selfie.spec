@@ -11,9 +11,11 @@ def collect_connector_files(base_path):
             if file.endswith('.py'):
                 continue
             file_path = os.path.join(root, file)
-            relative_path = os.path.relpath(file_path, base_path)
-            data_files.append((file_path, os.path.join('selfie/connectors', relative_path)))
+            relative_path = os.path.relpath(root, base_path)
+            destination_path = os.path.join('selfie/connectors', relative_path)
+            data_files.append((file_path, destination_path))
     return data_files
+
 
 connector_files = collect_connector_files('./selfie/connectors/')
 
