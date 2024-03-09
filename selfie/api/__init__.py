@@ -22,7 +22,46 @@ logger = logging.getLogger(__name__)
 
 config = get_app_config()
 
-app = FastAPI(root_path="/v1")
+
+description = """
+The Selfie API is a RESTful API for interacting with the Selfie platform. It provides endpoints for generating chat and text completions, configuring and managing Selfie, and managing data sources, documents, and data indexing.
+"""
+
+tags_metadata = [
+    {
+        "name": "Completions",
+        "description": "Endpoints for generating chat and text completions.",
+    },
+    {
+        "name": "Configuration",
+        "description": "Endpoints for configuring and managing Selfie.",
+    },
+    {
+        "name": "Data Management",
+        "description": "Endpoints for managing data sources, documents, and data indexing.",
+    },
+    {
+        "name": "OpenAI",
+        "description": """Endpoints that can be used as drop-in replacements for endpoints in the [OpenAI API](https://platform.openai.com/docs/api-reference).
+
+These endpoints generally include additional functionality not present in the OpenAI API. For example, completion endpoints support a flag for controlling whether or not to use Selfie data during text generation.
+""",
+    },
+    {
+        "name": "Deprecated",
+        "description": "Endpoints that are deprecated and should not be used.",
+    }
+
+]
+
+
+app = FastAPI(
+    title="Selfie",
+    description=description,
+    root_path="/v1",
+    openapi_tags=tags_metadata,
+    version="0.1.0",  # TODO: dynamically fetch version
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -72,6 +111,6 @@ class CleanURLMiddleware(BaseHTTPMiddleware):
 app.add_middleware(CleanURLMiddleware)
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def serve_index_html():
     return FileResponse(os.path.join(static_files_dir, "index.html"))

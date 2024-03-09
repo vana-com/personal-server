@@ -7,6 +7,7 @@ from selfie.database import DataManager
 from selfie.embeddings import DataIndex
 from selfie.parsers.chat import ChatFileParser
 
+# router = APIRouter(tags=["Data Management"])
 router = APIRouter()
 
 
@@ -23,30 +24,35 @@ class DeleteDocumentsRequest(BaseModel):
     document_ids: List[str] = []
 
 
-@router.get("/documents")
+@router.get("/documents",
+            tags=["Data Management"])
 async def get_documents():
     return DataManager().get_documents()
 
 
-@router.delete("/documents")
-async def index_documents(request: DeleteDocumentsRequest):
+@router.delete("/documents",
+               tags=["Data Management"])
+async def delete_documents(request: DeleteDocumentsRequest):
     await DataManager().remove_documents([int(document_id) for document_id in request.document_ids])
     return {"message": "Documents removed successfully"}
 
 
-@router.delete("/documents/{document_id}")
-async def delete_data_source(document_id: int, delete_indexed_data: bool = True):
+@router.delete("/documents/{document_id}",
+               tags=["Data Management"])
+async def delete_document(document_id: int, delete_indexed_data: bool = True):
     await DataManager().remove_document(document_id, delete_indexed_data)
     return {"message": "Document removed successfully"}
 
 
-@router.post("/documents/unindex")
+@router.post("/documents/unindex",
+             tags=["Deprecated"])
 async def unindex_documents(request: UnindexDocumentsRequest):
     await DataIndex("n/a").delete_documents_with_source_documents(request.document_ids)
     return {"message": "Document unindexed successfully"}
 
 
-@router.post("/documents/index")
+@router.post("/documents/index",
+             tags=["Deprecated"])
 async def index_documents(request: IndexDocumentsRequest):
     is_chat = request.is_chat
     document_ids = request.document_ids
@@ -72,8 +78,3 @@ async def index_documents(request: IndexDocumentsRequest):
                                      ) if is_chat else None)
         for document_id in document_ids
     ]
-
-# @app.delete("/documents/{document-id}")
-# async def delete_data_source(document_id: int):
-#     DataSourceManager().remove_document(document_id)
-#     return {"message": "Document removed successfully"}

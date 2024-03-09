@@ -16,7 +16,7 @@ class WhatsAppConfiguration(BaseModel):
 class WhatsAppConnector(BaseConnector, ABC):
     def __init__(self):
         super().__init__()
-        self.id = "whatsapp"
+        self.id = "whatsapp"  # TODO: this should be static
         self.name = "WhatsApp"
 
     def load_document(self, configuration: dict[str, Any]) -> List[DocumentDTO]:

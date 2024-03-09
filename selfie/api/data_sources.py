@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from selfie.database import DataManager
 
-router = APIRouter()
+router = APIRouter(tags=["Deprecated"])
 
 
 class DataLoaderRequest(BaseModel):

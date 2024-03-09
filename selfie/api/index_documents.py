@@ -12,7 +12,7 @@ from llama_index.core.node_parser.text import SentenceSplitter
 from datetime import datetime
 import importlib
 
-router = APIRouter()
+router = APIRouter(tags=["Deprecated"])
 
 
 @router.get("/index_documents")
