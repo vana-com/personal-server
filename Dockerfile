@@ -1,3 +1,4 @@
+# Build the UI
 FROM node:18.19-alpine3.18 AS selfie-ui
 
 # Set the working directory in the container
@@ -35,11 +36,11 @@ COPY --from=selfie-ui /selfie/out/ ./selfie-ui/out
 RUN pip install poetry --no-cache-dir
 
 # Install dependencies
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi
+RUN poetry config virtualenvs.create false
+RUN poetry update
+RUN poetry install --no-interaction --no-ansi
 
 EXPOSE 8181
 
 # Run the application directly
 CMD ["python", "-m", "selfie", "--gpu"]
-
