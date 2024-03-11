@@ -139,7 +139,7 @@ To build and run the Docker image, navigate to the project directory and run the
 docker build -t selfie .
 
 # Or, for CPU-only image:
-docker build -t selfie -f Dockerfile.cpu .
+docker build -t selfie -f cpu.Dockerfile .
 
 # Run the Docker container
 docker run -p 8181:8181 \

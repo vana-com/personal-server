@@ -42,7 +42,7 @@ RUN pip install poetry --no-cache-dir
 # Install dependencies
 RUN poetry config virtualenvs.create false
 RUN poetry update
-RUN poetry install --no-interaction --no-ansi
+RUN poetry install --no-interaction --no-ansi --timeout 300 # timeout increased to avoid timeouts
 
 EXPOSE 8181
 

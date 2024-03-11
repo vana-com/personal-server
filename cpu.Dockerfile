@@ -45,5 +45,5 @@ RUN bash /selfie/scripts/llama-cpp-python-cublas.sh
 
 EXPOSE 8181
 
-# Run the application with GPU support
-CMD ["python", "-m", "selfie", "--gpu"]
+# Run the application
+CMD ["python", "-m", "selfie"]
