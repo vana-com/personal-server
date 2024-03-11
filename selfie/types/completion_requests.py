@@ -62,12 +62,12 @@ class BaseCompletionRequest(BaseModel):
         model_config = {
             "json_schema_extra": {
                 "example": {
+                    "method": "litellm",
                     "model": "gpt-3.5-turbo",
+                    "api_key": "your-api-key",
                     "prompt": "Hello, how are you?",
                     "max_tokens": 50,
                     "temperature": 0.8,
-                    "method": "litellm",
-                    "api_key": "your_api_key"
                 }
             }
         }
@@ -98,15 +98,15 @@ class ChatCompletionRequest(BaseCompletionRequest):
     model_config = {
         "json_schema_extra": {
             "example": {
+                "method": "litellm",
                 "model": "gpt-3.5-turbo",
+                "api_key": "your-api-key",
                 "messages": [
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": "What is the capital of France?"}
                 ],
                 "max_tokens": 50,
                 "temperature": 0.8,
-                "method": "litellm",
-                "api_key": "your_api_key"
             }
         }
     }
@@ -123,12 +123,12 @@ class CompletionRequest(BaseCompletionRequest):
     model_config = {
         "json_schema_extra": {
             "example": {
+                "method": "litellm",
                 "model": "gpt-3.5-turbo",
+                "api_key": "your-api-key",
                 "prompt": "Once upon a time",
                 "max_tokens": 50,
                 "temperature": 0.8,
-                "method": "litellm",
-                "api_key": "your_api_key"
             }
         }
     }

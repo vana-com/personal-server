@@ -30,22 +30,28 @@ The Selfie API is a RESTful API for interacting with the Selfie platform. It pro
 tags_metadata = [
     {
         "name": "Completions",
-        "description": "Endpoints for generating chat and text completions.",
+        "description": """Endpoints for generating chat and text completions. Selfie completion endpoints can be used as drop-in replacements for endpoints in the [OpenAI API](https://platform.openai.com/docs/api-reference).
+
+These endpoints generally include additional functionality not present in the OpenAI API, e.g. you can use a flag to control whether or not to Selfie data is used during text generation.
+
+Please see the [API Usage Guide](https://github.com/vana-com/selfie/?tab=readme-ov-file#api-usage-guide) for more information on how to use these endpoints.
+""",
     },
     {
-        "name": "Configuration",
-        "description": "Endpoints for configuring and managing Selfie.",
+        "name": "Search",
+        "description": "Endpoints for searching and analyzing documents.",
     },
     {
         "name": "Data Management",
-        "description": "Endpoints for managing data sources, documents, and data indexing.",
+        "description": """Endpoints for managing data sources, documents, and data indexing.
+   
+These endpoints are primarily intended to be used by the Selfie UI."""
     },
     {
-        "name": "OpenAI",
-        "description": """Endpoints that can be used as drop-in replacements for endpoints in the [OpenAI API](https://platform.openai.com/docs/api-reference).
+        "name": "Configuration",
+        "description": """Endpoints for configuring and managing Selfie.
 
-These endpoints generally include additional functionality not present in the OpenAI API. For example, completion endpoints support a flag for controlling whether or not to use Selfie data during text generation.
-""",
+These endpoints are primarily intended to be used by the Selfie UI."""
     },
     {
         "name": "Deprecated",
