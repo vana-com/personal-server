@@ -16,8 +16,12 @@ COPY selfie-ui/ .
 # Build the project
 RUN yarn run build
 
-# Use the official Python image with CUDA support
-FROM python:3.11 as selfie
+# Use pytorch with CUDA support
+FROM pytorch/pytorch:2.2.1-cuda12.1-cudnn8-runtime as selfie
+
+# Install build tools and compilers
+RUN apt-get update && \
+    apt-get install -y build-essential
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -39,11 +43,6 @@ RUN pip install poetry --no-cache-dir
 RUN poetry config virtualenvs.create false
 RUN poetry update
 RUN poetry install --no-interaction --no-ansi
-
-# Install CUDA toolkit
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    cuda-toolkit-11-3 \
-    && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 8181
 
