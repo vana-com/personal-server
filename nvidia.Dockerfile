@@ -26,6 +26,7 @@ RUN apt-get update && \
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+ENV PIP_NO_CACHE_DIR=1
 
 # Set the working directory
 WORKDIR /selfie
@@ -37,12 +38,11 @@ COPY . .
 COPY --from=selfie-ui /selfie/out/ ./selfie-ui/out
 
 # Install poetry
-RUN pip install poetry --no-cache-dir
+RUN pip install poetry
 
 # Install dependencies
 RUN poetry config virtualenvs.create false
-RUN poetry update
-RUN poetry install --no-interaction --no-ansi --timeout 300 # timeout increased to avoid timeouts
+RUN poetry install --no-interaction --no-ansi
 
 EXPOSE 8181
 
