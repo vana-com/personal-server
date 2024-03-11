@@ -60,7 +60,8 @@ class ChatFileParser:
         self.parser_cache = {}
         self.blacklist_patterns = [
             re.compile(pattern, re.IGNORECASE)
-            for pattern in default_blacklist_patterns + (blacklist_patterns or [])
+            # TODO: Disabling blacklisting until it is more configurable
+            for pattern in [] #default_blacklist_patterns + (blacklist_patterns or [])
         ]
         self.rewrite_placeholder = rewrite_placeholder
 

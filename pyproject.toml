@@ -1,19 +1,20 @@
 [tool.poetry]
 name = "selfie"
 version = "0.1.0"
-description = "Data awareness mixin for LLMs"
+description = "Data mixin for LLMs"
 authors = ["Vana <services@vana.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0" # >=3.9 for numpy, <4 for llama-index
 beautifulsoup4 = "^4.12.3"
+colorlog = "^6.8.2"
 fastapi = "^0.109.0"
 uvicorn = "^0.27.0"
 humanize = "^4.9.0"
-llama-cpp-python = "^0.2.42"
+llama-cpp-python = "^0.2.26"
 litellm = "^1.23.12"
-txtai = {version = "^6.3.0", extras = ["pipeline-llm"]}
+txtai = {version = "^7.0.0", extras = ["pipeline-llm"]}
 sse-starlette = "^2.0.0"
 llama-index = "^0.10.4"
 numpy = "^1.26.4"
@@ -33,9 +34,6 @@ autoawq = { version = "^0.1.8", optional = true }
 
 [tool.poetry.extras]
 gpu = ["auto-gptq", "optimum", "autoawq"]
-
-[tool.poetry.group.dev.dependencies]
-colorlog = "^6.8.2"
 
 [build-system]
 requires = ["poetry-core"]

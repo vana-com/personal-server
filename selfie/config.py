@@ -23,6 +23,8 @@ class AppConfig(BaseModel):
     local_gpu_model: str = Field(default='TheBloke/Mistral-7B-OpenOrca-GPTQ', description="Local GPU model")
     local_functionary_model: str = Field(default="meetkai/functionary-7b-v2-GGUF/functionary-7b-v2.q4_0.gguf", description="Local functionary model")
     hosted_model: str = Field(default="openai/gpt-3.5-turbo", description="Hosted model")
+    embedding_chunk_size: int = Field(default=512, description="Embedding chunk size")
+    embedding_chunk_overlap: int = Field(default=50, description="Embedding chunk overlap")
 
     @property
     def base_url(self):

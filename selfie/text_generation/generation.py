@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 config = get_app_config()
 
+
 async def completion(request: CompletionRequest | ChatCompletionRequest) -> SelfieCompletionResponse:
     logger.debug(f"Handling a completion request: {request}")
 

@@ -11,16 +11,16 @@ router = APIRouter()
 
 
 class UnindexDocumentsRequest(BaseModel):
-    document_ids: List[str] = []
+    document_ids: List[int] = []
 
 
 class IndexDocumentsRequest(BaseModel):
     is_chat: bool = False
-    document_ids: List[str] = []
+    document_ids: List[int] = []
 
 
 class DeleteDocumentsRequest(BaseModel):
-    document_ids: List[str] = []
+    document_ids: List[int] = []
 
 
 class FetchedDocument(BaseModel):
