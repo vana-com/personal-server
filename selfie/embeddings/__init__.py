@@ -358,6 +358,7 @@ class DataIndex:
         documents_list: List[ScoredEmbeddingDocumentModel] = []
         for result in results:
             document = EmbeddingDocumentModel(
+                id=result["id"],
                 text=result["text"],
                 timestamp=result["timestamp"],
                 importance=result["importance"],
