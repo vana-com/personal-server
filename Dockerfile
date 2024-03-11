@@ -1,4 +1,3 @@
-# Build the UI using minimalistic nodejs image and yarn
 FROM node:18.19-alpine3.18 AS selfie-ui
 
 # Set the working directory in the container
@@ -8,13 +7,13 @@ WORKDIR /selfie
 COPY selfie-ui/package.json selfie-ui/yarn.lock ./
 
 # Install dependencies
-RUN yarn install
+RUN yarn install --frozen-lockfile --non-interactive
 
 # Copy the rest of the code
 COPY selfie-ui/ .
 
-# Build the project (if needed)
-RUN yarn build
+# Build the project
+RUN yarn run build
 
 # Use the official Python image to run selfie
 FROM python:3.11 as selfie
@@ -22,11 +21,6 @@ FROM python:3.11 as selfie
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-
-# Install libGL
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory
 WORKDIR /selfie
@@ -41,10 +35,11 @@ COPY --from=selfie-ui /selfie/out/ ./selfie-ui/out
 RUN pip install poetry --no-cache-dir
 
 # Install dependencies
-RUN poetry run poetry add colorlog
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi
 
 EXPOSE 8181
 
-# Run start.sh, add --skip-deps and --skip-build to skip installing dependencies and building the UI
-# since that is done in the previous stages
-CMD ["/selfie/start.sh", "--skip-deps", "--skip-build"]
+# Run the application directly
+CMD ["python", "-m", "selfie", "--gpu"]
+
