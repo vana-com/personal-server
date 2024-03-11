@@ -1,10 +1,13 @@
 name: Build with PyInstaller
 
 on:
-  push:
-    branches: [main, package]
-  # pull_request:
-  #   branches: [main, package]
+  workflow_dispatch:
+    inputs:
+      artifact_name:
+        description: 'Artifact name'
+        required: false
+#  push:
+#    branches: [main]
 
 jobs:
   build:
@@ -60,22 +63,12 @@ jobs:
         run: poetry run pyinstaller selfie.spec --noconfirm
         shell: bash
 
-      # - name: Archive Build Output
-      #   run: |
-      #     cd dist
-      #     tar -czvf selfie-build.tar.gz *
-      #   shell: bash
-
-      # - name: Upload Artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: ${{ matrix.os }}-build
-      #     path: dist/selfie-build.tar.gz
-      #     overwrite: true
+      - name: Set executable permissions
+        run: chmod +x dist/selfie/selfie
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-build
+          name: ${{ github.event.inputs.artifact_name || format('{0}-build', matrix.os) }}
           path: dist
           overwrite: true
