@@ -14,6 +14,9 @@ import importlib
 
 router = APIRouter()
 
+from selfie.config import get_app_config
+
+config = get_app_config()
 
 @router.get("/index_documents")
 async def get_documents(offset: int = 0, limit: int = 10):
@@ -78,7 +81,8 @@ async def load_data(request: DataLoaderRequest):
     print(documents)
 
     text_parser = SentenceSplitter(
-        chunk_size=1024,
+        chunk_size=config.embedding_chunk_size,
+        chunk_overlap=config.embedding_chunk_overlap,
         # separator=" ",
     )
 
