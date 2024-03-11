@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import APIRouter
 from huggingface_hub import scan_cache_dir
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["Configuration"])

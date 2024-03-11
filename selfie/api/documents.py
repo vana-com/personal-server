@@ -6,9 +6,7 @@ from pydantic import BaseModel, Field
 from selfie.embeddings import ScoredEmbeddingDocumentModel
 from selfie.database import DataManager
 from selfie.embeddings import DataIndex
-from selfie.parsers.chat import ChatFileParser
 
-# router = APIRouter(tags=["Data Management"])
 router = APIRouter()
 
 
@@ -134,39 +132,3 @@ async def search_documents(
         documents=result["documents"],
         summary=result["summary"] if include_summary else None
     )
-
-
-@router.post("/documents/unindex",
-             tags=["Deprecated"])
-async def unindex_documents(request: UnindexDocumentsRequest):
-    await DataIndex("n/a").delete_documents_with_source_documents(request.document_ids)
-    return {"message": "Document unindexed successfully"}
-
-
-@router.post("/documents/index",
-             tags=["Deprecated"])
-async def index_documents(request: IndexDocumentsRequest):
-    is_chat = request.is_chat
-    document_ids = request.document_ids
-
-    manager = DataManager()
-    parser = ChatFileParser()
-
-    # TODO: figure out what to do about this
-    speaker_aliases = {}
-
-    return [
-        await manager.index_document(manager.get_document(document_id),
-                                     lambda document: DataIndex.map_share_gpt_data(
-                                         parser.parse_document(
-                                             document.content,
-                                             None,
-                                             speaker_aliases,
-                                             False,
-                                             document.id
-                                         ).conversations,
-                                         # source=document.source.name,
-                                         source_document_id=document.id
-                                     ) if is_chat else None)
-        for document_id in document_ids
-    ]
