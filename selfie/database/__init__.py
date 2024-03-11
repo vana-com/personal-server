@@ -240,7 +240,10 @@ class DataManager:
                 timestamp=DataManager._extract_timestamp(selfie_document),
                 source_document_id=selfie_document.id,
             )
-            for text_chunk in SentenceSplitter(chunk_size=1024).split_text(selfie_document.content)
+            for text_chunk in SentenceSplitter(
+                chunk_size=config.embedding_chunks_size,
+                chunk_overlap=config.embedding_chunk_overlap
+           ).split_text(selfie_document.content)
         ]
 
     @staticmethod

@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 
-from typing import List, Dict
+from typing import List, Dict, Callable
+from enum import Enum
 import os
 import time
 import json
 import random
 import argparse
+import logging
 from itertools import groupby
-
-from enum import Enum
-
 from selfie.parsers.chat import ChatFileParser, Parser
 from selfie.types.share_gpt import ShareGPTMessage
+
+logger = logging.getLogger(__name__)
 
 
 class Strategy(Enum):
@@ -78,25 +79,25 @@ class ChatTrainingDataGenerator:
         return message_bundles
 
     @staticmethod
-    def group_messages_into_chunks(conversations: List[ShareGPTMessage], overlap: int = 0, max_messages: int = 3, max_characters: int = 0) -> List[List[ShareGPTMessage]]:
+    def group_messages_into_chunks(conversations: List[ShareGPTMessage], tokenizer: Callable, overlap: int = 0, max_messages: int = 3, max_tokens: int = 0) -> List[List[ShareGPTMessage]]:
         chunks = []
         index = 0
         while index < len(conversations):
             end_index = index + max_messages
             chunk = conversations[index:end_index]
 
-            # If there's a max characters limit, adjust the chunk to not exceed it
-            if max_characters > 0:
-                characters_count = sum(len(msg.value.split()) for msg in chunk)
-                while characters_count > max_characters and len(chunk) > 0:
-                    chunk.pop()  # Remove the last message
-                    characters_count = sum(len(msg.value.split()) for msg in chunk)
+            if max_tokens > 0:
+                tokens_count = sum(len(tokenizer(msg.value)) for msg in chunk)
+                while tokens_count > max_tokens and len(chunk) > 0:
+                    if len(chunk) == 1:
+                        logger.warning(f"Warning: A single message exceeds the max tokens limit ({max_tokens}).")
+                    chunk.pop()
+                    tokens_count = sum(len(tokenizer(msg.value)) for msg in chunk)
 
             chunks.append(chunk)
             index += max_messages - overlap
 
         return chunks
-
 
     @staticmethod
     def generate_sharegpt_jsonl_line(messages: List[ShareGPTMessage]) -> str:
