@@ -118,6 +118,42 @@ For most users, the easiest way to install Selfie is to follow the [Quick Start]
 
 > **Note**: You can host selfie at a publicly-accessible URL with [ngrok](https://ngrok.com). Add your ngrok token (and optionally, ngrok domain) in `selfie/.env` and run `poetry run python -m selfie --share`.
 
+## Using Docker
+
+You can also run Selfie using Docker. To do so, follow these steps:
+
+1. Ensure that [Docker](https://www.docker.com) is installed.
+2. Clone or [download](https://github.com/vana-com/selfie) selfie repository.
+3. In a terminal, navigate to the project directory.
+
+We provide Dockerfiles for different GPU configurations and CPU-only environments. 
+Choose the appropriate Dockerfile based on your setup:
+
+- NVIDIA GPUs - default image, same as `Dockerfile`. Use `nvidia.Dockerfile` for systems with NVIDIA GPUs. This Dockerfile installs the necessary CUDA toolkit and the accelerated `llama-cpp-python` package.
+- No GPU (CPU-only): Use `cpu.Dockerfile` for systems without a GPU. This Dockerfile uses the standard Python image and runs the application on the CPU.
+
+To build and run the Docker image, navigate to the project directory and run the following commands:
+
+```bash
+# Build the Docker image
+docker build -t selfie .
+
+# Or, for CPU-only image:
+docker build -t selfie -f Dockerfile.cpu .
+
+# Run the Docker container
+docker run -p 8181:8181 \
+  --name selfie \
+  -v $(pwd)/data:/selfie/data \
+  -v $(pwd)/selfie:/selfie/selfie \
+  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
+  -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+  selfie:latest
+```
+This will start the server and the UI in your browser at http://0.0.0.0:8181/. 
+Your personal data will be stored in the `data` directory.
+This mounts your Hugging Face cache into the container, so you don't have to download the models again if you already
+have them.
 
 ## Setting Up Selfie
 
