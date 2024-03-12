@@ -1,0 +1,4 @@
+FROM selfie-base as selfie-cpu
+
+# Run the application
+CMD python -m selfie

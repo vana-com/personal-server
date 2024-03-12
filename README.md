@@ -135,34 +135,63 @@ You can also run Selfie using Docker. To do so, follow these steps:
 2. Clone or [download](https://github.com/vana-com/selfie) selfie repository.
 3. In a terminal, navigate to the project directory.
 
-We provide Dockerfiles for different GPU configurations and CPU-only environments. 
-Choose the appropriate Dockerfile based on your setup:
+### Build image
 
-- NVIDIA GPUs - default image, same as `Dockerfile`. Use `nvidia.Dockerfile` for systems with NVIDIA GPUs. This Dockerfile installs the necessary CUDA toolkit and the accelerated `llama-cpp-python` package.
-- No GPU (CPU-only): Use `cpu.Dockerfile` for systems without a GPU. This Dockerfile uses the standard Python image and runs the application on the CPU.
-
-To build and run the Docker image, navigate to the project directory and run the following commands:
-
+Build the base image:
 ```bash
-# Build the Docker image
-docker build -t selfie .
+docker build -f docker/Dockerfile.base -t selfie-base .
+```
 
-# Or, for CPU-only image:
-docker build -t selfie -f cpu.Dockerfile .
+Build the CPU-specific image:
+```bash
+docker build -f docker/Dockerfile.cpu -t selfie:cpu .
+```
+
+Build the GPU-specific image:
+```bash
+docker build -f docker/Dockerfile.gpu -t selfie:gpu .
+````
+
+Build the ARM64-specific image:
+```bash
+docker build -f docker/Dockerfile.arm64 -t selfie:arm64 .
+```
+
+Note: if you are on M1/M2 mac you might need to prefix the build command with `DOCKER_BUILDKIT=0 ` to be able to build for different architectures.
+```bash
+DOCKER_BUILDKIT=0 docker build -t selfie:arm64 .
+```
+
+Build the final image:
+```bash
+docker build -t selfie:latest .
+```
+
+This approach builds the stage-specific images separately and then builds the final image using the Dockerfile in the root directory.
+
+You can then run the appropriate image based on your architecture:
+
+
+Or simply use `selfie:latest`, and Docker will use the appropriate stage based on the build order defined in the root Dockerfile.
 
 # Run the Docker container
+
+```bash
 docker run -p 8181:8181 \
   --name selfie \
   -v $(pwd)/data:/selfie/data \
   -v $(pwd)/selfie:/selfie/selfie \
   -v $(pwd)/selfie-ui:/selfie/selfie-ui \
   -v $HOME/.cache/huggingface:/root/.cache/huggingface \
-  selfie:latest
+  selfie:gpu
 ```
+
 This will start the server and the UI in your browser at http://0.0.0.0:8181/. 
 Your personal data will be stored in the `data` directory.
 This mounts your Hugging Face cache into the container, so you don't have to download the models again if you already
 have them.
+
+
 
 ## Setting Up Selfie
 

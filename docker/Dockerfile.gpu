@@ -1,0 +1,7 @@
+FROM selfie-base as selfie-gpu
+
+# Run the installation script for GPU support
+RUN bash /selfie/scripts/llama-cpp-python-cublas.sh
+
+# Run the application with GPU support
+CMD ["python", "-m", "selfie", "--gpu"]

@@ -1,0 +1,17 @@
+FROM selfie-base as selfie-arm64
+
+# Uncomment and modify the following lines if additional dependencies are needed for ARM64
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends \
+#         <arm64-specific-dependencies> \
+#         && \
+#     rm -rf /var/lib/apt/lists/*
+
+# Run the application with GPU support if available
+CMD if [ "$(uname -m)" = "arm64" ]; then \
+        echo "Running with GPU support"; \
+        python -m selfie --gpu; \
+    else \
+        echo "Running without GPU support"; \
+        python -m selfie; \
+    fi
