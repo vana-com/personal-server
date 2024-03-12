@@ -6,14 +6,14 @@ on:
       artifact_name:
         description: 'Artifact name'
         required: false
-#  push:
-#    branches: [main]
+  push:
+    branches: [package]
 
 jobs:
   build:
     name: Build on ${{ matrix.os }}
-#    runs-on: ${{ matrix.os }}
-    runs-on: tim_mbp
+    runs-on: ${{ matrix.os }}
+#    runs-on: [self-hosted, macOS, ARM64]
     strategy:
       matrix:
         # os: [ubuntu-latest, macos-latest-xlarge, windows-latest]
@@ -120,7 +120,7 @@ jobs:
         id: notarization_submit
         run: |
           echo "Submitting app for notarization..."
-          NOTARIZATION_OUTPUT=$(xcrun altool --notarize-app --primary-bundle-id "com.vana.selfie" --username "services@vana.org" --password "@keychain:APP_SPECIFIC_PASSWORD" --file selfie.zip --output-format xml)
+          NOTARIZATION_OUTPUT=$(xcrun altool --notarize-app --primary-bundle-id "com.vana.selfie" --username ${{ secrets.APPLE_ID }} --password ${{ secrets.APPLE_SELFIE_PASSWORD }} --file selfie.zip --output-format xml)
           echo "${NOTARIZATION_OUTPUT}"
           REQUEST_UUID=$(echo "${NOTARIZATION_OUTPUT}" | grep -oE 'RequestUUID>[^<]+' | sed 's/RequestUUID>//')
           if [[ -z "$REQUEST_UUID" ]]; then
@@ -135,7 +135,7 @@ jobs:
         run: |
           echo "Polling for notarization status..."
           while : ; do
-            STATUS_OUTPUT=$(xcrun altool --notarization-info $REQUEST_UUID --username ${{ secrets.APPLE_ID }} --password "@keychain:APP_SPECIFIC_PASSWORD" --output-format xml)
+            STATUS_OUTPUT=$(xcrun altool --notarization-info $REQUEST_UUID --username ${{ secrets.APPLE_ID }} --password ${{ secrets.APPLE_SELFIE_PASSWORD  }} --output-format xml)
             echo "${STATUS_OUTPUT}"
             if echo "${STATUS_OUTPUT}" | grep -q 'Status: success'; then
               echo "Notarization succeeded."
