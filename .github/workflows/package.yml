@@ -12,15 +12,50 @@ on:
 jobs:
   build:
     name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+#    runs-on: ${{ matrix.os }}
+    runs-on: tim_mbp
     strategy:
       matrix:
         # os: [ubuntu-latest, macos-latest-xlarge, windows-latest]
         os: [macos-latest-xlarge]
         python-version: [3.11]
+        node-version: [20]
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install the Apple certificate and provisioning profile
+        if: runner.os == 'macOS'
+        env:
+          APPLE_BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
+          APPLE_BUILD_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_BUILD_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_MACOS_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          # create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/apple_certificate.p12
+          PROVISIONING_PROFILE_PATH=$RUNNER_TEMP/apple_provisioning_profile.provisionprofile
+          KEYCHAIN_PATH=$RUNNER_TEMP/github-actions.keychain-db
+          KEYCHAIN_NAME=github-actions
+
+          # import certificate and provisioning profile from secrets
+          echo -n "$APPLE_BUILD_CERTIFICATE_BASE64" | base64 --decode > $CERTIFICATE_PATH
+          echo -n "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > $PROVISIONING_PROFILE_PATH
+
+          # create temporary keychain
+          security create-keychain -p "$APPLE_MACOS_KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$APPLE_MACOS_KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security default-keychain -s $KEYCHAIN_PATH
+
+          # import certificate to keychain
+          security import $CERTIFICATE_PATH -P "$APPLE_BUILD_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$APPLE_MACOS_KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          # apply provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PROVISIONING_PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles
 
       - name: Install Poetry
         run: |
@@ -66,9 +101,73 @@ jobs:
       - name: Set executable permissions
         run: chmod +x dist/selfie/selfie
 
+      - name: Package App
+        if: runner.os == 'macOS'
+        run: sh scripts/package-macos-app.sh
+
+      - name: Sign the App
+        if: runner.os == 'macOS'
+        run: |
+          codesign --deep --force --verbose --options runtime --sign "Developer ID Application: Corsali, Inc (G7QNBSSW44)" "${{ github.workspace }}/dist/selfie/Selfie.app"
+
+      - name: Create ZIP Archive for Notarization
+        if: runner.os == 'macOS'
+        run: |
+          ditto -c -k --keepParent dist/selfie selfie.zip
+
+      - name: Submit for Notarization
+        if: runner.os == 'macOS'
+        id: notarization_submit
+        run: |
+          echo "Submitting app for notarization..."
+          NOTARIZATION_OUTPUT=$(xcrun altool --notarize-app --primary-bundle-id "com.vana.selfie" --username "services@vana.org" --password "@keychain:APP_SPECIFIC_PASSWORD" --file selfie.zip --output-format xml)
+          echo "${NOTARIZATION_OUTPUT}"
+          REQUEST_UUID=$(echo "${NOTARIZATION_OUTPUT}" | grep -oE 'RequestUUID>[^<]+' | sed 's/RequestUUID>//')
+          if [[ -z "$REQUEST_UUID" ]]; then
+            echo "Failed to submit app for notarization."
+            exit 1
+          fi
+          echo "REQUEST_UUID=${REQUEST_UUID}" >> $GITHUB_ENV
+          echo "Notarization submitted; RequestUUID: ${REQUEST_UUID}"
+
+      - name: Poll for Notarization Status
+        if: runner.os == 'macOS' && env.REQUEST_UUID != ''
+        run: |
+          echo "Polling for notarization status..."
+          while : ; do
+            STATUS_OUTPUT=$(xcrun altool --notarization-info $REQUEST_UUID --username ${{ secrets.APPLE_ID }} --password "@keychain:APP_SPECIFIC_PASSWORD" --output-format xml)
+            echo "${STATUS_OUTPUT}"
+            if echo "${STATUS_OUTPUT}" | grep -q 'Status: success'; then
+              echo "Notarization succeeded."
+              break
+            elif echo "${STATUS_OUTPUT}" | grep -q 'Status: in progress'; then
+              echo "Notarization still in progress, sleeping for 2 minutes..."
+              sleep 120
+            else
+              echo "Notarization failed."
+              exit 1
+            fi
+          done
+
+      - name: Staple Notarization Ticket
+        if: runner.os == 'macOS'
+        run: |
+          echo "Stapling notarization ticket..."
+          xcrun stapler staple "${{ github.workspace }}/dist/selfie/Selfie.app"
+
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.inputs.artifact_name || format('{0}-build', matrix.os) }}
           path: dist
           overwrite: true
+
+      - name: Clean up keychain and provisioning profile
+        if: runner.os == 'macOS'
+        run: |
+          security delete-keychain $RUNNER_TEMP/github-actions.keychain-db
+          rm ~/Library/MobileDevice/Provisioning\ Profiles/apple_provisioning_profile.provisionprofile
+
+#          security delete-keychain $KEYCHAIN_PATH
+#          rm $PROVISIONING_PROFILE_PATH
