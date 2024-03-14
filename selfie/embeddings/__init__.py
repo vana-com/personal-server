@@ -9,8 +9,13 @@ from typing import Optional, List, Dict, Any, Coroutine, Callable
 import humanize
 import logging
 import tiktoken
+from llama_index.core import ServiceContext, VectorStoreIndex
 from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.vector_stores.types import VectorStoreQueryMode
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.llms.openai_like import OpenAILike
 
+from selfie.embeddings.TxtaiVectorStore import TxtaiVectorStore
 from selfie.config import get_app_config
 from selfie.data_generators.chat_training_data import (
     ChatTrainingDataGenerator,
@@ -74,6 +79,8 @@ class DataIndex:
             self.completion = completion or get_default_completion()
             self.character_name = character_name
             self.embeddings = Embeddings(
+                path="sentence-transformers/all-MiniLM-L6-v2",
+                hybrid=True,
                 sqlite={"wal": True},
                 # For now, sqlite w/the default driver is the only way to use WAL.
                 content=True
@@ -334,6 +341,99 @@ class DataIndex:
         return with_importance
         # TODO: return document with ID, if possible
 
+    async def recall2(
+            self,
+            topic: str,
+            topic_context=None,
+            character_name: Optional[str] = None,
+            limit=5,
+            importance_weight=0,
+            recency_weight=1,
+            relevance_weight=1,
+            include_summary=True,
+            local_llm=True,
+            min_score=0.4,
+            hybrid_search_weight=0.5,  # TODO: testing needed
+    ):
+        if min_score is None:
+            min_score = 0.4
+
+        if not self.has_data():
+            return {"documents": [], "summary": "No documents found.", "mean_score": 0}
+
+        service_context = ServiceContext.from_defaults(
+            llm=OpenAILike(
+                api_base="http://localhost:5000/v1",
+                api_key="none",
+                model="TheBloke_Mistral-7B-Instruct-v0.2-GPTQ_gptq-8bit-32g-actorder_True",
+                is_chat_model=True
+            ),
+            embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2"),
+        )
+
+        index = VectorStoreIndex.from_vector_store(TxtaiVectorStore(txtai_index=self.embeddings), service_context=service_context)
+
+        retriever = index.as_retriever(
+            similarity_top_k=limit,
+            vector_store_query_mode=VectorStoreQueryMode.HYBRID,
+            filters=None,  # TODO: use this to filter by source, etc.
+            alpha=hybrid_search_weight,
+            doc_ids=None,  # TODO: use this to filter by as set of embedding documents
+            vector_store_kwargs={},  # TODO: use this to pass additional parameters to the vector store
+            sparse_top_k=limit,
+        )
+
+        documents_list: List[ScoredEmbeddingDocumentModel] = []
+        for node, score in retriever.retrieve(topic):
+            node = node[1]
+            score = score[1]
+            document = EmbeddingDocumentModel(
+                id=node.metadata.get("id"),
+                text=node.get_text(),
+                timestamp=node.metadata.get("timestamp"),
+                importance=node.metadata.get("importance"),
+                source=node.metadata.get("source"),
+                updated_timestamp=node.metadata.get("updated_timestamp"),
+                source_document_id=node.metadata.get("source_document_id"),
+            )
+            relevance_score = self.relevance_scorer.calculate_score(document, score)
+            recency_score = self.recency_scorer.calculate_score(document)
+            importance_score = document.importance
+            retrieval_score = self._calculate_retrieval_score(
+                recency_score,
+                relevance_score,
+                importance_score,
+                importance_weight,
+                recency_weight,
+                relevance_weight,
+            )
+            documents_list.append(
+                ScoredEmbeddingDocumentModel(
+                    **document.model_dump(),
+                    score=retrieval_score,
+                    relevance=relevance_score,
+                    recency=recency_score,
+                )
+            )
+
+        documents_list = [m for m in documents_list if m.score > min_score]
+        if len(documents_list) == 0:
+            return {"documents": [], "summary": "No documents found.", "mean_score": 0}
+
+        documents_list.sort(key=lambda x: x.score, reverse=True)
+        short_documents_list = documents_list[:limit]
+        summary = (
+            await self._summarize_documents(
+                character_name,
+                short_documents_list,
+                topic_context if topic_context else topic,
+                ("local" if local_llm else None),
+            )
+            if include_summary
+            else None
+        )
+        return {"documents": short_documents_list, "summary": summary, "mean_score": sum([m.score for m in short_documents_list]) / len(short_documents_list)}
+
     async def recall(
         self,
         topic: str,
@@ -346,6 +446,7 @@ class DataIndex:
         include_summary=True,
         local_llm=True,
         min_score=0.4,
+        hybrid_search_weight=0.5,  # TODO: testing needed
     ):
         if min_score is None:
             min_score = 0.4
@@ -354,7 +455,7 @@ class DataIndex:
             return {"documents": [], "summary": "No documents found.", "mean_score": 0}
         self.embeddings.load(self.storage_path)
 
-        results = self._query(where="similar(:topic)", parameters={"topic": topic}, limit=limit)
+        results = self._query(where=f"similar(:topic, {hybrid_search_weight})", parameters={"topic": topic}, limit=limit)
         documents_list: List[ScoredEmbeddingDocumentModel] = []
         for result in results:
             document = EmbeddingDocumentModel(

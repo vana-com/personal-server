@@ -4,6 +4,12 @@ from llama_cpp import (
     CreateCompletionResponse as LlamaCppCompletionResponse,
     CreateChatCompletionResponse as LlamaCppChatCompletionResponse,
 )
+from llama_index.core import VectorStoreIndex, ServiceContext
+from llama_index.core.vector_stores import VectorStoreQuery
+from llama_index.llms.openai_like import OpenAILike
+
+from selfie.embeddings.TxtaiVectorStore import TxtaiVectorStore
+from selfie.embeddings import DataIndex
 from selfie.types.completion_requests import ChatCompletionRequest, CompletionRequest
 
 from selfie.text_generation import completion
