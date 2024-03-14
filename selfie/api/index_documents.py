@@ -53,7 +53,7 @@ async def update_index_document(document_id: int, document: EmbeddingDocumentMod
 async def delete_index_document(document_id: int):
     # Sometimes self.embeddings.save() errors on "database is locked", bricks it
     # raise HTTPException(status_code=501, detail="Not implemented")
-    DataIndex("n/a").delete_document(document_id)
+    await DataIndex("n/a").delete_document(document_id)
     return {"message": "Document deleted successfully"}
 
 

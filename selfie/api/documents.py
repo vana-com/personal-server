@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Query
@@ -27,8 +28,8 @@ class FetchedDocument(BaseModel):
     id: int = Field(..., description="The unique identifier of the document")
     name: str = Field(..., description="The name of the document")
     size: int = Field(..., description="The size of the document")
-    created_at: str = Field(..., description="The timestamp of the document creation")
-    updated_at: str = Field(..., description="The timestamp of the document update")
+    created_at: datetime = Field(..., description="The timestamp of the document creation")
+    updated_at: datetime = Field(..., description="The timestamp of the document update")
     content_type: str = Field(..., description="The content type of the document")
     connector_name: str = Field(..., description="The name of the connector")
 
