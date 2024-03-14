@@ -11,7 +11,7 @@ import logging
 import tiktoken
 from llama_index.core import ServiceContext, VectorStoreIndex
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.vector_stores.types import VectorStoreQueryMode
+from llama_index.core.vector_stores.types import VectorStoreQueryMode, MetadataFilters, MetadataFilter, FilterOperator
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.openai_like import OpenAILike
 
@@ -376,7 +376,12 @@ class DataIndex:
         retriever = index.as_retriever(
             similarity_top_k=limit,
             vector_store_query_mode=VectorStoreQueryMode.HYBRID,
-            filters=None,  # TODO: use this to filter by source, etc.
+            filters=MetadataFilters(
+                filters=[
+                    MetadataFilter(key="source", operator=FilterOperator.EQ, value="whatsapp")
+                    # MetadataFilter(key="source", operator=FilterOperator.EQ, value="text_files")
+                ]
+            ),
             alpha=hybrid_search_weight,
             doc_ids=None,  # TODO: use this to filter by as set of embedding documents
             vector_store_kwargs={},  # TODO: use this to pass additional parameters to the vector store
