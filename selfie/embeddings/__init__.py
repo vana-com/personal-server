@@ -74,6 +74,7 @@ class DataIndex:
             self.completion = completion or get_default_completion()
             self.character_name = character_name
             self.embeddings = Embeddings(
+                hybrid=True,
                 sqlite={"wal": True},
                 # For now, sqlite w/the default driver is the only way to use WAL.
                 content=True
@@ -346,6 +347,7 @@ class DataIndex:
         include_summary=True,
         local_llm=True,
         min_score=0.4,
+        hybrid_search_weight=1.0,  # TODO: Setting this to only use the dense index until this is tuned, e.g., with min_score
     ):
         if min_score is None:
             min_score = 0.4
@@ -354,7 +356,7 @@ class DataIndex:
             return {"documents": [], "summary": "No documents found.", "mean_score": 0}
         self.embeddings.load(self.storage_path)
 
-        results = self._query(where="similar(:topic)", parameters={"topic": topic}, limit=limit)
+        results = self._query(where=f"similar(:topic, {hybrid_search_weight})", parameters={"topic": topic}, limit=limit)
         documents_list: List[ScoredEmbeddingDocumentModel] = []
         for result in results:
             document = EmbeddingDocumentModel(
