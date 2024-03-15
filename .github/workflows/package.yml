@@ -120,7 +120,7 @@ jobs:
 
           # Parse the REQUEST_UUID and notarization status from NOTARIZATION_OUTPUT
           REQUEST_UUID=$(echo "${NOTARIZATION_OUTPUT}" | grep 'id:' | awk '{print $NF}')
-          NOTARIZATION_STATUS=$(echo "${NOTARIZATION_OUTPUT}" | grep 'status:' | awk '{print $NF}')
+          NOTARIZATION_STATUS=$(echo "${NOTARIZATION_OUTPUT}" | grep 'status:' | tail -n 1 | awk '{print $NF}')
 
           # Check if REQUEST_UUID is empty
           if [[ -z "$REQUEST_UUID" ]]; then
