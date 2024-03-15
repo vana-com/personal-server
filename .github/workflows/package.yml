@@ -121,7 +121,7 @@ jobs:
         run: |
           set -x
           echo "Submitting app for notarization..."
-          NOTARIZATION_OUTPUT=$(xcrun altool --notarize-app --primary-bundle-id "com.vana.selfie" --username "${{ secrets.APPLE_ID }}" --password "${{ secrets.APPLE_SELFIE_PASSWORD }}" --file selfie.zip --output-format xml 2>&1)
+          NOTARIZATION_OUTPUT=$(xcrun altool --notarize-app --primary-bundle-id "com.vana.selfie" --username ${{ secrets.APPLE_ID }} --password ${{ secrets.APPLE_SELFIE_PASSWORD }} --file selfie.zip --output-format xml 2>&1)
           echo "Notarization output start:"
           echo "${NOTARIZATION_OUTPUT}"
           echo "Notarization output end"
