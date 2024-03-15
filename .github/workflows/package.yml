@@ -147,10 +147,10 @@ jobs:
           fi
 
           # Staple the notarization ticket to the app bundle
-          xcrun stapler staple "${{ github.workspace }}/dist/selfie/Selfie.app"
+          xcrun stapler staple "${{ github.workspace }}/dist/Selfie.app"
 
           # Create the final ZIP archive of the notarized app bundle
-          ditto -c -k --keepParent "${{ github.workspace }}/dist/selfie/Selfie.app" "${{ github.event.inputs.artifact_name || format('{0}-build', matrix.os) }}.zip"
+          ditto -c -k --keepParent "${{ github.workspace }}/dist/Selfie.app" "${{ github.event.inputs.artifact_name || format('{0}-build', matrix.os) }}.zip"
 
       - name: Build Non-macOS App
         if: runner.os != 'macOS'

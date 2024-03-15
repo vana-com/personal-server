@@ -72,3 +72,9 @@ coll = COLLECT(
     upx_exclude=[],
     name='selfie',
 )
+
+app = BUNDLE(coll,
+    name='Selfie.app',
+    icon='Selfie.icns',
+    bundle_identifier='com.vana.selfie',
+)
