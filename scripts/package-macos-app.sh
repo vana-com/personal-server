@@ -44,3 +44,14 @@ cat <<EOF > "${INFO_PLIST}"
 EOF
 
 echo "${APP_NAME}.app bundle has been created."
+
+# Developer ID
+CERT="Developer ID Application: Corsali, Inc (G7QNBSSW44)"
+
+APP_CONTENTS="${APP_DIR}/Contents"
+
+# Find and sign all executables, dylibs, and .so files
+find "$APP_CONTENTS" \( -type f -perm +111 -o -name "*.dylib" -o -name "*.so" \) -exec codesign --force --sign "$CERT" --timestamp --options runtime '{}' +
+
+# Sign the app bundle itself
+codesign --deep --force --verbose --timestamp --options runtime --sign "$CERT" "${APP_DIR}"
