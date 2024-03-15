@@ -119,14 +119,20 @@ jobs:
         if: runner.os == 'macOS'
         id: notarization_submit
         run: |
+          set -x
           echo "Submitting app for notarization..."
-          NOTARIZATION_OUTPUT=$(xcrun altool --notarize-app --primary-bundle-id "com.vana.selfie" --username ${{ secrets.APPLE_ID }} --password ${{ secrets.APPLE_SELFIE_PASSWORD }} --file selfie.zip --output-format xml 2>&1)
+          NOTARIZATION_OUTPUT=$(xcrun altool --notarize-app --primary-bundle-id "com.vana.selfie" --username "${{ secrets.APPLE_ID }}" --password "${{ secrets.APPLE_SELFIE_PASSWORD }}" --file selfie.zip --output-format xml 2>&1)
+          echo "Notarization output start:"
           echo "${NOTARIZATION_OUTPUT}"
+          echo "Notarization output end"
           REQUEST_UUID=$(echo "${NOTARIZATION_OUTPUT}" | grep -oE 'RequestUUID>[^<]+' | sed 's/RequestUUID>//')
           if [[ -z "$REQUEST_UUID" ]]; then
-            echo "Failed to submit app for notarization."
+            echo "Failed to submit app for notarization. Full output:"
+            echo "${NOTARIZATION_OUTPUT}"
+            echo "Error: REQUEST_UUID is empty"
             exit 1
           fi
+          echo "::set-output name=request_uuid::${REQUEST_UUID}"
           echo "REQUEST_UUID=${REQUEST_UUID}" >> $GITHUB_ENV
           echo "Notarization submitted; RequestUUID: ${REQUEST_UUID}"
 
