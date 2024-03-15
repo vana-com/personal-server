@@ -120,7 +120,7 @@ jobs:
         id: notarization_submit
         run: |
           echo "Submitting app for notarization..."
-          NOTARIZATION_OUTPUT=$(xcrun altool --notarize-app --primary-bundle-id "com.vana.selfie" --username ${{ secrets.APPLE_ID }} --password ${{ secrets.APPLE_SELFIE_PASSWORD }} --file selfie.zip --output-format xml)
+          NOTARIZATION_OUTPUT=$(xcrun altool --notarize-app --primary-bundle-id "com.vana.selfie" --username ${{ secrets.APPLE_ID }} --password ${{ secrets.APPLE_SELFIE_PASSWORD }} --file selfie.zip --output-format xml 2>&1)
           echo "${NOTARIZATION_OUTPUT}"
           REQUEST_UUID=$(echo "${NOTARIZATION_OUTPUT}" | grep -oE 'RequestUUID>[^<]+' | sed 's/RequestUUID>//')
           if [[ -z "$REQUEST_UUID" ]]; then
