@@ -37,6 +37,7 @@ RUN poetry install --no-interaction --no-ansi
 
 RUN bash /selfie/scripts/llama-cpp-python-cublas.sh
 
+# --verbose and other options should probably be controlled by the user
 CMD ["poetry", "run", "python", "-m", "selfie", "--gpu", "--verbose"]
 
 # ARM64-specific configuration (Apple Silicon)

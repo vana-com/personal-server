@@ -137,53 +137,53 @@ You can also run Selfie using Docker. To do so, follow these steps:
 
 ### Build image
 
-Build the base image:
+# CPU-specific image:
 ```bash
-docker build -f docker/Dockerfile.base -t selfie-base .
+docker build --target selfie-cpu -t selfie:cpu .
+
+docker run -p 8181:8181 \
+  --name selfie-cpu \
+  -v $(pwd)/data:/selfie/data \
+  -v $(pwd)/selfie:/selfie/selfie \
+  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
+  -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+  selfie:cpu
 ```
 
-Build the CPU-specific image:
+# GPU-specific image:
 ```bash
-docker build -f docker/Dockerfile.cpu -t selfie:cpu .
-```
+# Build
+docker build --target selfie-gpu -t selfie:gpu .
 
-Build the GPU-specific image:
-```bash
-docker build -f docker/Dockerfile.gpu -t selfie:gpu .
+# Run with GPU support
+docker run -p 8181:8181 \
+  --name selfie-gpu \
+  -v $(pwd)/data:/selfie/data \
+  -v $(pwd)/selfie:/selfie/selfie \
+  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
+  -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+  --gpus all \
+  --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \ # Recommended by nvcr.io/nvidia/pytorch
+  selfie:gpu
 ````
 
-Build the ARM64-specific image:
+# RM64-specific image:
 ```bash
 docker build -f docker/Dockerfile.arm64 -t selfie:arm64 .
+
+docker run -p 8181:8181 \
+  --name selfie-arm64 \
+  -v $(pwd)/data:/selfie/data \
+  -v $(pwd)/selfie:/selfie/selfie \
+  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
+  -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+  --gpus all \
+  selfie:arm64
 ```
 
 Note: if you are on M1/M2 mac you might need to prefix the build command with `DOCKER_BUILDKIT=0 ` to be able to build for different architectures.
 ```bash
 DOCKER_BUILDKIT=0 docker build -t selfie:arm64 .
-```
-
-Build the final image:
-```bash
-docker build -t selfie:latest .
-```
-
-This approach builds the stage-specific images separately and then builds the final image using the Dockerfile in the root directory.
-
-You can then run the appropriate image based on your architecture:
-
-
-Or simply use `selfie:latest`, and Docker will use the appropriate stage based on the build order defined in the root Dockerfile.
-
-# Run the Docker container
-
-```bash
-docker run -p 8181:8181 \
-  --name selfie \
-  -v $(pwd)/data:/selfie/data \
-  -v $(pwd)/selfie:/selfie/selfie \
-  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
-  -v $HOME/.cache/huggingface:/root/.cache/huggingface \
-  selfie:gpu
 ```
 
 This will start the server and the UI in your browser at http://0.0.0.0:8181/. 
