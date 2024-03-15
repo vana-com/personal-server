@@ -109,7 +109,7 @@ jobs:
           sh scripts/package-macos-app.sh  # TODO: pass in CERT, etc.
 
           # Create a ZIP archive of the app bundle
-          ditto -c -k --keepParent "${{ github.workspace }}/dist/selfie/Selfie.app" "${{ github.event.inputs.artifact_name || format('{0}-build', matrix.os) }}.zip"
+          ditto -c -k --keepParent "${{ github.workspace }}/dist/Selfie.app" "${{ github.event.inputs.artifact_name || format('{0}-build', matrix.os) }}.zip"
 
           echo "Submitting app for notarization..."
           API_KEY_PATH=$RUNNER_TEMP/AuthKey_${{secrets.APPLE_ASC_API_KEY_ID}}.p8
