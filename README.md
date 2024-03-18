@@ -117,12 +117,12 @@ For most users, the easiest way to install Selfie is to follow the [Quick Start]
 6. Run `poetry install` to install required Python dependencies.
 7. Optional: Run `./scripts/llama-cpp-python-cublas.sh` to enable hardware acceleration (for details, see [Scripts](#llama-cpp-python-cublassh)).
 8. Run `poetry run python -m selfie`, or `poetry run python -m selfie --gpu` if your device is GPU-enabled. The first time you run this, it will download ~4GB of model weights.
+   -  On macOS, you may need to run `OMP_NUM_THREADS=1 KMP_DUPLICATE_LIB_OK=TRUE poetry run python -m selfie` to avoid OpenMP errors (with or without `--gpu`). [Read more about OMP_NUM_THREADS here](https://github.com/vana-com/selfie/issues/33#issuecomment-2004637058).
 
-[//]: # (1. `git clone
 [//]: # (Disable this note about installing with GPU support until supported via transformers, etc.)
+
 [//]: # (3. `poetry install` or `poetry install -E gpu` &#40;to enable GPU devices via transformers&#41;. Enable GPU or Metal acceleration via llama.cpp by installing GPU-enabled llama-cpp-python, see Scripts.)
 
-[//]: # (This starts a local web server and should launch the UI in your browser at http://localhost:8181. API documentation is available at http://localhost:8181/docs. Now that the server is running, you can use the API to import your data and connect to your LLM.)
 </details>
 
 > **Note**: You can host selfie at a publicly-accessible URL with [ngrok](https://ngrok.com). Add your ngrok token (and optionally, ngrok domain) in `selfie/.env` and run `poetry run python -m selfie --share`.

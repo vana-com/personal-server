@@ -12,7 +12,7 @@ colorlog = "^6.8.2"
 fastapi = "^0.109.0"
 uvicorn = "^0.27.0"
 humanize = "^4.9.0"
-llama-cpp-python = "^0.2.26"
+llama-cpp-python = ">=0.2.26, <0.2.56"
 litellm = "^1.23.12"
 txtai = {version = "^7.0.0", extras = ["pipeline-llm"]}
 sse-starlette = "^2.0.0"
