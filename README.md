@@ -134,8 +134,14 @@ You can also run Selfie using Docker. To do so, follow these steps:
 1. Ensure that [Docker](https://www.docker.com) is installed.
 2. Clone or [download](https://github.com/vana-com/selfie) selfie repository.
 3. In a terminal, navigate to the project directory.
+4. Run the following commands for the image you want to use (CPU, GPU, or ARM64).
 
-# CPU-specific image:
+This will start the server and the UI in your browser at http://localhost:8181.
+Your data will be stored in the `data` directory.
+This mounts your Hugging Face cache into the container, so you don't have to download the models again if you already
+have them.
+
+### CPU Image
 ```bash
 docker build --target selfie-cpu -t selfie:cpu .
 
@@ -148,7 +154,7 @@ docker run -p 8181:8181 \
   selfie:cpu
 ```
 
-# GPU-specific image:
+### Nvidia GPU Image
 ```bash
 docker build --target selfie-gpu -t selfie:gpu .
 
@@ -163,9 +169,9 @@ docker run -p 8181:8181 \
   selfie:gpu
 ````
 
-# RM64-specific image:
+### MacOS ARM64 Image
 ```bash
-docker build --target selfie-arm64 -t selfie:arm64 .
+DOCKER_BUILDKIT=0 docker build --target selfie-arm64 -t selfie:arm64 .
 
 docker run -p 8181:8181 \
   --name selfie-arm64 \
@@ -176,16 +182,10 @@ docker run -p 8181:8181 \
   selfie:arm64
 ```
 
-Note: if you are on M1/M2 mac you might need to prefix the build command with `DOCKER_BUILDKIT=0 ` to be able to build for different architectures.
-```bash
-DOCKER_BUILDKIT=0 docker build -t selfie:arm64 .
-```
-
-This will start the server and the UI in your browser at http://0.0.0.0:8181/. 
-Your personal data will be stored in the `data` directory.
-This mounts your Hugging Face cache into the container, so you don't have to download the models again if you already
-have them.
-
+> **Note**: on an M1/M2/M3 Mac, you may need to prefix the build command with `DOCKER_BUILDKIT=0` to disable BuildKit.
+> ```bash
+> DOCKER_BUILDKIT=0 docker build -t selfie:arm64 .
+> ```
 
 ## Setting Up Selfie
 
