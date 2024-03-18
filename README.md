@@ -127,6 +127,65 @@ For most users, the easiest way to install Selfie is to follow the [Quick Start]
 
 > **Note**: You can host selfie at a publicly-accessible URL with [ngrok](https://ngrok.com). Add your ngrok token (and optionally, ngrok domain) in `selfie/.env` and run `poetry run python -m selfie --share`.
 
+## Using Docker
+
+You can also run Selfie using Docker. To do so, follow these steps:
+
+1. Ensure that [Docker](https://www.docker.com) is installed.
+2. Clone or [download](https://github.com/vana-com/selfie) selfie repository.
+3. In a terminal, navigate to the project directory.
+4. Run the following commands for the image you want to use (CPU, GPU, or ARM64).
+
+This will start the server and the UI in your browser at http://localhost:8181.
+Your data will be stored in the `data` directory.
+This mounts your Hugging Face cache into the container, so you don't have to download the models again if you already
+have them.
+
+### CPU Image
+```bash
+docker build --target selfie-cpu -t selfie:cpu .
+
+docker run -p 8181:8181 \
+  --name selfie-cpu \
+  -v $(pwd)/data:/selfie/data \
+  -v $(pwd)/selfie:/selfie/selfie \
+  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
+  -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+  selfie:cpu
+```
+
+### Nvidia GPU Image
+```bash
+docker build --target selfie-gpu -t selfie:gpu .
+
+docker run -p 8181:8181 \
+  --name selfie-gpu \
+  -v $(pwd)/data:/selfie/data \
+  -v $(pwd)/selfie:/selfie/selfie \
+  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
+  -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+  --gpus all \
+  --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
+  selfie:gpu
+````
+
+### MacOS ARM64 Image
+```bash
+DOCKER_BUILDKIT=0 docker build --target selfie-arm64 -t selfie:arm64 .
+
+docker run -p 8181:8181 \
+  --name selfie-arm64 \
+  -v $(pwd)/data:/selfie/data \
+  -v $(pwd)/selfie:/selfie/selfie \
+  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
+  -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+  selfie:arm64
+```
+
+> **Note**: on an M1/M2/M3 Mac, you may need to prefix the build command with `DOCKER_BUILDKIT=0` to disable BuildKit.
+> ```bash
+> DOCKER_BUILDKIT=0 docker build -t selfie:arm64 .
+> ```
 
 ## Setting Up Selfie
 
