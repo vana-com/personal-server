@@ -117,6 +117,7 @@ For most users, the easiest way to install Selfie is to follow the [Quick Start]
 6. Run `poetry install` to install required Python dependencies.
 7. Optional: Run `./scripts/llama-cpp-python-cublas.sh` to enable hardware acceleration (for details, see [Scripts](#llama-cpp-python-cublassh)).
 8. Run `poetry run python -m selfie`, or `poetry run python -m selfie --gpu` if your device is GPU-enabled. The first time you run this, it will download ~4GB of model weights.
+   -  On macOS, you may need to run `OMP_NUM_THREADS=1 poetry run python -m selfie` to avoid segmentation faults (with or without `--gpu`). [Read more here](https://github.com/vana-com/selfie/issues/33#issuecomment-2004637058).
 
 [//]: # (1. `git clone
 [//]: # (Disable this note about installing with GPU support until supported via transformers, etc.)

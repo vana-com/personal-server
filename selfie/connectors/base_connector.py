@@ -36,7 +36,7 @@ class BaseConnector(abc.ABC):
     def _read_file(self, file_name: str) -> str | None:
         file_path = os.path.join(os.path.dirname(__file__), self.id, file_name)
         if os.path.exists(file_path):
-            with open(file_path, 'r') as file:
+            with open(file_path, 'r', encoding='utf-8') as file:
                 return file.read()
         else:
             return None

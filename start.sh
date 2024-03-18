@@ -35,4 +35,10 @@ echo "Running llama-cpp-python-cublas.sh to enable hardware acceleration..."
 ./scripts/llama-cpp-python-cublas.sh
 
 echo "Running selfie..."
-poetry run python -m selfie $GPU_FLAG
+
+ENV_FLAG=""
+if [ "$(uname -m)" = "arm64" ]; then
+    SELFIE_COMMAND="OMP_NUM_THREADS=1"
+fi
+
+poetry $ENV_FLAG poetry run python -m selfie $GPU_FLAG
