@@ -48,9 +48,22 @@ get_index_url() {
     echo "https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/${CPU_ARCH}/${ACCELERATION}"
 }
 
+extract_llama_cpp_python_version_range() {
+    # Extract the version line for llama-cpp-python from pyproject.toml
+    VERSION_LINE=$(grep "llama-cpp-python" pyproject.toml | head -n 1)
 
-echo "Installing accelerated llama-cpp-python..."
-poetry run python -m pip install llama-cpp-python --prefer-binary --force-reinstall --extra-index-url="$(get_index_url)"
+    # Use sed to extract the version range
+    VERSION_RANGE=$(echo $VERSION_LINE | sed -n 's/.*llama-cpp-python = "\(.*\)"/\1/p')
+
+    echo "$VERSION_RANGE"
+}
+
+# Use the extracted version range in the pip install command
+VERSION_RANGE=$(extract_llama_cpp_python_version_range)
+
+echo "Installing accelerated llama-cpp-python with version range $VERSION_RANGE..."
+echo "poetry run python -m pip install \"llama-cpp-python$VERSION_RANGE\" --prefer-binary --force-reinstall --extra-index-url=\"$(get_index_url)\""
+poetry run python -m pip install "llama-cpp-python$VERSION_RANGE" --prefer-binary --force-reinstall --extra-index-url="$(get_index_url)"
 
 echo "Installation complete. Please check for any errors above."
 
