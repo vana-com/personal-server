@@ -163,13 +163,13 @@ docker run -p 8181:8181 \
   -v $(pwd)/selfie-ui:/selfie/selfie-ui \
   -v $HOME/.cache/huggingface:/root/.cache/huggingface \
   --gpus all \
-  --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \ # Recommended by nvcr.io/nvidia/pytorch
+  --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
   selfie:gpu
 ````
 
 # RM64-specific image:
 ```bash
-docker build -f docker/Dockerfile.arm64 -t selfie:arm64 .
+docker build --target selfie-arm64 -t selfie:arm64 .
 
 docker run -p 8181:8181 \
   --name selfie-arm64 \
