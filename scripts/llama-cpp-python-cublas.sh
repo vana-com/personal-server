@@ -49,11 +49,15 @@ get_index_url() {
 }
 
 extract_llama_cpp_python_version_range() {
-    # Extract the version line for llama-cpp-python from pyproject.toml
-    VERSION_LINE=$(grep "llama-cpp-python" pyproject.toml | head -n 1)
+    VERSION_REQUIREMENT=$(grep "llama-cpp-python" pyproject.toml | head -n 1 | sed 's/ //g; s/"//g')
 
-    # Use sed to extract the version range
-    VERSION_RANGE=$(echo $VERSION_LINE | sed -n 's/.*llama-cpp-python = "\(.*\)"/\1/p')
+    if [[ "$VERSION_REQUIREMENT" =~ \^([0-9]+\.[0-9]+)\.([0-9]+) ]]; then
+        # For caret versions, construct a range that pip understands
+        VERSION_RANGE=">=$(echo ${BASH_REMATCH[1]}).${BASH_REMATCH[2]},<$((${BASH_REMATCH[1]%.*} + 1)).0.0"
+    else
+        # For explicit version ranges, ensure correct format for pip
+        VERSION_RANGE=$(echo $VERSION_REQUIREMENT | sed 's/.*llama-cpp-python=//')
+    fi
 
     echo "$VERSION_RANGE"
 }
@@ -63,7 +67,7 @@ VERSION_RANGE=$(extract_llama_cpp_python_version_range)
 
 echo "Installing accelerated llama-cpp-python with version range $VERSION_RANGE..."
 echo "poetry run python -m pip install \"llama-cpp-python$VERSION_RANGE\" --prefer-binary --force-reinstall --extra-index-url=\"$(get_index_url)\""
-poetry run python -m pip install "llama-cpp-python$VERSION_RANGE" --prefer-binary --force-reinstall --extra-index-url="$(get_index_url)"
+poetry run python -m pip install "llama-cpp-python $VERSION_RANGE" --prefer-binary --force-reinstall --extra-index-url="$(get_index_url)"
 
 echo "Installation complete. Please check for any errors above."
 
