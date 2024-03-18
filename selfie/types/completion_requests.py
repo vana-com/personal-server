@@ -82,11 +82,11 @@ class ChatCompletionRequest(BaseCompletionRequest):
         return {
             k: v
             for k, v in self.model_dump().items()
-            if k not in BaseCompletionRequest.custom_params and v is not None
+            if k not in self.custom_params and v is not None
         }
 
     def selfie_params(self):
-        return {k: v for k, v in self.model_dump().items() if k in BaseCompletionRequest.custom_params and v is not None}
+        return {k: v for k, v in self.model_dump().items() if k in self.custom_params and v is not None}
 
     def extra_params(self):
         """
