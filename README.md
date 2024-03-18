@@ -135,8 +135,6 @@ You can also run Selfie using Docker. To do so, follow these steps:
 2. Clone or [download](https://github.com/vana-com/selfie) selfie repository.
 3. In a terminal, navigate to the project directory.
 
-### Build image
-
 # CPU-specific image:
 ```bash
 docker build --target selfie-cpu -t selfie:cpu .
@@ -152,10 +150,8 @@ docker run -p 8181:8181 \
 
 # GPU-specific image:
 ```bash
-# Build
 docker build --target selfie-gpu -t selfie:gpu .
 
-# Run with GPU support
 docker run -p 8181:8181 \
   --name selfie-gpu \
   -v $(pwd)/data:/selfie/data \
@@ -177,7 +173,6 @@ docker run -p 8181:8181 \
   -v $(pwd)/selfie:/selfie/selfie \
   -v $(pwd)/selfie-ui:/selfie/selfie-ui \
   -v $HOME/.cache/huggingface:/root/.cache/huggingface \
-  --gpus all \
   selfie:arm64
 ```
 
@@ -190,7 +185,6 @@ This will start the server and the UI in your browser at http://0.0.0.0:8181/.
 Your personal data will be stored in the `data` directory.
 This mounts your Hugging Face cache into the container, so you don't have to download the models again if you already
 have them.
-
 
 
 ## Setting Up Selfie
