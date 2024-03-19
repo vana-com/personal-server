@@ -35,7 +35,7 @@ else:
 # current_dir = os.path.dirname(os.path.abspath(__file__))
 # blacklist_file_path = os.path.join(current_dir, "blacklist_patterns.yaml")
 
-with open(blacklist_file_path, "r") as f:
+with open(blacklist_file_path, "r", encoding='utf-8') as f:
     default_blacklist_patterns = yaml.safe_load(f)
     default_blacklist_patterns = [
         pattern.strip() for pattern in default_blacklist_patterns

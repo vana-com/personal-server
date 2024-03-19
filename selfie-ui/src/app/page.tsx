@@ -88,8 +88,11 @@ const App = () => {
             ))}
             <li></li>
             <li>
-              <a className="link link-hover" href={`${apiBaseUrl}/docs`} target="_blank">
+              <a className="link link-hover" href={`${apiBaseUrl}/redoc`} target="_blank">
                 API Docs
+              </a>
+              <a className="link link-hover" href={`${apiBaseUrl}/docs`} target="_blank">
+                API Sandbox
               </a>
             </li>
             <li>

@@ -8,10 +8,13 @@ from selfie.types.completion_requests import ChatCompletionRequest, CompletionRe
 
 from selfie.text_generation import completion
 
-router = APIRouter()
+router = APIRouter(tags=["Completions"])
 
 
-@router.post("/chat/completions")
+@router.post("/chat/completions",
+             description="""
+             Creates a response for the given conversation in [the style of OpenAI](https://platform.openai.com/docs/api-reference/chat/create).
+             """)
 async def create_chat_completion(
         request: ChatCompletionRequest,
 ) -> LlamaCppChatCompletionResponse | LitellmCompletionResponse:
@@ -19,7 +22,10 @@ async def create_chat_completion(
 
 
 # TODO can StreamingResponse's schema be defined?
-@router.post("/completions")
+@router.post("/completions",
+                description="""
+                Creates a response for the given prompt in [the style of OpenAI](https://platform.openai.com/docs/api-reference/completions/create).
+                """)
 async def create_completion(
         request: CompletionRequest,
 ) -> LlamaCppCompletionResponse | LitellmCompletionResponse:

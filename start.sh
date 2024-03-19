@@ -26,7 +26,7 @@ else
 fi
 
 echo "Installing Python dependencies with Poetry..."
-poetry check || poetry install
+poetry install
 
 echo "Building UI with Yarn..."
 ./scripts/build-ui.sh
@@ -35,4 +35,13 @@ echo "Running llama-cpp-python-cublas.sh to enable hardware acceleration..."
 ./scripts/llama-cpp-python-cublas.sh
 
 echo "Running selfie..."
+
+if [ "$(uname -m)" = "arm64" ]; then
+    ENV_FLAG="OMP_NUM_THREADS=1 KMP_DUPLICATE_LIB_OK=TRUE"
+fi
+
+if [ ! -z "$ENV_FLAG" ]; then
+    export $ENV_FLAG
+fi
+
 poetry run python -m selfie $GPU_FLAG
