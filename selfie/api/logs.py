@@ -2,18 +2,20 @@ import os
 
 from fastapi import APIRouter
 
+from selfie.logging import get_log_path
+
 router = APIRouter(tags=["Configuration"])
 
 
 @router.get("/logs")
 async def get_logs():
     try:
-        filepath = "selfie.log"
+        filepath = get_log_path()
         file_stats = os.stat(filepath)
         with open(filepath, "r") as file:
             log = file.read()
             return [{
-                "filename": "selfie.log",
+                "filename": filepath.split("/")[-1],
                 "log": log,
                 "size": file_stats.st_size,
                 "lines": len(log.split("\n")),

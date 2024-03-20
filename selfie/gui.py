@@ -1,5 +1,7 @@
 import selfie.logging
 
+from selfie.logging import get_log_path
+
 import sys
 import os
 import logging
@@ -27,7 +29,7 @@ class LogWidget(QPlainTextEdit):
         logger.info("Creating LogWidget")
         super().__init__(parent)
         self.setReadOnly(True)
-        self.log_file = "selfie.log"  # TODO: Don't hardcode the log file
+        self.log_file = get_log_path()
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_logs)
         self.timer.start(1000)
