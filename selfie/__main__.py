@@ -33,12 +33,12 @@ def serialize_args_to_env(args):
 
 def deserialize_args_from_env():
     return argparse.Namespace(
-        share=os.getenv('SELFIE_SHARE') == 'False',
+        share=os.getenv('SELFIE_SHARE') == 'True',
         port=int(os.getenv('SELFIE_PORT', default_port)),
-        gpu=os.getenv('SELFIE_GPU') == str(get_default_gpu_mode()),
-        reload=os.getenv('SELFIE_RELOAD') == 'False',
-        verbose=os.getenv('SELFIE_VERBOSE') == 'False',
-        headless=os.getenv('SELFIE_HEADLESS') == 'False',
+        gpu=os.getenv('SELFIE_GPU') == 'True' if os.getenv('SELFIE_GPU') is not None else get_default_gpu_mode(),
+        reload=os.getenv('SELFIE_RELOAD') == 'True',
+        verbose=os.getenv('SELFIE_VERBOSE') == 'True',
+        headless=os.getenv('SELFIE_HEADLESS') == 'True',
     )
 
 
