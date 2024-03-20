@@ -1427,13 +1427,13 @@ attrs = ">=19.2.0"
 
 [[package]]
 name = "litellm"
-version = "1.32.1"
+version = "1.23.9"
 description = "Library to easily interface with LLM API providers"
 optional = false
 python-versions = ">=3.8, !=2.7.*, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*, !=3.7.*"
 files = [
-    {file = "litellm-1.32.1-py3-none-any.whl", hash = "sha256:f93878ec1571c2259c205d8a898d8555e5f70b42425661041b691e1cd87a1820"},
-    {file = "litellm-1.32.1.tar.gz", hash = "sha256:0f45dda4cfa684c2332116862803b8c7c697b2b4ccc5565ae9e9e1aa07d8054a"},
+    {file = "litellm-1.23.9-py3-none-any.whl", hash = "sha256:de69a2880e4ba7e651ffddce1c17cc762d201a2e4b35b5c567740968b035ae83"},
+    {file = "litellm-1.23.9.tar.gz", hash = "sha256:0c1e0e56f4d1d9c8a33da09d6736bde9b21a8ea324db8c05cc3de65c6b4fad7d"},
 ]
 
 [package.dependencies]
@@ -1449,7 +1449,7 @@ tokenizers = "*"
 
 [package.extras]
 extra-proxy = ["streamlit (>=1.29.0,<2.0.0)"]
-proxy = ["PyJWT (>=2.8.0,<3.0.0)", "apscheduler (>=3.10.4,<4.0.0)", "argon2-cffi (>=23.1.0,<24.0.0)", "backoff", "fastapi (>=0.104.1,<0.105.0)", "fastapi-sso (>=0.10.0,<0.11.0)", "gunicorn (>=21.2.0,<22.0.0)", "orjson (>=3.9.7,<4.0.0)", "python-multipart (>=0.0.6,<0.0.7)", "pyyaml (>=6.0.1,<7.0.0)", "rq", "uvicorn (>=0.22.0,<0.23.0)"]
+proxy = ["PyJWT (>=2.8.0,<3.0.0)", "apscheduler (>=3.10.4,<4.0.0)", "backoff", "fastapi (>=0.104.1,<0.105.0)", "fastapi-sso (>=0.10.0,<0.11.0)", "gunicorn (>=21.2.0,<22.0.0)", "orjson (>=3.9.7,<4.0.0)", "python-multipart (>=0.0.6,<0.0.7)", "pyyaml (>=6.0.1,<7.0.0)", "rq", "uvicorn (>=0.22.0,<0.23.0)"]
 
 [[package]]
 name = "llama-cpp-python"
@@ -5257,4 +5257,4 @@ gpu = ["auto-gptq", "autoawq", "optimum"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "a6e28b8c86896a5db632a8b8747adcf466264b8b74bf0a120a125b7eb5a25efc"
+content-hash = "996a6c4d0cb8c2a82e2a1d2c9412ea7d26e92c993c29bde94ab07252f70dc7f3"
