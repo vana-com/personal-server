@@ -10,6 +10,7 @@ import os
 from dotenv import load_dotenv
 
 from selfie.config import create_app_config, default_port, get_app_config
+from selfie.logging import get_log_path
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -91,7 +92,47 @@ def start_fastapi_server():
         uvicorn.run("selfie.__main__:get_configured_app", host="0.0.0.0", port=args.port, reload=True, factory=True)
     else:
         fastapi_app = get_configured_app(shareable=True)
-        uvicorn.run(fastapi_app, host="0.0.0.0", port=args.port)  # TODO: write to selfie.log
+
+        uvicorn_log_config = uvicorn.config.LOGGING_CONFIG
+
+        uvicorn_log_config["handlers"]["selfie"] = {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": get_log_path(),
+            "maxBytes": 1024*1024,
+            "backupCount": 5,
+            "formatter": "default",
+        }
+
+        uvicorn_log_config["formatters"]["default"] = {
+            "class": "uvicorn.logging.DefaultFormatter",
+            "fmt": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            "use_colors": False,
+        }
+
+        uvicorn_log_config["formatters"]["access"] = {
+            "fmt": '%(asctime)s - %(levelname)s - %(client_addr)s - "%(request_line)s" %(status_code)s',
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+            "use_colors": False,
+        }
+
+        uvicorn_log_config["handlers"]["console"] = {
+            "class": "logging.StreamHandler",
+            "formatter": "default",
+        }
+
+        uvicorn_log_config["loggers"]["uvicorn"] = {
+            "handlers": ["selfie", "console"],
+            "level": "INFO",
+            "propagate": False,
+        }
+
+        uvicorn_log_config["loggers"]["uvicorn.*"] = {
+            "handlers": ["selfie", "console"],
+            "level": "INFO",
+            "propagate": False,
+        }
+        # Start Uvicorn with the modified log config
+        uvicorn.run(fastapi_app, host="0.0.0.0", port=args.port, log_config=uvicorn_log_config)
 
 
 def main():
