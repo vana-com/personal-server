@@ -27,12 +27,14 @@ a = Analysis(
     datas=[
         ('./selfie/parsers/chat/blacklist_patterns.yaml', 'selfie/parsers/chat/'),
         ('./selfie/web/', 'selfie/web/'),
+        ('./selfie/images/', 'selfie/images/'),
         *connector_files,
     ],
     hiddenimports=[
         'tiktoken_ext',
         'tiktoken_ext.openai_public',
         'onnxconverter_common', # Logs say hidden import 'onnxconverter_common' not found
+        'llama_index',
     ],
     hookspath=['./hooks'],
     hooksconfig={},
@@ -71,6 +73,7 @@ coll = COLLECT(
     upx=True,
     upx_exclude=[],
     name='selfie',
+    debug="all",
 )
 
 app = BUNDLE(coll,

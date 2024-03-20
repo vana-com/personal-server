@@ -25,6 +25,7 @@ python-multipart = "^0.0.9"
 ngrok = "^1.0.0"
 python-dotenv = "^1.0.1"
 pillow = "^10.2.0"
+pyqt6 = "^6.6.1"
 swig = "^4.2.1"
 
 # Experimental GPU Features
