@@ -104,8 +104,8 @@ def start_fastapi_server():
         }
 
         uvicorn_log_config["formatters"]["default"] = {
-            "class": "uvicorn.logging.DefaultFormatter",
             "fmt": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
             "use_colors": False,
         }
 
@@ -126,11 +126,18 @@ def start_fastapi_server():
             "propagate": False,
         }
 
-        uvicorn_log_config["loggers"]["uvicorn.*"] = {
+        uvicorn_log_config["loggers"]["uvicorn.error"] = {
             "handlers": ["selfie", "console"],
             "level": "INFO",
             "propagate": False,
         }
+
+        uvicorn_log_config["loggers"]["uvicorn.access"] = {
+            "handlers": ["selfie", "console"],
+            "level": "INFO",
+            "propagate": False,
+            "formatter": "access",
+    }
         # Start Uvicorn with the modified log config
         uvicorn.run(fastapi_app, host="0.0.0.0", port=args.port, log_config=uvicorn_log_config)
 
