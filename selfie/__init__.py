@@ -1,3 +1,5 @@
+import selfie.logging
+
 import logging
 import warnings
 import colorlog

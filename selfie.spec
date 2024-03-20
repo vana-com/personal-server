@@ -74,6 +74,7 @@ coll = COLLECT(
     upx_exclude=[],
     name='selfie',
     debug="all",
+    console=False,
 )
 
 app = BUNDLE(coll,

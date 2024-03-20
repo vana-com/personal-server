@@ -1,3 +1,5 @@
+import selfie.logging
+
 import sys
 import os
 import logging
@@ -6,9 +8,9 @@ from threading import Thread
 import requests
 import time
 
-from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
-from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import pyqtSignal, pyqtSlot
+from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QPlainTextEdit
+from PyQt6.QtGui import QIcon, QFont
+from PyQt6.QtCore import pyqtSignal, pyqtSlot, QTimer
 
 from selfie.__main__ import get_default_gpu_mode
 
@@ -20,12 +22,40 @@ else:
     selfie_path = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
 
+class LogWidget(QPlainTextEdit):
+    def __init__(self, parent=None):
+        logger.info("Creating LogWidget")
+        super().__init__(parent)
+        self.setReadOnly(True)
+        self.log_file = "selfie.log"  # TODO: Don't hardcode the log file
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_logs)
+        self.timer.start(1000)
+        self.resize(800, 600)
+
+        self.setFont(QFont("Courier New"))
+
+    def update_logs(self):
+        QApplication.processEvents()
+        try:
+            with open(self.log_file, "r") as file:
+                logs = file.read()
+                if logs != self.toPlainText():
+                    new_logs = logs[len(self.toPlainText()):]
+                    if new_logs:
+                        self.appendPlainText(new_logs.rstrip("\n"))
+        except FileNotFoundError:
+            pass
+
+
 class SystemTrayApp(QApplication):
     server_ready_signal = pyqtSignal(bool)
     server_stopped_signal = pyqtSignal()
 
     def __init__(self, argv):
         super().__init__(argv)
+        self.log_widget = LogWidget()
+
         self.server_process = None
 
         self.setQuitOnLastWindowClosed(False)
@@ -47,6 +77,9 @@ class SystemTrayApp(QApplication):
         exit_action = menu.addAction("Exit")
         exit_action.triggered.connect(self.quit)
 
+        self.show_log_action = menu.addAction("Show Logs")
+        self.show_log_action.triggered.connect(self.show_log_window)
+
         menu.addSeparator()
 
         self.gpu_mode_action = menu.addAction("GPU Mode Unknown")
@@ -60,6 +93,9 @@ class SystemTrayApp(QApplication):
 
         self.server_ready_signal.connect(self.post_server_start)
         self.server_stopped_signal.connect(self.post_server_stop)
+
+    def show_log_window(self):
+        self.log_widget.show()
 
     def update_gpu_mode_status(self):
         # TODO: Fix this hack

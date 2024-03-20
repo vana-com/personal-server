@@ -91,7 +91,7 @@ def start_fastapi_server():
         uvicorn.run("selfie.__main__:get_configured_app", host="0.0.0.0", port=args.port, reload=True, factory=True)
     else:
         fastapi_app = get_configured_app(shareable=True)
-        uvicorn.run(fastapi_app, host="0.0.0.0", port=args.port)
+        uvicorn.run(fastapi_app, host="0.0.0.0", port=args.port)  # TODO: write to selfie.log
 
 
 def main():
