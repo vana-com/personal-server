@@ -1,0 +1,19 @@
+FROM node:18-alpine as selfie-ui
+WORKDIR /selfie
+COPY selfie-ui/package.json selfie-ui/yarn.lock ./
+RUN yarn install --frozen-lockfile --non-interactive
+COPY selfie-ui/ .
+RUN yarn run build
+
+FROM python:3.11 as selfie-cpu
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV PIP_NO_CACHE_DIR=1
+WORKDIR /selfie
+COPY . .
+COPY --from=selfie-ui /selfie/out/ ./selfie-ui/out
+RUN pip install poetry --no-cache-dir
+RUN poetry config virtualenvs.create false
+RUN poetry install --no-interaction --no-ansi
+EXPOSE 8181
+CMD ["python", "-m", "selfie"]

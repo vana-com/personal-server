@@ -143,26 +143,22 @@ have them.
 
 ### CPU Image
 ```bash
-docker build --target selfie-cpu -t selfie:cpu .
+./docker/build.sh cpu 
 
 docker run -p 8181:8181 \
   --name selfie-cpu \
   -v $(pwd)/data:/selfie/data \
-  -v $(pwd)/selfie:/selfie/selfie \
-  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
   -v $HOME/.cache/huggingface:/root/.cache/huggingface \
   selfie:cpu
 ```
 
 ### Nvidia GPU Image
 ```bash
-docker build --target selfie-gpu -t selfie:gpu .
+./docker/build.sh gpu 
 
 docker run -p 8181:8181 \
   --name selfie-gpu \
   -v $(pwd)/data:/selfie/data \
-  -v $(pwd)/selfie:/selfie/selfie \
-  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
   -v $HOME/.cache/huggingface:/root/.cache/huggingface \
   --gpus all \
   --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
@@ -170,22 +166,29 @@ docker run -p 8181:8181 \
 ````
 
 ### MacOS ARM64 Image
+
+
+> Disclaimer: 
+> 
+> This Docker container is designed to run on a wide range of architectures, including Apple's M1 and M2 chips.
+However, due to current limitations with Docker on macOS, direct access to Metal APIs is not available for containers.
+As a result, applications requiring intensive graphics processing may experience reduced performance compared to running natively on macOS.
+This setup is recommended for development and testing purposes only. Running it on a native machine is recommended for better performance.
+> 
+> We're continuously exploring ways to improve performance and compatibility.
+
+
+
 ```bash
-DOCKER_BUILDKIT=0 docker build --target selfie-arm64 -t selfie:arm64 .
+ ./docker/build.sh arm64
 
 docker run -p 8181:8181 \
   --name selfie-arm64 \
   -v $(pwd)/data:/selfie/data \
-  -v $(pwd)/selfie:/selfie/selfie \
-  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
   -v $HOME/.cache/huggingface:/root/.cache/huggingface \
   selfie:arm64
 ```
 
-> **Note**: on an M1/M2/M3 Mac, you may need to prefix the build command with `DOCKER_BUILDKIT=0` to disable BuildKit.
-> ```bash
-> DOCKER_BUILDKIT=0 docker build -t selfie:arm64 .
-> ```
 
 ## Setting Up Selfie
 
