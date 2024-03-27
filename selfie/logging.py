@@ -1,7 +1,7 @@
-import os
 import logging
-import platform
 from logging.handlers import RotatingFileHandler
+
+from selfie.utils.filesystem import get_log_path as fs_get_log_path
 
 # TODO: Don't hardcode these
 level = logging.INFO
@@ -9,20 +9,7 @@ log_file = "selfie.log"
 
 
 def get_log_path():
-    os_name = platform.system()
-
-    # Set default log directory based on the operating system
-    if os_name == 'Darwin':  # macOS
-        log_directory = os.path.expanduser('~/Library/Logs/Selfie')
-    elif os_name == 'Windows':
-        log_directory = os.path.join(os.environ['APPDATA'], 'Selfie', 'Logs')
-    else:  # Assume Linux/Unix
-        log_directory = os.path.expanduser('~/Selfie/Logs')
-
-    if not os.path.exists(log_directory):
-        os.makedirs(log_directory)
-
-    return os.path.join(log_directory, log_file)
+    return fs_get_log_path('Selfie', log_file)
 
 
 def setup_logging():
