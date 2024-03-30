@@ -1,0 +1,14 @@
+{
+  "title": "Upload ChatGPT Conversations",
+  "type": "object",
+  "properties": {
+    "files": {
+      "type": "array",
+      "title": "Files",
+      "description": "Upload conversations.json files exported from ChatGPT",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}

@@ -1,14 +1,78 @@
 import os
-from dotenv import load_dotenv
-load_dotenv()
+import platform
+from typing import Optional
 
-port = int(os.environ.get('PORT', '8181'))
-ngrok_auth_token = os.environ.get('NGROK_AUTHTOKEN', None)
+from pydantic import BaseModel, Field, ValidationError, Extra
+import logging
 
-default_database_storage_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data/database")
-default_embeddings_storage_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data/embeddings")
-default_db_name = 'selfie.db'
-default_local_model = 'TheBloke/Mistral-7B-Instruct-v0.2-GGUF/mistral-7b-instruct-v0.2.Q4_K_M.gguf'
-default_local_gpu_model = 'TheBloke/Mistral-7B-OpenOrca-GPTQ'
-default_local_functionary_model = "meetkai/functionary-7b-v2-GGUF/functionary-7b-v2.q4_0.gguf"
-default_hosted_model = "openai/gpt-3.5-turbo"
+from selfie.utils.filesystem import get_data_dir
+
+logger = logging.getLogger(__name__)
+
+default_port = 8181
+
+
+def get_data_root():
+    os_name = platform.system()
+
+    if os_name == 'Darwin':  # macOS
+        data_directory = os.path.expanduser('~/Library/Application Support/Selfie/Data')
+    elif os_name == 'Windows':
+        data_directory = os.path.join(os.environ['APPDATA'], 'Selfie', 'Data')
+    else:  # Assume Linux/Unix
+        data_directory = os.path.expanduser('~/.Selfie/data')
+
+    return data_directory
+
+
+data_root = get_data_dir('Selfie')
+
+
+class AppConfig(BaseModel):
+    host: str = Field(default="http://localhost", description="Specify the host, with the scheme")
+    port: Optional[int] = Field(default=default_port, description="Specify the port to run on")
+    share: bool = Field(default=False, description="Enable sharing via ngrok")
+    gpu: bool = Field(default=False, description="Enable GPU support")
+    verbose: bool = Field(default=False, description="Enable verbose logging")
+    database_storage_root: str = Field(default=os.path.join(data_root, "database"), description="Root directory for database storage")
+    embeddings_storage_root: str = Field(default=os.path.join(data_root, "embeddings"), description="Root directory for embeddings storage")
+    db_name: str = Field(default='selfie.db', description="Database name")
+    # local_model: str = Field(default='TheBloke/Mixtral-8x7B-Instruct-v0.1-GGUF/mixtral-8x7b-instruct-v0.1.Q4_K_M.gguf', description="Local model")
+    local_model: str = Field(default='TheBloke/Mistral-7B-Instruct-v0.2-GGUF/mistral-7b-instruct-v0.2.Q4_K_M.gguf', description="Local model")
+    local_gpu_model: str = Field(default='TheBloke/Mistral-7B-OpenOrca-GPTQ', description="Local GPU model")
+    local_functionary_model: str = Field(default="meetkai/functionary-7b-v2-GGUF/functionary-7b-v2.q4_0.gguf", description="Local functionary model")
+    hosted_model: str = Field(default="openai/gpt-3.5-turbo", description="Hosted model")
+    embedding_chunk_size: int = Field(default=512, description="Embedding chunk size")
+    embedding_chunk_overlap: int = Field(default=50, description="Embedding chunk overlap")
+
+    @property
+    def base_url(self):
+        if self.port:
+            return f"{self.host}:{self.port}"
+        else:
+            return self.host
+
+    class Config:
+        extra = Extra.allow
+
+
+_singleton_instance = None
+
+
+def create_app_config(**kwargs):
+    global _singleton_instance
+    try:
+        logger.debug("Creating AppConfig instance")
+        _singleton_instance = AppConfig(**kwargs)
+        return _singleton_instance
+    except ValidationError as e:
+        logger.error("Configuration validation error:", e.json())
+        raise ValueError("Invalid configuration provided.") from e
+
+
+def get_app_config():
+    global _singleton_instance
+    if _singleton_instance is None:
+        logger.error("AppConfig instance not created yet.")
+        raise ValueError("AppConfig instance not created yet.")
+    return _singleton_instance

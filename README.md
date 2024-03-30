@@ -1,113 +1,229 @@
 <div align="center">
   <img alt="selfie" src="./docs/images/hero.png" height="300px">
   <br>
-  <a href="https://discord.gg/GhYDaDqENx" target="_blank"><img alt="selfie" src="https://dcbadge.vercel.app/api/server/GhYDaDqENx?style=flat&compact=true"></a>
+  <a href="https://discord.gg/GhYDaDqENx" target="_blank"><img alt="Join our Discord" src="https://dcbadge.vercel.app/api/server/GhYDaDqENx?style=flat&compact=true"></a>
 
 [//]: # (  <a href="https://vana.com/" target="_blank"><img alt="selfie" src="https://assets-global.website-files.com/62dfa5318bb52f5fea8dc489/62dfb34210f09278d8bce721_Vana_Logo.svg" style="background-color: #dbff00; padding: 5px; height: 20px; border-radius: 2px"></a>)
 </div>
 
 # Selfie
 
-Selfie personalizes text generation, augmenting both local and hosted Large Language Models (LLMs) with your personal data. Selfie exposes an OpenAI-compatible API that wraps the LLM of your choice, and automatically injects relevant context into each text generation request.
+[Jump to Quick Start](#quick-start)
 
-## Features
+Imagine AI that is not just smart, but personal. Selfie turns your data into APIs for text generation and natural language search that can power chatbots, storytelling experiences, games, and more.
 
-* Automatically mix your data into chat and text completions using OpenAI-compatible clients like [OpenAI SDKs](https://platform.openai.com/docs/libraries), [SillyTavern](https://sillytavernai.com), and [Instructor](https://github.com/jxnl/instructor)* (untested).
-* Quickly drop in personal messaging data exported from WhatsApp and Google Messages.
-* Runs locally by default to keep your data private.
-* Unopinionated compatibility with your LLM or provider of choice.
-* Easily switch to vanilla text generation modes.
+Selfie is a local-first, open-source project that runs on your device.
 
-On the roadmap:
-* Load data using any [LlamaHub loader](https://llamahub.ai/?tab=loaders) (partial support is available through the API).
-* Directly and selectively query loaded data.
-* Easy deployment with Docker and pre-built executables.
+<div align="center">
+ <a href="https://www.loom.com/share/2b3abdaf35064d00a733c62f3d2fc006" target="_blank">
+   <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/2b3abdaf35064d00a733c62f3d2fc006-with-play.gif">
+ </a>
+</div>
+<div align="center">
+   <i style="font-size: 9.5pt">Check out the video tour!</i>
+</div>
+
+## Core Features
+
+Selfie offers a more personalized interaction between you and the digital world via:
+
+* **Text Completions:** Mix your data into text completions using any OpenAI-compatible tool (like [OpenAI SDKs](https://platform.openai.com/docs/libraries) and [SillyTavern](https://sillytavernai.com)) or the API.
+* **Simple Data Import**: Quickly import any text file, with enhanced support for messaging platform exports.
+* **Use Any LLM**: Use local (default) or hosted LLMs from OpenAI, Replicate, etc.
+* **Direct Queries**: Search your data with natural language.
+
+### Web-Based UI
+
+Selfie comes with a local UI for importing and interacting with your data.
+
+**Personalized Chat**
+
+<img alt="selfie-augmentation" src="./docs/images/playground-use-data.png" height="300px">
+
+**Semantic Search**
+
+<img alt="selfie-search" src="./docs/images/playground-search.png" height="250px">
+
+### Full API Support
+
+Selfie provides a full API for OpenAI-style text completions and search.
+
+```bash
+curl -X POST 'http://localhost:8181/v1/chat/completions' \
+-H 'Content-Type: application/json' \
+-d '{
+  "messages": [{"role": "user", "content": "As Alice, what is your proudest garden achievement?"}]
+}' | jq '.choices[0].message.content'
+
+# "I grew a 10-pound tomato!"
+```
+
+[Jump to API Usage](#api-usage-guide)
+
+[//]: # (TODO: build out integration recipes)
+[//]: # (*Check out [Integration Recipes]&#40;#integration-recipes&#41; for some example of what you can do with Selfie.*)
+
+[//]: # (* Load data using any [LlamaHub loader]&#40;https://llamahub.ai/?tab=loaders&#41;.)
+[//]: # (* Easy deployment with Docker and pre-built executables.)
+
+## Quick Start
+
+For MacOS and Linux:
+
+1. Install [python](https://www.python.org) 3.9+, [poetry](https://python-poetry.org), and [Node.js](https://nodejs.org).
+2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
+3. Run `start.sh`.
+4. http://localhost:8181 will open in your default web browser.
+5. Head to the Add Data page in the UI and follow the instructions.
+6. Chat with your data in the Playground, connect it to a tool like SillyTavern, or integrate it with your own application.
+
+> **Tip**: On macOS you can run `brew install poetry nodejs` with [brew](https://brew.sh).
+
+For Windows, please follow the instructions in [Installation](#installation).
 
 ## Overview
 
-Selfie is designed to compose well with tools on both sides of the text generation process. You can think of it as middleware that intelligently mixes your data into a request.
+Selfie's core feature is personalized text generation. You can think of it as middleware that intelligently mixes your data into a request.
 
-Typical request:
+A typical request:
 ```
-Application -(request)-> LLM
+Application --prompt--> LLM
 ```
 
-Request through Selfie:
+A request through Selfie:
 ```
-Application -(request)-> Selfie -(request x data)-> LLM
-                            |
-                        Your Data
+Application --prompt--> Selfie --prompt+data--> LLM
 ```
 
 On the application side, Selfie exposes text generation APIs, including OpenAI-compatible endpoints.
 
 On the LLM side, Selfie uses tools like LiteLLM and txtai to support forwarding data-augmented requests to your LLM of choice
 
-## Getting Started
 
-To launch Selfie, ensure that [python](https://www.python.org), [poetry](https://python-poetry.org), and [yarn](https://yarnpkg.com) are installed. Then run the following commands in the project directory:
+## Installation
 
-1. `./scripts/build-ui.sh` (requires `yarn`)
-2. `poetry shell`
-3. `poetry install`, enable GPU or Metal acceleration via llama.cpp by installing GPU-enabled llama-cpp-python, see Scripts.
+For most users, the easiest way to install Selfie is to follow the [Quick Start](#quick-start) instructions. If that doesn't work, or if you just want to install Selfie manually, follow the detailed instructions below.
+
+> **Tip**: Python 3.11 is recommended.
+
+<details>
+<summary>Manual Installation</summary>
+
+1. Ensure that [python](https://www.python.org) 3.9+, [poetry](https://python-poetry.org), and [Node.js](https://nodejs.org) are installed.
+2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
+3. In a terminal, navigate to the project directory.
+4. Run `cp selfie/.env.example selfie/.env` to create a `.env` file in which you can configure the default port that Selfie runs on and hosting with ngrok.
+5. Run `./scripts/build-ui.sh` to build the UI and copy it to the server.
+6. Run `poetry install` to install required Python dependencies.
+7. Optional: Run `./scripts/llama-cpp-python-cublas.sh` to enable hardware acceleration (for details, see [Scripts](#llama-cpp-python-cublassh)).
+8. Run `poetry run python -m selfie`, or `poetry run python -m selfie --gpu` if your device is GPU-enabled. The first time you run this, it will download ~4GB of model weights.
+   -  On macOS, you may need to run `OMP_NUM_THREADS=1 KMP_DUPLICATE_LIB_OK=TRUE poetry run python -m selfie` to avoid OpenMP errors (with or without `--gpu`). [Read more about OMP_NUM_THREADS here](https://github.com/vana-com/selfie/issues/33#issuecomment-2004637058).
+
+[//]: # (Disable this note about installing with GPU support until supported via transformers, etc.)
 
 [//]: # (3. `poetry install` or `poetry install -E gpu` &#40;to enable GPU devices via transformers&#41;. Enable GPU or Metal acceleration via llama.cpp by installing GPU-enabled llama-cpp-python, see Scripts.)
-4. `python -m selfie`. The first time you run this, it will download ~4GB of model weights. While you wait, you can download your WhatsApp Google Takeout data for the next step. 
 
-This starts a local web server and should launch the UI in your browser at http://localhost:8181. API documentation is available at http://localhost:8181/docs. Now that the server is running, you can use the API to import your data and connect to your LLM.
+</details>
 
-> Note: You can also host your API at a publicly-accessible URL with [ngrok](https://ngrok.com). Copy `selfie/.env.example` to `selfie/.env`, add your ngrok token, and run `python -m selfie share`.
+> **Note**: You can host selfie at a publicly-accessible URL with [ngrok](https://ngrok.com). Add your ngrok token (and optionally, ngrok domain) in `selfie/.env` and run `poetry run python -m selfie --share`.
 
-### Step 1:  Gather Messaging Data
+## Using Docker
 
-Future versions of Selfie will support loading any text data. For now, you can import chat logs from popular messaging platforms.
+You can also run Selfie using Docker. To do so, follow these steps:
 
-> Note: If you don't have any chat logs or want to try the app first, you can use the example chat logs provided in the `example-chats` directory.)
+1. Ensure that [Docker](https://www.docker.com) is installed.
+2. Clone or [download](https://github.com/vana-com/selfie) selfie repository.
+3. In a terminal, navigate to the project directory.
+4. Run the following commands for the image you want to use (CPU, GPU, or ARM64).
 
-Export chats that you use frequently and contain information you want the LLM to know.
+This will start the server and the UI in your browser at http://localhost:8181.
+Your data will be stored in the `data` directory.
+This mounts your Hugging Face cache into the container, so you don't have to download the models again if you already
+have them.
 
-#### Export Instructions
+### CPU Image
+```bash
+docker build --target selfie-cpu -t selfie:cpu .
 
-The following links provide instructions for exporting chat logs from popular messaging platforms:
+docker run -p 8181:8181 \
+  --name selfie-cpu \
+  -v $(pwd)/data:/selfie/data \
+  -v $(pwd)/selfie:/selfie/selfie \
+  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
+  -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+  selfie:cpu
+```
 
-* [Whatsapp](https://faq.whatsapp.com/1180414079177245/?cms_platform=android) 
-* [Google](https://takeout.google.com/settings/takeout) (select Messages from the list)
+### Nvidia GPU Image
+```bash
+docker build --target selfie-gpu -t selfie:gpu .
 
-These platforms are not yet supported, but you can create a parser in selfie/parsers/chats to support them (please contribute!):
+docker run -p 8181:8181 \
+  --name selfie-gpu \
+  -v $(pwd)/data:/selfie/data \
+  -v $(pwd)/selfie:/selfie/selfie \
+  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
+  -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+  --gpus all \
+  --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
+  selfie:gpu
+````
 
-* [Instagram](https://help.instagram.com/181231772500920)
-* [Facebook Messenger](https://www.facebook.com/help/messenger-app/713635396288741/?cms_platform=iphone-app&helpref=platform_switcher)
-* [Telegram](https://www.maketecheasier.com/export-telegram-chat-history/)
+### MacOS ARM64 Image
+```bash
+DOCKER_BUILDKIT=0 docker build --target selfie-arm64 -t selfie:arm64 .
 
-Ensure you ask permission of the friends who are also in the chats you export.
+docker run -p 8181:8181 \
+  --name selfie-arm64 \
+  -v $(pwd)/data:/selfie/data \
+  -v $(pwd)/selfie:/selfie/selfie \
+  -v $(pwd)/selfie-ui:/selfie/selfie-ui \
+  -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+  selfie:arm64
+```
 
-[//]: # (You can also redact their name, messages, and other personal information in later steps.)
+> **Note**: on an M1/M2/M3 Mac, you may need to prefix the build command with `DOCKER_BUILDKIT=0` to disable BuildKit.
+> ```bash
+> DOCKER_BUILDKIT=0 docker build -t selfie:arm64 .
+> ```
 
-### Step 2: Import Messaging Data
+## Setting Up Selfie
 
-1. Place your exported chat logs in a directory on your computer, e.g. `/home/alice/chats`.
-2. Open the UI at http://localhost:8181.
-3. Add your directory as a Data Source. Give it a name (e.g. My Chats), enter the **absolute** path, and click `Add Directory`.
-4. In the Documents table, select the exported chat logs you want to import, and click `Index Selected`.
+Selfie comes with a web-based UI that you can use to import your data and interact with it.
 
-If this process is successful, your selected chat logs will show as indexed in the table. You can now use the API to connect to your LLM and generate personalized text completions.
+### Import Your Data
 
-[//]: # (1. Open http://localhost:8181/docs)
-[//]: # (2. Find `POST /v1/index_documents/chat-processor`)
-[//]: # (3. Upload one or more exported chat log files. To get these files, export them from platforms that you use frequently and contain information you want the LLM to know. Exports: [Whatsapp]&#40;https://faq.whatsapp.com/1180414079177245/?cms_platform=android&#41; | [Google]&#40;https://takeout.google.com/settings/takeout&#41; | [Instagram]&#40;https://help.instagram.com/181231772500920&#41; | [Facebook Messenger]&#40;https://www.facebook.com/help/messenger-app/713635396288741/?cms_platform=iphone-app&helpref=platform_switcher&#41; | [Telegram]&#40;https://www.maketecheasier.com/export-telegram-chat-history/&#41;. Ensure you ask permission of the friend who is also in the chat you export. You can also redact their name, messages, and other personal information in later steps.)
-[//]: # (4. Copy, paste, and edit the example parser_configs JSON. Include one configuration object in the list for each file you upload.)
-[//]: # ()
-[//]: # (![chat-processor.png]&#40;docs/images/chat-processor.png&#41;)
-[//]: # ()
-[//]: # (Setting `extract_importance` to `true` will give you better query results, but usually causes the import to take a while.)
+Selfie supports importing text data, with special processing for certain data formats, like chat logs from WhatsApp and ChatGPT.
 
-### Step 3: Generate Personalized Text
+> **Note**: You can try the example files in the `example-chats` directory if you want to try a specific data format that you don't have ready for import.
 
-You can quickly verify if everything is in order by visiting the summarization endpoint in your browser: http://localhost:8181/v1/index_documents/summary?topic=travel ([docs](http://localhost:8181/docs#/default/get_index_documents_summary_v1_index_documents_summary_get)).
+To import data into Selfie:
 
-Next, scroll down to the Playground section in the UI. Enter your name and a simple bio, and try asking some questions whose answers are in your chat logs.
+1. **Open the Add Data Page**: Access the UI and locate the Add Data section.
+2. **Select Data Source**: Choose the type of data you are uploading (e.g., WhatsApp, Text Files). Choose the type that most closely matches your data format.
+3. **Configure and Submit**: Complete the required fields and submit the form.
 
-## Usage Guide
+Support for new types of data can be added by creating new data connectors in `selfie/connectors/` (instructions [here](./selfie/connectors/README.md), please contribute!).
+
+> **Note**: Ensure you obtain consent from participants in the chats you wish to export.
+
+### Interact With Your Data
+
+Now you are ready to interact with your data!
+
+The Playground page includes a chat interface and a search feature. Write an LLM persona by entering a name and bio, and try interacting with your data through conversation. You can also search your data for specific topics under Search.
+
+Now you are ready to use the Selfie API!
+
+## API Usage Guide
+
+To quickly see your API in action, try viewing this link in your web browser:
+
+http://localhost:8181/v1/index_documents/summary?topic=travel.
+
+Detailed API documentation is available [here](http://localhost:8181/docs).
+
+### How Text Completions Work
 
 By default, Selfie augments text completions with local models using llama.cpp and a local txtai embeddings database.
 
@@ -124,7 +240,7 @@ You can also include special parameters to direct Selfie in how your request sho
 
 Examples and more details are provided in the next sections.
 
-### Augmenting Local Models
+### Using Selfie With Local Models
 
 Selfie uses [txtai](https://neuml.github.io/txtai) to download local models and run them with [llama.cpp](https://github.com/ggerganov/llama.cpp). In completion requests, specify the `llama.cpp` method, or leave it off as the default, and ensure that your model is defined correctly, as a local path or HuggingFace model, according to [txtai's documentation](https://neuml.github.io/txtai/models).
 
@@ -153,13 +269,15 @@ You can even use a local Open-AI compatible API ([LiteLLM OpenAI-Compatible Endp
 ```
 Method is optional and defaults to `litellm` when `api_base` is specified.
 
-### Augmenting Hosted Models
+### Using Selfie with Hosted Models
 
 Selfie can use hosted model providers through [litellm](https://litellm.vercel.app). In completion requests, specify the `litellm` method (optional) and ensure that your model is prefixed correctly according to [litellm's documentation for your provider](https://docs.litellm.ai/docs/providers).
 
 ```json
-"method": "litellm",
-"model": "replicate/llama-2-70b-chat:2796ee9483c3fd7aa2e171d38f4ca12251a30609463dcfd4cd76703f22e96cdf",
+{
+  "method": "litellm",
+  "model": "replicate/llama-2-70b-chat:2796ee9483c3fd7aa2e171d38f4ca12251a30609463dcfd4cd76703f22e96cdf"
+}
 ```
 
 In general, you need an API key for your provided loaded into your environment. A quick way to do that is to specify it when you start the server:
@@ -184,7 +302,7 @@ Selfie can be used to augment text generation in a variety of applications. Here
 
 ### Powering the OpenAI SDK
 
-The OpenAI SDK is a popular way to access OpenAI's text generation models. You can use Selfie to augment the text completions that the SDK generates by setting the `apiBase` and `apiKey` parameters.
+The OpenAI SDK is a popular way to access OpenAI's text generation models. You can use Selfie to augment the text completions that the SDK generates simply by setting the `apiBase` and `apiKey` parameters.
 
 ```js
 import OpenAI from 'openai';
@@ -194,17 +312,16 @@ const openai = new OpenAI({
   apiKey: ''
 });
 
-const name = 'Alice';
 const chatCompletion = await openai.chat.completions.create({
-  // model: 'TheBloke/Mistral-7B-Instruct-v0.2-GGUF/mistral-7b-instruct-v0.2.Q5_K_M.gguf', // Optionally, customize the model used
   messages: [
-    { role: 'system', content: `Write ${name}'s next reply in a fictional chat with ${name} and their friends.` },
-    { role: 'user', content: 'Favorite ice cream?' },
+    { role: 'system', content: `Write Alice's next reply.` },
+    { role: 'user', content: 'What are your favorite snacks?' },
   ]
-} as any);
+});
 
 console.log(chatCompletion.choices[0].message.content);
-// "Alice enjoys Bahn Mi and Vietnamese coffee."
+
+// "I enjoy Bahn Mi and Vietnamese coffee."
 ```
 
 ### Powering SillyTavern
@@ -224,8 +341,22 @@ Note that model is empty:
 ![silly-tavern-local-api-model.png](docs/images/silly-tavern-local-api-model.png)
 We pass an extra parameter, `instruct_mode`, for text-generation-webui.
 ![silly-tavern-local-api.png](docs/images/silly-tavern-local-api.png)
-> Note: some OpenAI-compatible APIs may not properly handle SillyTavern's use of multiple system messages and non-alternating user/assistant messages (like [text-generation-webui](https://github.com/oobabooga/text-generation-webui)). A text-generation-webui workaround is described [here](https://github.com/SillyTavern/SillyTavern/issues/1722#issuecomment-1902619716).
 
+> **Note**: some OpenAI-compatible APIs may not properly handle SillyTavern's use of multiple system messages and non-alternating user/assistant messages (like [text-generation-webui](https://github.com/oobabooga/text-generation-webui)). A text-generation-webui workaround is described [here](https://github.com/SillyTavern/SillyTavern/issues/1722#issuecomment-1902619716).
+
+## Scripts
+
+The `scripts` directory contains a variety of scripts for setting up Selfie. Here's a brief overview of each script:
+
+### build-ui.sh
+
+To build the UI, run `./scripts/build-ui.sh`.
+
+### llama-cpp-python-cublas.sh
+
+To install llama.cpp with hardware acceleration for better performance, run `./scripts/llama-cpp-python-cublas.sh`.
+
+Alternatively, you can build `llama-cpp-python` manually with the flags of your choice by following [the instructions](https://github.com/abetlen/llama-cpp-python?tab=readme-ov-file#installation).
 
 ## Experimental Features
 
@@ -233,19 +364,11 @@ Selfie is a work in progress. Here are some features that are not yet fully supp
 
 ### Building an Executable
 
-Build an executable for your platform with `pyinstaller selfie.spec --noconfirm`.
+To build an executable for your platform:
 
-Start the built service with `./dist/selfie/selfie`.
-
-### Scripts
-
-Besides `build-ui.sh`, scripts are provided in scripts/ to help with useful tasks.
-
-### llama-cpp-python-cublas.sh
-
-To install llama.cpp with CUDA support for better performance, run `./scripts/llama-cpp-python-cublas.sh`. [ROCm](https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/tag/rocm) and [Metal](https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/tag/metal) versions should be installed manually.
-
-Alternatively, you can build `llama-cpp-python` manually with the flags of your choice by following [the instructions](https://github.com/abetlen/llama-cpp-python?tab=readme-ov-file#installation).
+1. Run `poetry run pip install pyinstaller`. *(pyinstaller is not compatible with Python >3.12 so it is not included by default)*
+2. Run `poetry run pyinstaller selfie.spec --noconfirm`.
+3. Start the built service with `./dist/selfie/selfie`.
 
 ## Contributing
 

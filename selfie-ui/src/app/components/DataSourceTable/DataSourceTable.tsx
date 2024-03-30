@@ -35,7 +35,7 @@ const DataSourceTable = ({
               <td>
                 <button
                   onClick={() => onDeleteDataSource(dataSource)}
-                  className="btn btn-error btn-xs"
+                  className="btn btn-error btn-outline btn-xs"
                 >
                   Delete
                 </button>

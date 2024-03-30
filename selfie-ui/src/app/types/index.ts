@@ -1,14 +1,21 @@
+// TODO: define this type
+
 export interface Document {
-  id: string
-  metadata: {
-    [key: string]: any
-  }
-  is_indexed: boolean
+  id: string;
+  created_at: string;
+  updated_at: string;
+  content_type: string;
+  name: string;
+  size: number;
+  connector_name: string;
 }
 
 export interface Documents {
   [sourceId: string]: Document[]
 }
+
+// TODO: define this type
+export type DocumentConnection = any
 
 export interface DataSource {
   id: string;
@@ -23,4 +30,10 @@ export interface DataSource {
     load_data_args: any[];
     load_data_kwargs: any;
   };
+}
+
+export interface DocumentStats {
+  totalDocuments: number;
+  numDocumentsIndexed: number;
+  numEmbeddingIndexDocuments: number;
 }

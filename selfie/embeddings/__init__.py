@@ -7,18 +7,20 @@ import shutil
 from typing import Optional, List, Dict, Any, Coroutine, Callable
 
 import humanize
+import logging
+import tiktoken
+from llama_index.core.node_parser import SentenceSplitter
 
-from selfie.config import default_embeddings_storage_root, default_db_name, default_local_model
+from selfie.config import get_app_config
 from selfie.data_generators.chat_training_data import (
     ChatTrainingDataGenerator,
 )
 from selfie.types.share_gpt import ShareGPTMessage
-from selfie.embeddings.document_types import Document, ScoredDocument
+from selfie.embeddings.document_types import EmbeddingDocumentModel, ScoredEmbeddingDocumentModel
 from selfie.embeddings.importance_scorer import ImportanceScorer
 from selfie.embeddings.recency_scorer import RecencyScorer
 from selfie.embeddings.relevance_scorer import RelevanceScorer
 from txtai.embeddings import Embeddings
-import logging
 
 from txtai.pipeline import LLM
 
@@ -26,11 +28,32 @@ logger = logging.getLogger(__name__)
 
 default_importance = 0.3
 
-llm = LLM(
-    path=default_local_model,
-    method="llama.cpp",
-    n_ctx=8192,
-    n_gpu_layers=-1,
+config = get_app_config()
+
+
+def get_default_completion():
+    llm = LLM(
+        verbose=config.verbose,
+        path=config.local_model,
+        method="llama.cpp",
+        n_ctx=8192,
+        n_gpu_layers=-1 if config.gpu else 0,
+    )
+
+    async def completion(prompt):
+        return llm(prompt)
+
+    return completion
+
+
+# TODO: Probably a minor issue, so hard-coding the tokenizer for now:
+# 1. The default tokenizer should probably be based on the user's default/configured model
+# 2. If the user changes their default model, already-indexed documents could be larger than max_embedding_size_tokens
+tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
+splitter = SentenceSplitter(
+    tokenizer=tokenizer,
+    chunk_size=config.embedding_chunk_size,
+    chunk_overlap=config.embedding_chunk_overlap
 )
 
 
@@ -42,20 +65,17 @@ class DataIndex:
             cls._singleton = super(DataIndex, cls).__new__(cls)
         return cls._singleton
 
-    def __init__(self, character_name, storage_path: str = default_embeddings_storage_root, use_local_llm=True, completion=None):
+    def __init__(self, character_name, storage_path: str = config.embeddings_storage_root, use_local_llm=True, completion=None):
         if not hasattr(self, 'is_initialized'):
             logger.info("Initializing DataIndex")
             self.storage_path = os.path.join(storage_path, "index")
+            logger.info(f"Storage path: {self.storage_path}")
             os.makedirs(storage_path, exist_ok=True)
 
-            async def completion_async(prompt):
-                return llm(prompt)
-
-            self.completion = completion or completion_async
-
+            self.completion = completion or get_default_completion()
             self.character_name = character_name
             self.embeddings = Embeddings(
-                path="sentence-transformers/all-MiniLM-L6-v2",
+                hybrid=True,
                 sqlite={"wal": True},
                 # For now, sqlite w/the default driver is the only way to use WAL.
                 content=True
@@ -146,12 +166,31 @@ class DataIndex:
     @staticmethod
     def map_share_gpt_data(
         conversation: List[ShareGPTMessage], source: str = "Unknown", source_document_id: int = None
-    ) -> List[Document]:
-        chunks = ChatTrainingDataGenerator.group_messages_into_chunks(
-            conversation, overlap=1, max_messages=8, max_characters=0
+    ) -> List[EmbeddingDocumentModel]:
+        conversation_with_chunked_messages = [
+            ShareGPTMessage(**{
+                "from": msg.from_user,
+                "value": chunk,
+                "timestamp": msg.timestamp,
+            })
+            for msg in conversation
+            for chunk in (
+                splitter.split_text(msg.value)
+                if len(tokenizer(msg.value)) > config.embedding_chunk_size
+                else [msg.value]
+            )
+        ]
+
+        message_chunks = ChatTrainingDataGenerator.group_messages_into_chunks(
+            conversation_with_chunked_messages,
+            overlap=2,
+            max_messages=32,
+            max_tokens=config.embedding_chunk_size,
+            tokenizer=tokenizer
         )
+
         documents = []
-        for i, conv in enumerate(chunks):
+        for i, conv in enumerate(message_chunks):
             if any("REDACTED" in msg.value for msg in conv):
                 continue
             last_user = ""
@@ -162,11 +201,15 @@ class DataIndex:
                 for msg in conv
             ).strip()
 
-            document = Document(
+            document = EmbeddingDocumentModel(
                 text=formatted_conversation,
                 timestamp=conv[0].timestamp,
                 source=source,
             )
+
+            # TODO: confirm that id being a field in the model is not a problem for mapping with
+            if document.id is None:
+                del document.id
 
             if source_document_id:
                 document.source_document_id = source_document_id
@@ -192,7 +235,7 @@ class DataIndex:
         ) / (importance_weight + recency_weight + relevance_weight)
 
     async def _summarize_documents(
-        self, character_name: str, documents: List[Document], context, model
+        self, character_name: str, documents: List[EmbeddingDocumentModel], context, model
     ):
         logger.info(f"Summarizing {len(documents)} documents")
 
@@ -228,7 +271,7 @@ class DataIndex:
             )
             return openai_response.choices[0].message.content
 
-    def map_document(self, document: Document, extract_importance=True):
+    def map_document(self, document: EmbeddingDocumentModel, extract_importance=True):
         return {
             **document.to_dict(),
             **(
@@ -252,7 +295,7 @@ class DataIndex:
     ) -> List[Dict[str, Any]]:
         parameters = parameters or {}
         query_components = [
-            f"SELECT score, {', '.join(Document.model_fields.keys())} FROM txtai"
+            f"SELECT score, {', '.join(EmbeddingDocumentModel.model_fields.keys())} FROM txtai"
         ]
 
         if where:
@@ -271,7 +314,7 @@ class DataIndex:
         logger.debug(f"Query looks like {' '.join(query_components)}")
         return self.embeddings.search(" ".join(query_components), parameters=parameters, limit=limit)
 
-    async def index(self, documents: List[Document], extract_importance=True, upsert=False):
+    async def index(self, documents: List[EmbeddingDocumentModel], extract_importance=True, upsert=False):
         start_time = time.time()
         logger.info(f"Indexing {len(documents)} documents started at {start_time}")
 
@@ -305,6 +348,7 @@ class DataIndex:
         include_summary=True,
         local_llm=True,
         min_score=0.4,
+        hybrid_search_weight=1.0,  # TODO: Setting this to only use the dense index until this is tuned, e.g., with min_score
     ):
         if min_score is None:
             min_score = 0.4
@@ -313,10 +357,11 @@ class DataIndex:
             return {"documents": [], "summary": "No documents found.", "mean_score": 0}
         self.embeddings.load(self.storage_path)
 
-        results = self._query(where="similar(:topic)", parameters={"topic": topic}, limit=limit)
-        documents_list: List[ScoredDocument] = []
+        results = self._query(where=f"similar(:topic, {hybrid_search_weight})", parameters={"topic": topic}, limit=limit)
+        documents_list: List[ScoredEmbeddingDocumentModel] = []
         for result in results:
-            document = Document(
+            document = EmbeddingDocumentModel(
+                id=result["id"],
                 text=result["text"],
                 timestamp=result["timestamp"],
                 importance=result["importance"],
@@ -338,7 +383,7 @@ class DataIndex:
                 relevance_weight,
             )
             documents_list.append(
-                ScoredDocument(
+                ScoredEmbeddingDocumentModel(
                     **document.model_dump(),
                     score=retrieval_score,
                     relevance=relevance_score,
@@ -394,12 +439,14 @@ class DataIndex:
             [(document_id, self.map_document(updated_document, extract_importance))]
         )
 
-    def get_document_count(self):
+    def get_document_count(self, source_document_ids: Optional[List[str]] = None):
         if not self.has_data():
             return 0
 
-        result = self.embeddings.search("SELECT count(*) FROM txtai")
-        return result[0]["count(*)"]
+        if source_document_ids:
+            return self.embeddings.search(f"SELECT count(*) FROM txtai WHERE source_document_id IN ({', '.join(source_document_ids)})")[0]["count(*)"]
+        else:
+            return self.embeddings.count()
 
     async def get_document(self, document_id):
         if not self.has_data():
@@ -427,7 +474,7 @@ class DataIndex:
         # return self.embeddings.search(query)
         return self._query(where=where_in_clause, group_by="source_document_id", limit=999999)
 
-    async def find_existing_document(self, document: Document):
+    async def find_existing_document(self, document: EmbeddingDocumentModel):
         if not self.has_data():
             return None
         result = self._query(
@@ -449,7 +496,7 @@ class DataIndex:
             result[0]['id'] = int(result[0]['id'])
             result[0]['source_document_id'] = int(result[0]['source_document_id'])
 
-        return Document(**result[0]) if result else None
+        return EmbeddingDocumentModel(**result[0]) if result else None
 
     async def get_documents(self, offset=0, limit=10):
         if not self.has_data():

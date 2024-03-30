@@ -1,8 +1,10 @@
 import json
 
-from selfie.config import default_local_functionary_model
+from selfie.config import get_app_config
 from selfie.embeddings.base_scorer import BaseScorer
-from selfie.embeddings.document_types import Document
+from selfie.embeddings.document_types import EmbeddingDocumentModel
+
+config = get_app_config()
 
 
 class ImportanceScorer(BaseScorer):
@@ -10,7 +12,7 @@ class ImportanceScorer(BaseScorer):
         super().__init__(score_weight)
         self.use_local_llm = use_local_llm
 
-    def calculate_raw_score(self, document: Document):
+    def calculate_raw_score(self, document: EmbeddingDocumentModel):
         """
         Calculate the raw importance score for a document using OpenAI's API.
         """
@@ -42,8 +44,9 @@ class ImportanceScorer(BaseScorer):
                 from txtai.pipeline import LLM
 
                 llm = LLM(
-                    default_local_functionary_model,
-                    n_gpu_layers=-1,
+                    config.local_functionary_model,
+                    verbose=config.verbose,
+                    n_gpu_layers=-1 if config.gpu else 0,
                     method="llama.cpp",
                     chat_format="functionary",
                     n_ctx=4096,
@@ -83,4 +86,4 @@ class ImportanceScorer(BaseScorer):
         Normalize the score to a range of [0, 1].
         Assumes the original score is in [1, 10].
         """
-        return 0 if score is 0 else (score - 1) / 9
+        return 0 if score == 0 else (score - 1) / 9

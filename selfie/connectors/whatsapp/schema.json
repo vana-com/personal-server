@@ -1,0 +1,14 @@
+{
+  "title": "Upload WhatsApp Conversations",
+  "type": "object",
+  "properties": {
+    "files": {
+      "type": "array",
+      "title": "Files",
+      "description": "Upload .txt files exported from WhatsApp",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}

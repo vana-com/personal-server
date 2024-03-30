@@ -1,7 +1,11 @@
+import importlib
+import json
+import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime
+from typing import List, Dict, Any, Callable
 
-from llama_index.node_parser import SentenceSplitter
+from llama_index.core.node_parser import SentenceSplitter
 from peewee import (
     Model,
     SqliteDatabase,
@@ -9,128 +13,181 @@ from peewee import (
     TextField,
     ForeignKeyField,
     AutoField,
-    DoesNotExist,
     Proxy,
+    IntegerField,
+    DateTimeField,
 )
-import json
-import importlib
-from typing import List, Dict, Any, Optional, Callable
+from playhouse.shortcuts import model_to_dict
 
-from selfie.config import default_database_storage_root, default_db_name
+from selfie.config import get_app_config
 from selfie.embeddings import DataIndex
-from selfie.embeddings.document_types import Document
+from selfie.embeddings.document_types import EmbeddingDocumentModel
+# TODO: This module should not be aware of DocumentDTO. Refactor its usage out of this module.
+from selfie.types.documents import DocumentDTO
 
-import logging
 logger = logging.getLogger(__name__)
 
 database_proxy = Proxy()
 
+config = get_app_config()
+
 
 class BaseModel(Model):
+    created_at = DateTimeField(default=datetime.now)
+    updated_at = DateTimeField(default=datetime.now)
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.now()
+        return super(BaseModel, self).save(*args, **kwargs)
+
     class Meta:
         database = database_proxy
 
 
-class DataSource(BaseModel):
+# class DataSource(BaseModel):
+#     id = AutoField()
+#     name = CharField()
+#     loader_module = CharField()
+#     config = TextField()
+#     last_loaded_timestamp = CharField(null=True)
+#
+#     class Meta:
+#         table_name = 'selfie_datasource'
+class DocumentConnectionModel(BaseModel):
     id = AutoField()
-    name = CharField()
-    loader_module = CharField()
-    config = TextField()
+    #     name = CharField()
+    connector_name = CharField()
+    configuration = TextField()
+
+    #     last_loaded_timestamp = CharField(null=True)
 
     class Meta:
-        table_name = 'selfie_datasource'
+        table_name = 'selfie_document_connection'
 
 
-class SelfieDocument(BaseModel):
+# class SelfieDocument(BaseModel):
+#     id = AutoField()
+#     source = ForeignKeyField(DataSource, backref="documents")
+#     metadata = TextField()
+#     text = TextField()
+#
+#     class Meta:
+#         table_name = 'selfie_document'
+class DocumentModel(BaseModel):
     id = AutoField()
-    source = ForeignKeyField(DataSource, backref="documents")
-    metadata = TextField()
-    text = TextField()
+    document_connection = ForeignKeyField(DocumentConnectionModel, backref='documents')
+    content = TextField()
+    content_type = CharField()
+    name = CharField()
+    size = IntegerField()
 
     class Meta:
         table_name = 'selfie_document'
 
 
+class SettingsModel(BaseModel):
+    id = AutoField()
+    key = CharField(unique=True)
+    value = TextField()
+
+    class Meta:
+        table_name = 'selfie_settings'
+
+
 class DataManager:
-    def __init__(self, storage_path: str = default_database_storage_root):
+    def __init__(self, storage_path: str = config.database_storage_root):
         os.makedirs(storage_path, exist_ok=True)
 
-        self.db = SqliteDatabase(os.path.join(storage_path, default_db_name))
+        self.db = SqliteDatabase(os.path.join(storage_path, config.db_name))
         database_proxy.initialize(self.db)
         self.db.connect()
-        self.db.create_tables([DataSource, SelfieDocument])
+        self.db.create_tables([DocumentConnectionModel, DocumentModel])
 
-    def add_data_source(
-        self,
-        name: str,
-        loader_module: str,
-        constructor_args: List[Any],
-        constructor_kwargs: Dict[str, Any],
-        load_data_args: List[Any],
-        load_data_kwargs: Dict[str, Any],
+    def add_document_connection(
+            self,
+            connector_name: str,
+            configuration: Dict[str, Any],
     ) -> int:
-        config = {
-            "constructor_args": constructor_args,
-            "constructor_kwargs": constructor_kwargs,
-            "load_data_args": load_data_args,
-            "load_data_kwargs": load_data_kwargs,
-        }
-        return DataSource.create(
-            name=name, loader_module=loader_module, config=json.dumps(config)
+        return DocumentConnectionModel.create(
+            connector_name=connector_name,
+            configuration=json.dumps(configuration)
         )
 
     # def remove_data_source(self, source_id: int):
     #     DataSource.get_by_id(source_id).delete_instance()
 
+    async def remove_documents(self, document_ids: List[int], delete_indexed_data: bool = True):
+        if delete_indexed_data:
+            await DataIndex("n/a").delete_documents_with_source_documents(document_ids)
+
+        try:
+            with self.db.atomic():
+                DocumentModel.delete().where(DocumentModel.id.in_(document_ids)).execute()
+        except Exception as e:
+            logger.error(f"Error removing documents, but indexed data was removed: {e}")
+            raise e
+
     async def remove_document(self, document_id: int, delete_indexed_data: bool = True):
-        with self.db.atomic():
-            document = SelfieDocument.get_by_id(document_id)
-            if document is None:
-                raise ValueError(f"No document found with ID {document_id}")
+        return await self.remove_documents([document_id], delete_indexed_data)
 
-            if delete_indexed_data:
-                index = DataIndex("n/a")
-                await index.delete_documents_with_source_documents([document.source_id])
-
-            document.delete_instance()
-
-    async def remove_data_source(self, source_id: int, delete_documents: bool = True, delete_indexed_data: bool = True):
-        data_source = self.get_data_source(source_id)
-        if data_source is None:
-            raise ValueError(f"No data source found with ID {source_id}")
+    async def remove_document_connection(self, document_connection_id: int, delete_documents: bool = True,
+                                         delete_indexed_data: bool = True):
+        if self.get_document_connection(document_connection_id) is None:
+            raise ValueError(f"No document connection found with ID {document_connection_id}")
 
         if delete_indexed_data:
-            source_document_ids = [doc.id for doc in SelfieDocument.select().where(SelfieDocument.source == source_id)]
+            source_document_ids = [doc.id for doc in DocumentModel.select().where(
+                DocumentModel.document_connection == document_connection_id)]
             await DataIndex("n/a").delete_documents_with_source_documents(source_document_ids)
 
         with self.db.atomic():
             if delete_documents:
-                SelfieDocument.delete().where(SelfieDocument.source == source_id).execute()
+                DocumentModel.delete().where(DocumentModel.document_connection == document_connection_id).execute()
 
-            DataSource.delete().where(DataSource.id == source_id).execute()
+            DocumentConnectionModel.delete().where(DocumentConnectionModel.id == document_connection_id).execute()
 
-    def scan_data_sources(self, source_ids: List[int]) -> Dict[str, Any]:
+    def scan_document_connections(self, connection_ids: List[int]) -> Dict[str, Any]:
         changes = {}
-        for source_id in source_ids:
-            data_source = DataSource.get_by_id(source_id)
-            documents = self._fetch_documents(
-                data_source.loader_module, json.loads(data_source.config)
-            )
+        for connection_id in connection_ids:
+            document_connection = DocumentConnectionModel.get_by_id(connection_id)
+
+            connection_config = json.loads(document_connection.configuration)
+            if connection_config["loader_name"].startswith("selfie"):
+                # TODO: last_loaded_timestamp is not currently defined
+                connection_config["load_data_kwargs"]["earliest_date"] = document_connection.last_loaded_timestamp
+
+            documents = self._fetch_documents(connection_config)
             for doc in documents:
-                document, created = SelfieDocument.get_or_create(
-                    source=data_source, defaults={"metadata": json.dumps(doc.metadata)}, text=doc.text
+                document, created = DocumentModel.get_or_create(
+                    document_connection=document_connection,
+                    content=doc.content,  # TODO: This, if doc.content_type matches text, otherwise key should be object
+                    defaults={
+                        "content_type": doc.content_type,
+                        "name": doc.name,
+                        "size": doc.size,
+                    },
                 )
                 changes[document.id] = "Created" if created else "Updated"
         return changes
 
-    def _fetch_documents(self, loader_module: str, config: Dict[str, Any]) -> List[Any]:
-        module_name, class_name = loader_module.rsplit(".", 1)
+    def _fetch_documents(self, configuration: Dict[str, Any]) -> List[DocumentDTO]:
+        # TODO: Replace this with DocumentConnector implementation. Maybe it shouldn't return Peewee models directly.
+        module_name, class_name = configuration["loader_name"].rsplit(".", 1)
         module = importlib.import_module(module_name)
         loader_class = getattr(module, class_name)
         loader = loader_class(
-            *config["constructor_args"], **config["constructor_kwargs"]
+            *configuration["constructor_args"], **configuration["constructor_kwargs"]
         )
-        return loader.load_data(*config["load_data_args"], **config["load_data_kwargs"])
+        loader_docs = loader.load_data(*configuration["load_data_args"], **configuration["load_data_kwargs"])
+        return [
+            DocumentDTO(
+                content=doc.text,
+                content_type="text",
+                name="N/A",
+                size=0
+            )
+            for doc in loader_docs
+        ]
 
     def _get_unique_key(self, doc, unique_key_path: str):
         keys = unique_key_path.split(".")
@@ -142,17 +199,15 @@ class DataManager:
                 value = getattr(value, key, None)
         return value
 
-    async def index_documents(self, data_source: DataSource):
+    async def index_documents(self, document_connection: DocumentConnectionModel):
         print("Indexing documents")
 
-        # Ensure that the data source is in the database
-        self.scan_data_sources([data_source.id])
+        self.scan_document_connections([document_connection.id])
 
-        loader_module = data_source.loader_module
-
-        documents = self._fetch_documents(loader_module, json.loads(data_source.config))
+        documents = self._fetch_documents(json.loads(document_connection.configuration))
         documents = [
-            document for doc in documents for document in self._map_selfie_documents_to_index_documents(selfie_document=doc)
+            document for doc in documents for document in
+            self._map_selfie_documents_to_index_documents(selfie_document=doc)
         ]
 
         await DataIndex("n/a").index(documents, extract_importance=False)
@@ -161,7 +216,8 @@ class DataManager:
 
         return {"message": f"{len(documents)} documents indexed successfully"}
 
-    async def index_document(self, document: SelfieDocument, selfie_documents_to_index_documents: Callable[[SelfieDocument], List[Document]] = None):
+    async def index_document(self, document: DocumentDTO, selfie_documents_to_index_documents: Callable[
+        [DocumentDTO], List[EmbeddingDocumentModel]] = None):
         print("Indexing document")
 
         if selfie_documents_to_index_documents is None:
@@ -175,95 +231,61 @@ class DataManager:
         return await DataIndex("n/a").index(index_documents, extract_importance=False)
 
     @staticmethod
-    def _map_selfie_documents_to_index_documents(selfie_document: SelfieDocument):
-        text_parser = SentenceSplitter(chunk_size=1024)
-        documents = []
-
-        for text_chunk in text_parser.split_text(selfie_document.text):
-            documents.append(Document(
+    def _map_selfie_documents_to_index_documents(selfie_document: DocumentDTO):
+        return [
+            EmbeddingDocumentModel(
                 text=text_chunk,
-                source=selfie_document.source,
+                # source=selfie_document.document_connection.connector_name,
+                source="Unknown",
                 timestamp=DataManager._extract_timestamp(selfie_document),
                 source_document_id=selfie_document.id,
-            ))
-
-        return documents
+            )
+            for text_chunk in SentenceSplitter(
+                chunk_size=config.embedding_chunks_size,
+                chunk_overlap=config.embedding_chunk_overlap
+           ).split_text(selfie_document.content)
+        ]
 
     @staticmethod
     def _extract_timestamp(doc):
-        last_modified = doc.metadata.get("last_modified")
-        if last_modified:
-            return datetime.strptime(last_modified, "%Y-%m-%d")
-        return datetime.now()
+        return doc.created_at if doc.created_at else datetime.now()
 
     @staticmethod
-    def get_data_source(source_id: int):
-        try:
-            return DataSource.get_by_id(source_id)
-        except DoesNotExist:
-            return {"error": "Data source not found"}
-        except Exception as e:
-            return {"error": str(e)}
+    def get_document_connection(document_connection_id: int):
+        return DocumentConnectionModel.get_by_id(document_connection_id)
 
-    def get_data_sources(self):
+    def get_document_connections(self):
         return [
-            {
-                "name": source.name,
-                "id": source.id,
-                "loader_module": source.loader_module,
-                "config": json.loads(source.config),
-            }
-            for source in DataSource.select()
+            model_to_dict(source)
+            # {
+            #     "name": source.name,
+            #     "id": source.id,
+            #     "loader_module": source.loader_module,
+            #     "config": json.loads(source.config),
+            # }
+            for source in DocumentConnectionModel.select()
         ]
 
-    def get_documents(self, source_id: Optional[int] = None):
-        if source_id:
-            documents = SelfieDocument.select().where(SelfieDocument.source_id == source_id)
-        else:
-            documents = SelfieDocument.select()
+    def get_documents(self):
+        documents = DocumentModel.select(DocumentModel.id, DocumentModel.name, DocumentModel.size,
+                                         DocumentModel.created_at, DocumentModel.updated_at,
+                                         DocumentModel.content_type, DocumentConnectionModel.connector_name).join(
+            DocumentConnectionModel)
 
-        one_indexed_document_per_source = DataIndex("n/a").get_one_document_per_source_document([str(document.id) for document in documents])
-        indexed_documents = list(set([doc['source_document_id'] for doc in one_indexed_document_per_source]))
-        return [
-            # TODO: for some reason, initializing Embeddings in DataIndex with the SQLAlchemy driver returns indexed_documents as strings, not ints (requires str(doc.id)).
-            {"id": doc.id, "metadata": json.loads(doc.metadata), "is_indexed": doc.id in indexed_documents} for doc in documents
-        ]
+        result = []
+        for doc in documents:
+            doc_dict = model_to_dict(doc, backrefs=True, only=[
+                DocumentModel.id, DocumentModel.name, DocumentModel.size,
+                DocumentModel.created_at, DocumentModel.updated_at,
+                DocumentModel.content_type, DocumentConnectionModel.connector_name
+            ])
+            doc_dict['connector_name'] = doc.document_connection.connector_name
+            result.append(doc_dict)
+        return result
 
     def get_document(self, document_id: str):
-        return SelfieDocument.get_by_id(document_id)
+        return DocumentModel.get_by_id(document_id)
 
 
 if __name__ == "__main__":
     manager = DataManager()
-
-    # # Adding a SimpleWebPageReader data source
-    # constructor_args_web = []
-    # constructor_kwargs_web = {"html_to_text": True}
-    # load_data_args_web = []
-    # load_data_kwargs_web = {"urls": ["http://paulgraham.com/worked.html"]}
-    # source_id_web = manager.add_data_source("llama_index.readers.SimpleWebPageReader", constructor_args_web, constructor_kwargs_web, load_data_args_web, load_data_kwargs_web, "metadata.url").id
-    #
-    # # Adding a SimpleDirectoryReader data source
-    # constructor_args_dir = []
-    # constructor_kwargs_dir = {"input_dir": "/home/tnunamak/Downloads/tim_misc_text", "recursive": True, "num_files_limit": 5}
-    # load_data_args_dir = []
-    # load_data_kwargs_dir = {}
-    # source_id_dir = manager.add_data_source("llama_index.readers.SimpleDirectoryReader", constructor_args_dir, constructor_kwargs_dir, load_data_args_dir, load_data_kwargs_dir, "metadata.file_path").id
-
-    # Scanning data sources
-    # changes_web = manager.scan_data_sources([source_id_web])
-    # changes_dir = manager.scan_data_sources([source_id_dir])
-    # print("Web Changes:", changes_web)
-    # print("Directory Changes:", changes_dir)
-
-    # for data_source in DataSource.select():
-    #     manager.index_documents(data_source)
-    # print(data_source.id, data_source.loader_module, data_source.config)
-
-    # source_id = -1  # Example source ID
-    # result = manager.index_documents(source_id)
-    # print(result)
-
-    # Cleanup
-    # manager.remove_data_source(source_id_web)
-    # manager.remove_data_source(source_id_dir)

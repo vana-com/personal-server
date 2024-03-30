@@ -5,9 +5,11 @@ from enum import unique, Enum
 from typing import Dict
 import yaml
 
+from selfie.parsers.chat.telegram import TelegramParser
 from selfie.parsers.chat.discord import DiscordParser
 from selfie.parsers.chat.whatsapp import WhatsAppParser
 from selfie.parsers.chat.google import GoogleTakeoutMessagesParser
+from selfie.parsers.chat.chatgpt import ChatGPTParser
 from selfie.types.share_gpt import ShareGPTConversation, ShareGPTMessage
 
 import logging
@@ -33,7 +35,7 @@ else:
 # current_dir = os.path.dirname(os.path.abspath(__file__))
 # blacklist_file_path = os.path.join(current_dir, "blacklist_patterns.yaml")
 
-with open(blacklist_file_path, "r") as f:
+with open(blacklist_file_path, "r", encoding='utf-8') as f:
     default_blacklist_patterns = yaml.safe_load(f)
     default_blacklist_patterns = [
         pattern.strip() for pattern in default_blacklist_patterns
@@ -45,6 +47,8 @@ class Parser(Enum):
     WHATSAPP = WhatsAppParser
     DISCORD = DiscordParser
     GOOGLE_MESSAGES = GoogleTakeoutMessagesParser
+    CHATGPT = ChatGPTParser
+    TELEGRAM = TelegramParser
 
 
 class ChatFileParser:
@@ -56,7 +60,8 @@ class ChatFileParser:
         self.parser_cache = {}
         self.blacklist_patterns = [
             re.compile(pattern, re.IGNORECASE)
-            for pattern in default_blacklist_patterns + (blacklist_patterns or [])
+            # TODO: Disabling blacklisting until it is more configurable
+            for pattern in [] #default_blacklist_patterns + (blacklist_patterns or [])
         ]
         self.rewrite_placeholder = rewrite_placeholder
 

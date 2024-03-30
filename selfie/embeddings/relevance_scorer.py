@@ -1,5 +1,5 @@
 from selfie.embeddings.base_scorer import BaseScorer
-from selfie.embeddings.document_types import Document
+from selfie.embeddings.document_types import EmbeddingDocumentModel
 
 
 # TODO: rename this to IdentityScorer
@@ -9,7 +9,7 @@ class RelevanceScorer(BaseScorer):
     def __init__(self, score_weight):
         super().__init__(score_weight)
 
-    def calculate_raw_score(self, document: Document, certainty: float):
+    def calculate_raw_score(self, document: EmbeddingDocumentModel, certainty: float):
         # TODO use certainty?
         return certainty
 
