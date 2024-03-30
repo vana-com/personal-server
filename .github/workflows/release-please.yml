@@ -1,3 +1,5 @@
+name: Release Please
+
 on:
   push:
     branches:
@@ -7,13 +9,37 @@ permissions:
   contents: write
   pull-requests: write
 
-name: release-please
-
 jobs:
   release-please:
     runs-on: ubuntu-latest
+
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+
     steps:
       - uses: google-github-actions/release-please-action@v5
+        id: release
         with:
           token: ${{ secrets.SERVICE_ACCOUNT_PAT }}
-          release-type: simple
+          release-type: python
+
+  build:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+
+    strategy:
+      matrix:
+#        os: [macos-latest-xlarge]
+        os: [macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and upload release assets
+        uses: ./.github/actions/build-action
+        with:
+          release_tag: ${{ needs.release-please.outputs.tag_name }}

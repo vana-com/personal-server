@@ -1,0 +1,19 @@
+name: Build Package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [package]
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+#        os: [macos-latest-xlarge]
+        os: [macos-latest]
+
+    steps:
+      - name: Build package
+        uses: ./.github/actions/build-action
