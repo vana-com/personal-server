@@ -1,0 +1,169 @@
+name: 'Build Action'
+description: 'Composite action to build the Selfie package'
+
+inputs:
+  release_tag:
+    description: 'The tag name of the release'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Determine target filename
+      run: |
+        echo "TARGET_NAME=Selfie-${{ runner.os }}-$(uname -m).zip" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Install the Apple certificate and provisioning profile
+      if: runner.os == 'macOS'
+      env:
+        APPLE_BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
+        APPLE_BUILD_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_BUILD_CERTIFICATE_PASSWORD }}
+        APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        APPLE_MACOS_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_MACOS_KEYCHAIN_PASSWORD }}
+      run: |
+        CERTIFICATE_PATH=$RUNNER_TEMP/apple_certificate.p12
+        PROVISIONING_PROFILE_PATH=$RUNNER_TEMP/apple_provisioning_profile.provisionprofile
+        KEYCHAIN_PATH=$RUNNER_TEMP/github-actions.keychain-db
+        KEYCHAIN_NAME=github-actions
+
+        echo -n "$APPLE_BUILD_CERTIFICATE_BASE64" | base64 --decode > $CERTIFICATE_PATH
+        echo -n "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > $PROVISIONING_PROFILE_PATH
+
+        security create-keychain -p "$APPLE_MACOS_KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+        security unlock-keychain -p "$APPLE_MACOS_KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        security default-keychain -s $KEYCHAIN_PATH
+
+        security import $CERTIFICATE_PATH -P "$APPLE_BUILD_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+        security set-key-partition-list -S apple-tool:,apple: -k "$APPLE_MACOS_KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        security list-keychain -d user -s $KEYCHAIN_PATH
+
+        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+        cp $PROVISIONING_PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+      shell: bash
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+      shell: bash
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: poetry
+        cache-dependency-path: poetry.lock
+
+    - name: Install dependencies with Poetry
+      run: poetry install --no-dev
+      shell: bash
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'yarn'
+        cache-dependency-path: selfie-ui/yarn.lock
+
+    - name: Cache Next.js build artifacts
+      uses: actions/cache@v4
+      with:
+        path: |
+          selfie-ui/.next/cache
+        key: ${{ runner.os }}-nextjs-${{ hashFiles('selfie-ui/**/yarn.lock') }}-${{ hashFiles('selfie-ui/**/*.js', 'selfie-ui/**/*.jsx', 'selfie-ui/**/*.ts', 'selfie-ui/**/*.tsx') }}
+        restore-keys: |
+          ${{ runner.os }}-nextjs-${{ hashFiles('selfie-ui/**/yarn.lock') }}-
+
+    - name: Build the Selfie UI
+      run: sh scripts/build-ui.sh
+      shell: bash
+
+    - name: Install PyInstaller
+      run: poetry run pip install pyinstaller
+      shell: bash
+
+    - name: Build with PyInstaller
+      run: poetry run pyinstaller selfie.spec --noconfirm
+      shell: bash
+
+    - name: Set executable permissions
+      run: chmod +x dist/selfie/selfie
+      shell: bash
+
+    - name: Build macOS App
+      if: runner.os == 'macOS'
+      env:
+        APPLE_ASC_API_KEY_KEY_BASE64: ${{ secrets.APPLE_ASC_API_KEY_KEY_BASE64 }}
+      run: |
+        sh scripts/package-macos-app.sh
+
+        ditto -c -k --keepParent "${{ github.workspace }}/dist/Selfie.app" "${{ env.TARGET_NAME }}.zip"
+
+        API_KEY_PATH=$RUNNER_TEMP/AuthKey_${{secrets.APPLE_ASC_API_KEY_ID}}.p8
+        echo -n "$APPLE_ASC_API_KEY_KEY_BASE64" | base64 --decode > $API_KEY_PATH
+
+        NOTARIZATION_OUTPUT=$(xcrun notarytool submit "${{ env.TARGET_NAME }}.zip" --issuer ${{ secrets.APPLE_ASC_API_KEY_ISSUER_UUID }} --key-id ${{ secrets.APPLE_ASC_API_KEY_ID }} --key $API_KEY_PATH --wait 2>&1)
+
+        REQUEST_UUID=$(echo "${NOTARIZATION_OUTPUT}" | grep 'id:' | awk '{print $NF}')
+        NOTARIZATION_STATUS=$(echo "${NOTARIZATION_OUTPUT}" | grep 'status:' | tail -n 1 | awk '{print $NF}')
+
+        if [[ -z "$REQUEST_UUID" ]]; then
+          echo "Failed to submit app for notarization. Full output:"
+          echo "${NOTARIZATION_OUTPUT}"
+          exit 1
+        else
+          echo "Notarization submitted; RequestUUID: ${REQUEST_UUID}"
+        fi
+
+        if [[ "$NOTARIZATION_STATUS" == "Invalid" ]]; then
+          echo "Notarization failed with status: ${NOTARIZATION_STATUS}"
+          echo "Fetching notarization log for RequestUUID: ${REQUEST_UUID}..."
+          xcrun notarytool log ${REQUEST_UUID} --key $API_KEY_PATH --key-id ${{ secrets.APPLE_ASC_API_KEY_ID }} --issuer ${{ secrets.APPLE_ASC_API_KEY_ISSUER_UUID }}
+          exit 1
+        elif [[ "$NOTARIZATION_STATUS" != "Accepted" ]]; then
+          echo "Notarization failed with an unexpected status: ${NOTARIZATION_STATUS}"
+          echo "Full notarization output:"
+          echo "${NOTARIZATION_OUTPUT}"
+          exit 1
+        else
+          echo "Notarization successful; status: ${NOTARIZATION_STATUS}"
+        fi
+
+        xcrun stapler staple "${{ github.workspace }}/dist/Selfie.app"
+
+        ditto -c -k --keepParent "${{ github.workspace }}/dist/Selfie.app" "${{ env.TARGET_NAME }}.zip"
+      shell: bash
+
+    - name: Build Non-macOS App
+      if: runner.os != 'macOS'
+      run: zip -r Selfie-${{ runner.os }}.zip dist/selfie
+      shell: bash
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      if: inputs.release_tag == ''
+      with:
+        name: ${{ env.TARGET_NAME }}
+        path: ${{ env.TARGET_NAME }}.zip
+        overwrite: true
+        if-no-files-found: error
+
+    - name: Upload Release Asset
+      if: inputs.release_tag != ''
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        gh release upload ${{ inputs.release_tag }} ${{ env.TARGET_NAME }}.zip
+      shell: bash
+
+    - name: Clean up keychain and provisioning profile
+      if: runner.os == 'macOS'
+      run: |
+        security delete-keychain $RUNNER_TEMP/github-actions.keychain-db
+        rm ~/Library/MobileDevice/Provisioning\ Profiles/apple_provisioning_profile.provisionprofile
+      shell: bash
