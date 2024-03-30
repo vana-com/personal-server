@@ -12,6 +12,11 @@ runs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Determine target filename
+      run: |
+        echo "TARGET_NAME=Selfie-${{ runner.os }}-$(uname -m).zip" >> $GITHUB_ENV
+      shell: bash
+
     - name: Install the Apple certificate and provisioning profile
       if: runner.os == 'macOS'
       env:
@@ -74,7 +79,7 @@ runs:
         restore-keys: |
           ${{ runner.os }}-nextjs-${{ hashFiles('selfie-ui/**/yarn.lock') }}-
 
-    - name: Install dependencies with Yarn
+    - name: Build the Selfie UI
       run: sh scripts/build-ui.sh
       shell: bash
 
@@ -97,12 +102,12 @@ runs:
       run: |
         sh scripts/package-macos-app.sh
 
-        ditto -c -k --keepParent "${{ github.workspace }}/dist/Selfie.app" "Selfie-macOS.zip"
+        ditto -c -k --keepParent "${{ github.workspace }}/dist/Selfie.app" "${{ env.TARGET_NAME }}.zip"
 
         API_KEY_PATH=$RUNNER_TEMP/AuthKey_${{secrets.APPLE_ASC_API_KEY_ID}}.p8
         echo -n "$APPLE_ASC_API_KEY_KEY_BASE64" | base64 --decode > $API_KEY_PATH
 
-        NOTARIZATION_OUTPUT=$(xcrun notarytool submit "Selfie-macOS.zip" --issuer ${{ secrets.APPLE_ASC_API_KEY_ISSUER_UUID }} --key-id ${{ secrets.APPLE_ASC_API_KEY_ID }} --key $API_KEY_PATH --wait 2>&1)
+        NOTARIZATION_OUTPUT=$(xcrun notarytool submit "${{ env.TARGET_NAME }}.zip" --issuer ${{ secrets.APPLE_ASC_API_KEY_ISSUER_UUID }} --key-id ${{ secrets.APPLE_ASC_API_KEY_ID }} --key $API_KEY_PATH --wait 2>&1)
 
         REQUEST_UUID=$(echo "${NOTARIZATION_OUTPUT}" | grep 'id:' | awk '{print $NF}')
         NOTARIZATION_STATUS=$(echo "${NOTARIZATION_OUTPUT}" | grep 'status:' | tail -n 1 | awk '{print $NF}')
@@ -131,7 +136,7 @@ runs:
 
         xcrun stapler staple "${{ github.workspace }}/dist/Selfie.app"
 
-        ditto -c -k --keepParent "${{ github.workspace }}/dist/Selfie.app" "Selfie-macOS.zip"
+        ditto -c -k --keepParent "${{ github.workspace }}/dist/Selfie.app" "${{ env.TARGET_NAME }}.zip"
       shell: bash
 
     - name: Build Non-macOS App
@@ -143,8 +148,8 @@ runs:
       uses: actions/upload-artifact@v4
       if: inputs.release_tag == ''
       with:
-        name: Selfie-${{ runner.os }}
-        path: Selfie-${{ runner.os }}.zip
+        name: ${{ env.TARGET_NAME }}
+        path: ${{ env.TARGET_NAME }}.zip
         overwrite: true
         if-no-files-found: error
 
@@ -153,7 +158,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
       run: |
-        gh release upload ${{ inputs.release_tag }} Selfie-${{ runner.os }}.zip
+        gh release upload ${{ inputs.release_tag }} ${{ env.TARGET_NAME }}.zip
       shell: bash
 
     - name: Clean up keychain and provisioning profile
