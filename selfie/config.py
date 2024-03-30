@@ -12,19 +12,6 @@ logger = logging.getLogger(__name__)
 default_port = 8181
 
 
-def get_data_root():
-    os_name = platform.system()
-
-    if os_name == 'Darwin':  # macOS
-        data_directory = os.path.expanduser('~/Library/Application Support/Selfie/Data')
-    elif os_name == 'Windows':
-        data_directory = os.path.join(os.environ['APPDATA'], 'Selfie', 'Data')
-    else:  # Assume Linux/Unix
-        data_directory = os.path.expanduser('~/.Selfie/data')
-
-    return data_directory
-
-
 data_root = get_data_dir('Selfie')
 
 
