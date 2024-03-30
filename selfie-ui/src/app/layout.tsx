@@ -11,8 +11,8 @@ import React from 'react'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'Home',
-  description: 'Welcome to Selfie',
+    title: 'Selfie',
+    description: 'Welcome to Selfie',
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {

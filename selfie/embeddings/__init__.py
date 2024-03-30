@@ -69,6 +69,7 @@ class DataIndex:
         if not hasattr(self, 'is_initialized'):
             logger.info("Initializing DataIndex")
             self.storage_path = os.path.join(storage_path, "index")
+            logger.info(f"Storage path: {self.storage_path}")
             os.makedirs(storage_path, exist_ok=True)
 
             self.completion = completion or get_default_completion()

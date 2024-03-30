@@ -1,12 +1,18 @@
 import os
+import platform
 from typing import Optional
 
 from pydantic import BaseModel, Field, ValidationError, Extra
 import logging
 
+from selfie.utils.filesystem import get_data_dir
+
 logger = logging.getLogger(__name__)
 
 default_port = 8181
+
+
+data_root = get_data_dir('Selfie')
 
 
 class AppConfig(BaseModel):
@@ -15,8 +21,8 @@ class AppConfig(BaseModel):
     share: bool = Field(default=False, description="Enable sharing via ngrok")
     gpu: bool = Field(default=False, description="Enable GPU support")
     verbose: bool = Field(default=False, description="Enable verbose logging")
-    database_storage_root: str = Field(default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data/database"), description="Root directory for database storage")
-    embeddings_storage_root: str = Field(default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data/embeddings"), description="Root directory for embeddings storage")
+    database_storage_root: str = Field(default=os.path.join(data_root, "database"), description="Root directory for database storage")
+    embeddings_storage_root: str = Field(default=os.path.join(data_root, "embeddings"), description="Root directory for embeddings storage")
     db_name: str = Field(default='selfie.db', description="Database name")
     # local_model: str = Field(default='TheBloke/Mixtral-8x7B-Instruct-v0.1-GGUF/mixtral-8x7b-instruct-v0.1.Q4_K_M.gguf', description="Local model")
     local_model: str = Field(default='TheBloke/Mistral-7B-Instruct-v0.2-GGUF/mistral-7b-instruct-v0.2.Q4_K_M.gguf', description="Local model")

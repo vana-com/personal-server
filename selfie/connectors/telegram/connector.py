@@ -6,7 +6,7 @@ from selfie.database import BaseModel
 from selfie.embeddings import EmbeddingDocumentModel, DataIndex
 from selfie.parsers.chat import ChatFileParser
 from selfie.types.documents import DocumentDTO
-from selfie.utils import data_uri_to_dict
+from selfie.utils.data_structures import data_uri_to_dict
 
 
 class TelegramConfiguration(BaseModel):

@@ -86,4 +86,4 @@ class ImportanceScorer(BaseScorer):
         Normalize the score to a range of [0, 1].
         Assumes the original score is in [1, 10].
         """
-        return 0 if score is 0 else (score - 1) / 9
+        return 0 if score == 0 else (score - 1) / 9

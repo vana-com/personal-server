@@ -14,6 +14,7 @@ from selfie.api.document_connections import router as document_connections_route
 from selfie.api.documents import router as documents_router
 from selfie.api.models import router as models_router
 from selfie.api.connectors import router as connectors_router
+from selfie.api.logs import router as logs_router
 from selfie.config import get_app_config
 
 logger = logging.getLogger(__name__)
@@ -93,6 +94,7 @@ app.include_router(document_connections_router)
 app.include_router(documents_router)
 app.include_router(models_router)
 app.include_router(connectors_router)
+app.include_router(logs_router)
 
 
 class CleanURLMiddleware(BaseHTTPMiddleware):

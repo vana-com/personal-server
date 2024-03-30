@@ -10,7 +10,7 @@ from selfie.connectors.base_connector import BaseConnector
 from selfie.database import BaseModel, DataManager
 from selfie.embeddings import EmbeddingDocumentModel
 from selfie.types.documents import DocumentDTO
-from selfie.utils import data_uri_to_dict
+from selfie.utils.data_structures import data_uri_to_dict
 
 config = get_app_config()
 

@@ -4,7 +4,7 @@ from pydantic import BaseModel, RootModel
 
 from selfie.parsers.chat.base import JsonBasedChatParser
 from selfie.types.share_gpt import ShareGPTConversation
-from selfie.utils import check_nested
+from selfie.utils.data_structures import check_nested
 
 
 class Author(BaseModel):

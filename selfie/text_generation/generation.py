@@ -23,10 +23,10 @@ async def completion(request: CompletionRequest | ChatCompletionRequest) -> Self
 
     chat_mode = isinstance(request, ChatCompletionRequest)
 
-    if request.method and request.method is not "litellm" and request.api_base:
+    if request.method and request.method != "litellm" and request.api_base:
         logger.warning("Ignoring api_base because method is not litellm")
         method = request.method
-    elif (request.method is "litellm" and request.model is None) or (request.method is None and request.api_base is not None):
+    elif (request.method == "litellm" and request.model is None) or (request.method is None and request.api_base is not None):
         request.method = "litellm"
         request.model = config.hosted_model if request.model is None else request.model
         method = "litellm"
