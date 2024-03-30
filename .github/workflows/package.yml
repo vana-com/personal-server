@@ -1,9 +1,7 @@
-name: Build Package
+name: Build Packages
 
 on:
   workflow_dispatch:
-  push:
-    branches: [package]
 
 jobs:
   build:
@@ -11,8 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-#        os: [macos-latest-xlarge]
-        os: [macos-latest]
+        os: [macos-latest, macos-latest-xlarge]
 
     steps:
       - name: Build package
