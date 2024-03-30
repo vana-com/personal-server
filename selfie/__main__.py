@@ -139,6 +139,7 @@ def start_fastapi_server():
             "formatter": "access",
     }
         # Start Uvicorn with the modified log config
+        # TODO: this log_config does not seem to write all uvicorn logs in selfie.log
         uvicorn.run(fastapi_app, host="0.0.0.0", port=args.port, log_config=uvicorn_log_config)
 
 
