@@ -71,7 +71,7 @@ export default function CheckboxesWidget<
                 type="checkbox"
                 id={optionId(id, index)}
                 name={id}
-                className="form-checkbox border-0 bg-transparent"
+                className="checkbox form-checkbox border-0 bg-transparent"
                 required={required}
                 checked={checked}
                 autoFocus={autofocus && index === 0}

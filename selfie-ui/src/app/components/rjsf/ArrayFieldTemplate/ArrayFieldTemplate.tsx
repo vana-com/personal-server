@@ -79,19 +79,14 @@ export default function ArrayFieldTemplate<
                 ),
               )}
             {canAdd && (
-              <div className="">
-                <div className="mt-2 flex">
-                  <div className="w-3/4"></div>
-                  <div className="w-1/4 px-4 py-6">
-                    <AddButton
-                      className="array-item-add"
-                      onClick={onAddClick}
-                      disabled={disabled || readonly}
-                      uiSchema={uiSchema}
-                      registry={registry}
-                    />
-                  </div>
-                </div>
+              <div className="w-full">
+                <AddButton
+                  className="btn-accent array-item-add"
+                  onClick={onAddClick}
+                  disabled={disabled || readonly}
+                  uiSchema={uiSchema}
+                  registry={registry}
+                />
               </div>
             )}
           </div>

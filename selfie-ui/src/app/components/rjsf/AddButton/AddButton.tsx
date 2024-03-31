@@ -16,8 +16,7 @@ export default function AddButton<
   return (
     <button
       {...props}
-      style={{ width: "100%" }}
-      className={`ml-1 grid justify-items-center bg-blue-500 px-4 py-2 text-base font-normal text-white hover:bg-blue-700 ${props.className}`}
+      className={`btn btn-block text-base ${props.className}`}
       title={translateString(TranslatableString.AddItemButton)}
     >
       <BsPlus />

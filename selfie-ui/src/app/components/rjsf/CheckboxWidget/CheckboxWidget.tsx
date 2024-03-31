@@ -53,7 +53,7 @@ export default function CheckboxWidget<
   const description = options.description || schema.description
   return (
     <div
-      className={`relative ${
+      className={`form-control relative ${
         disabled || readonly ? "cursor-not-allowed opacity-50" : ""
       }`}
       aria-describedby={ariaDescribedByIds<T>(id)}
@@ -67,7 +67,7 @@ export default function CheckboxWidget<
           registry={registry}
         />
       )}
-      <label className="mt-4 block">
+      <label className={`mt-4 label ${(disabled || readonly) ? '' : 'cursor-pointer'} flex justify-start gap-2`}>
         <input
           id={id}
           name={id}
@@ -79,9 +79,9 @@ export default function CheckboxWidget<
           onChange={_onChange}
           onBlur={_onBlur}
           onFocus={_onFocus}
-          className="form-checkbox text-primary"
+          className="checkbox"
         />
-        <span className="ml-2">{labelValue(label, hideLabel || !label)}</span>
+        <span className="label-text">{labelValue(label, hideLabel || !label)}</span>
       </label>
     </div>
   )

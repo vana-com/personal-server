@@ -46,13 +46,13 @@ export default function WrapIfAdditionalTemplate<
   const keyId = `${id}-key`
 
   return (
-    <div className={`flex ${classNames}`} style={style}>
-      <div className="w-1/2 flex-none p-2">
+    <div className={`flex flex-wrap ${classNames}`} style={style}>
+      <div className="flex-1 form-control mr-2">
         <label
           htmlFor={keyId}
-          className="block text-sm font-medium text-muted-foreground"
+          className="label disable-pt-0"
         >
-          {keyLabel}
+          <span className="label-text">{keyLabel}</span>
         </label>
         <input
           required={required}
@@ -62,11 +62,13 @@ export default function WrapIfAdditionalTemplate<
           name={keyId}
           onBlur={!readonly ? handleBlur : undefined}
           type="text"
-          className="mt-1 w-full border p-2 shadow-sm"
+          className={`input input-bordered w-full ${(disabled || readonly) ? "input-disabled" : ""}`}
         />
       </div>
-      <div className="w-1/2 flex-none p-2">{children}</div>
-      <div className="w-1/4 flex-none p-2">
+      <div className="flex-1 min-w-0">
+        {children}
+      </div>
+      <div className="ml-2 self-end">
         <RemoveButton
           iconType="block"
           className="w-full"

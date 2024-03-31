@@ -58,29 +58,28 @@ export default function FieldTemplate<
       uiSchema={uiSchema}
       registry={registry}
     >
-      <div className="mb-4 block">
+      <div className="form-control">
         {displayLabel && (
           <label
             htmlFor={id}
-            className={`mb-2 inline-block ${
-              rawErrors.length > 0 ? "text-red-500" : ""
+            className={`label disable-pt-0 ${
+              rawErrors.length > 0 ? "error" : ""
             }`}
           >
-            {label}
-            {required ? "*" : null}
+            <span className="label-text">{label}{required ? "*" : null}</span>
           </label>
         )}
         {children}
         {displayLabel && rawDescription && (
-          <small className="mt-1 block">
-            <div
-              className={`${
-                rawErrors.length > 0 ? "text-red-500" : "text-muted-foreground"
+          <div className="label text-sm">
+            <span
+              className={`label-text-alt ${
+                rawErrors.length > 0 ? "error" : ""
               }`}
             >
               {description}
-            </div>
-          </small>
+            </span>
+          </div>
         )}
         {errors}
         {help}
