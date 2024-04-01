@@ -8,11 +8,13 @@ import useAsyncTask from "@/app/hooks/useAsyncTask";
 import TaskToast from "@/app/components/TaskToast";
 import ManageData from "@/app/components/ManageData";
 import { Playground } from "@/app/components/Playground";
+import { Settings } from "@/app/components/Settings";
 
 const pages = [
   { component: Playground, id: 'playground' },
   { component: AddData, id: 'addData' },
   { component: ManageData, id: 'manageData' },
+  { component: Settings, id: 'settings' },
 ];
 
 const App = () => {

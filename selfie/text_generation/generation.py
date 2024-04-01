@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import logging
 import json
 import os
@@ -7,12 +9,26 @@ from fastapi import HTTPException
 from sse_starlette import EventSourceResponse
 from txtai.pipeline import GenerationFactory, LLM
 
-from selfie.config import get_app_config
+from selfie.config import get_app_config, default_hosted_model, default_local_model, default_method
 from selfie.types.completion_requests import SelfieCompletionResponse, CompletionRequest, ChatCompletionRequest
 
 logger = logging.getLogger(__name__)
 
 config = get_app_config()
+
+
+@lru_cache(maxsize=1)
+def get_llama_cpp_llm(model, verbose, gpu):
+    logger.info(f"Creating new llama.cpp model instance with model {model}")
+    return LLM(
+        verbose=verbose,
+        path=model,
+        method="llama.cpp",
+        n_ctx=8192,
+        n_gpu_layers=-1 if gpu else 0,
+        # Special-case models whose embedded prompt templates do not work well
+        **({'chat_format': "mistrallite"} if "mistral" in model or "mixtral" in model else {})
+    ).generator.llm
 
 
 async def completion(request: CompletionRequest | ChatCompletionRequest) -> SelfieCompletionResponse:
@@ -23,36 +39,24 @@ async def completion(request: CompletionRequest | ChatCompletionRequest) -> Self
 
     chat_mode = isinstance(request, ChatCompletionRequest)
 
-    if request.method and request.method != "litellm" and request.api_base:
-        logger.warning("Ignoring api_base because method is not litellm")
+    if request.method:
+        if request.method != "litellm" and request.api_base:
+            logger.warning("Ignoring api_base because method is not litellm")
         method = request.method
-    elif (request.method == "litellm" and request.model is None) or (request.method is None and request.api_base is not None):
-        request.method = "litellm"
-        request.model = config.hosted_model if request.model is None else request.model
+    elif request.api_base is not None:
         method = "litellm"
-    elif request.method is None and request.model:
-        method = GenerationFactory.method(request.model, request.method)
-    elif request.method is None:
-        method = 'llama.cpp'
+        request.model = request.model or default_hosted_model
     else:
-        method = request.method
+        method = GenerationFactory.method(request.model, config.method) if request.model else config.method
 
     open_ai_params = request.openai_params()
 
     logger.debug(f"OpenAI params: {open_ai_params}")
 
     if method == "llama.cpp":
-        model = request.model or config.local_model
-        logger.info(f"Using model {model}")
-        llm = LLM(
-            verbose=config.verbose,
-            path=model,
-            method="llama.cpp",
-            n_ctx=8192,
-            n_gpu_layers=-1 if config.gpu else 0,
-            # Special-case models whose embedded prompt templates do not work well
-            **({ 'chat_format': "mistrallite"} if "mistral" in model or "mixtral" in model else {})
-        ).generator.llm
+        model = request.model or config.model
+        logger.info(f"Using llama.cpp model {model}")
+        llm = get_llama_cpp_llm(model, config.verbose, config.gpu)
 
         completion_fn = (llm.create_chat_completion if chat_mode else llm.create_completion)
 
@@ -65,7 +69,7 @@ async def completion(request: CompletionRequest | ChatCompletionRequest) -> Self
                 {"data": json.dumps(item)} for item in result
             )
     elif method == "litellm":
-        logger.info(f"Using model {request.model or 'litellm default'}")
+        logger.info(f"Using litellm model {request.model or config.model or 'litellm default'}")
         if not chat_mode:
             open_ai_params["messages"] = [{"content": open_ai_params["prompt"], "role": "user"}]
             del open_ai_params["prompt"]
@@ -73,7 +77,14 @@ async def completion(request: CompletionRequest | ChatCompletionRequest) -> Self
         if "temperature" in open_ai_params and open_ai_params["temperature"] == 0.0:
             open_ai_params["temperature"] = 0.0000001
 
-        result = litellm.completion(**open_ai_params, base_url=request.api_base, api_key=request.api_key or "none")
+        open_ai_params["model"] = request.model or config.model
+
+        result = litellm.completion(
+            **open_ai_params,
+            base_url=request.api_base or config.api_base,
+            api_key=request.api_key or config.api_key if hasattr(config, 'api_key') else None
+        )
+
         if request.stream:
             logger.debug("Streaming response")
             return EventSourceResponse(
@@ -82,7 +93,7 @@ async def completion(request: CompletionRequest | ChatCompletionRequest) -> Self
             )
     elif method == "transformers":  # TODO: Check GPU support
         # # TODO: TL;DR this seems like way too much. Look for another library.
-        # model = request.model or default_local_gpu_model
+        # model = request.model or config.model
         # logger.info(f"Using model {model}")
         #
         # import torch

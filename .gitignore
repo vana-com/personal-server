@@ -12,9 +12,6 @@ dist/
 
 .idea/
 
-data/*
-!data/.gitkeep
-
 selfie/web/
 
 *.env

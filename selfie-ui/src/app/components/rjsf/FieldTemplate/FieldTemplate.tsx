@@ -71,7 +71,7 @@ export default function FieldTemplate<
         )}
         {children}
         {displayLabel && rawDescription && (
-          <div className="label text-sm">
+          <div className="label text-sm select-text">
             <span
               className={`label-text-alt ${
                 rawErrors.length > 0 ? "error" : ""

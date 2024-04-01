@@ -4,6 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
+from selfie.database.service import remove_documents, remove_document
 from selfie.embeddings import ScoredEmbeddingDocumentModel
 from selfie.database import DataManager
 from selfie.embeddings import DataIndex
@@ -59,7 +60,7 @@ async def get_documents() -> List[FetchedDocument]:
                description="Remove multiple documents by their IDs.",
                status_code=204)
 async def delete_documents(request: DeleteDocumentsRequest):
-    await DataManager().remove_documents([int(document_id) for document_id in request.document_ids])
+    await remove_documents(DataManager(), [int(document_id) for document_id in request.document_ids])
 
 
 @router.delete("/documents/{document_id}",
@@ -67,7 +68,7 @@ async def delete_documents(request: DeleteDocumentsRequest):
                description="Remove a document by its ID.",
                status_code=204)
 async def delete_document(document_id: int, delete_indexed_data: Optional[bool] = True):
-    await DataManager().remove_document(document_id, delete_indexed_data)
+    await remove_document(DataManager(), document_id, delete_indexed_data)
 
 
 class SearchDocumentsResponse(BaseModel):

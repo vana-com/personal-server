@@ -67,7 +67,7 @@ export default function CheckboxWidget<
           registry={registry}
         />
       )}
-      <label className={`mt-4 label ${(disabled || readonly) ? '' : 'cursor-pointer'} flex justify-start gap-2`}>
+      <label className={`label ${(disabled || readonly) ? '' : 'cursor-pointer'} flex justify-start gap-2`}>
         <input
           id={id}
           name={id}

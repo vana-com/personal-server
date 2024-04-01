@@ -84,6 +84,7 @@ export default function ObjectFieldTemplate<
                 className="btn-accent object-property-expand"
                 uiSchema={uiSchema}
                 registry={registry}
+                type="button"
               />
             </div>
           </div>

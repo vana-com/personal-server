@@ -11,6 +11,7 @@ from selfie.database import BaseModel, DataManager
 from selfie.embeddings import EmbeddingDocumentModel
 from selfie.types.documents import DocumentDTO
 from selfie.utils.data_structures import data_uri_to_dict
+from selfie.utils.models import extract_timestamp
 
 config = get_app_config()
 
@@ -47,7 +48,7 @@ class TextFilesConnector(BaseConnector, ABC):
             EmbeddingDocumentModel(
                 text=text_chunk,
                 source="text_files",
-                timestamp=DataManager._extract_timestamp(document),
+                timestamp=document.extract_timestamp(),
                 source_document_id=document.id,
             )
             for document in documents

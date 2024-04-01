@@ -114,67 +114,19 @@ const PlaygroundQuery = () => {
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="lg:w-1/2">
           <form className="form max-w-full" onSubmit={handleQuery}>
-            <div className="form-control mb-2">
-              {/*<label className="label">*/}
-              {/*<span className="label-text">Limit</span>*/}
-              {/*</label>*/}
+            <label className="input input-bordered flex items-center gap-2">
               <input
-                type="number"
-                className="input input-sm input-bordered"
-                placeholder="Number of documents (optional)"
-                value={limit === undefined ? "" : limit}
-                onChange={(e) => setLimit(Number(e.target.value) || undefined)}
-                min="1"
+                disabled={isTaskRunning}
+                type="text"
+                className="grow bg-base-100"
+                placeholder="E.g. favorite snacks"
+                value={query}
+                onChange={handleQueryChange}
               />
-            </div>
-
-            <div className="form-control">
-              {/*<label className="label">*/}
-              {/*  <span className="label-text">Minimum Score</span>*/}
-              {/*</label>*/}
-              <input
-                type="number"
-                className="input input-sm input-bordered"
-                placeholder="Minimum score (optional)"
-                value={minScore === undefined ? "" : minScore}
-                onChange={(e) => setMinScore(Number(e.target.value) || undefined)}
-                min="0"
-                max="1"
-                step="0.01"
-              />
-            </div>
-
-            <div className="form-control mb-2">
-              {/*<label className="label">*/}
-              {/*  <span className="label-text">Relevance Weight</span>*/}
-              {/*</label>*/}
-              <input
-                type="number"
-                className="input input-sm input-bordered"
-                value={relevanceWeight === undefined ? "" : relevanceWeight}
-                placeholder="Relevance weight (optional)"
-                onChange={(e) => setRelevanceWeight(e.target.value ? Number(e.target.value) : undefined)}
-                min="0"
-                max="1"
-                step="0.01"
-              />
-            </div>
-
-            <div className="form-control mb-2">
-              {/*<label className="label">*/}
-              {/*  <span className="label-text">Recency Weight</span>*/}
-              {/*</label>*/}
-              <input
-                type="number"
-                className="input input-sm input-bordered"
-                value={recencyWeight === undefined ? "" : recencyWeight}
-                placeholder="Recency weight (optional)"
-                onChange={(e) => setRecencyWeight(e.target.value ? Number(e.target.value) : undefined)}
-                min="0"
-                max="1"
-                step="0.01"
-              />
-            </div>
+              {/*<button type="submit">*/}
+              {/*  {isSummaryLoading ? <LoadingIcon/> : <SearchIcon/>}*/}
+              {/*</button>*/}
+            </label>
 
             <div className="form-control">
               <label className="label cursor-pointer flex gap-2 items-center">
@@ -188,19 +140,80 @@ const PlaygroundQuery = () => {
               </label>
             </div>
 
-            <label className="input input-bordered flex items-center gap-2 mb-4">
-              <input
-                disabled={isTaskRunning}
-                type="text"
-                className="grow bg-base-100"
-                placeholder="Search for anything..."
-                value={query}
-                onChange={handleQueryChange}
-              />
-              <button type="submit" className="button">
-                {isSummaryLoading ? <LoadingIcon /> : <SearchIcon />}
-              </button>
-            </label>
+
+            <div className="collapse collapse-arrow collapse-xs bg-base-200 mb-4">
+              <input type="checkbox"/>
+              <div className="collapse-title">
+                Advanced options
+              </div>
+              <div className="collapse-content flex flex-col gap-2">
+                <div className="form-control">
+                  {/*<label className="label">*/}
+                  {/*<span className="label-text">Limit</span>*/}
+                  {/*</label>*/}
+                  <input
+                    type="number"
+                    className="input input-sm input-bordered"
+                    placeholder="Maximum number of documents"
+                    value={limit === undefined ? "" : limit}
+                    onChange={(e) => setLimit(Number(e.target.value) || undefined)}
+                    min="1"
+                  />
+                </div>
+
+                <div className="form-control">
+                  {/*<label className="label">*/}
+                  {/*  <span className="label-text">Minimum Score</span>*/}
+                  {/*</label>*/}
+                  <input
+                    type="number"
+                    className="input input-sm input-bordered"
+                    placeholder="Minimum score (0.0 to 1.0)"
+                    value={minScore === undefined ? "" : minScore}
+                    onChange={(e) => setMinScore(Number(e.target.value) || undefined)}
+                    min="0"
+                    max="1"
+                    step="0.01"
+                  />
+                </div>
+
+                <div className="form-control">
+                  {/*<label className="label">*/}
+                  {/*  <span className="label-text">Relevance Weight</span>*/}
+                  {/*</label>*/}
+                  <input
+                    type="number"
+                    className="input input-sm input-bordered"
+                    value={relevanceWeight === undefined ? "" : relevanceWeight}
+                    placeholder="Relevance weight (0.0 to 1.0)"
+                    onChange={(e) => setRelevanceWeight(e.target.value ? Number(e.target.value) : undefined)}
+                    min="0"
+                    max="1"
+                    step="0.01"
+                  />
+                </div>
+
+                <div className="form-control">
+                  {/*<label className="label">*/}
+                  {/*  <span className="label-text">Recency Weight</span>*/}
+                  {/*</label>*/}
+                  <input
+                    type="number"
+                    className="input input-sm input-bordered"
+                    value={recencyWeight === undefined ? "" : recencyWeight}
+                    placeholder="Recency weight (0.0 to 1.0)"
+                    onChange={(e) => setRecencyWeight(e.target.value ? Number(e.target.value) : undefined)}
+                    min="0"
+                    max="1"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" className="btn btn-primary btn-block">
+              Submit
+            </button>
           </form>
         </div>
         {!!summary && (

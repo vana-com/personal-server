@@ -27,7 +27,7 @@ def ensure_dir_exists(dir_path):
 
 
 def get_data_dir(app_name):
-    return get_app_dir(app_name, 'Data', roaming=True)
+    return get_app_dir(app_name, 'data', roaming=True)
 
 
 def get_log_dir(app_name):
@@ -44,3 +44,9 @@ def get_log_path(app_name, file_name):
     log_dir = get_log_dir(app_name)
     ensure_dir_exists(log_dir)
     return os.path.join(log_dir, file_name)
+
+def resolve_path(path):
+    """Expand user directory (~), resolve to absolute path, and follow symlinks."""
+    return os.path.realpath(os.path.abspath(os.path.expanduser(path)))
+
+

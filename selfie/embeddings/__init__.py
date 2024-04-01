@@ -11,6 +11,7 @@ import logging
 import tiktoken
 from llama_index.core.node_parser import SentenceSplitter
 
+from selfie.config_ini import load_config
 from selfie.config import get_app_config
 from selfie.data_generators.chat_training_data import (
     ChatTrainingDataGenerator,
@@ -20,30 +21,15 @@ from selfie.embeddings.document_types import EmbeddingDocumentModel, ScoredEmbed
 from selfie.embeddings.importance_scorer import ImportanceScorer
 from selfie.embeddings.recency_scorer import RecencyScorer
 from selfie.embeddings.relevance_scorer import RelevanceScorer
+from selfie.utils.filesystem import resolve_path
 from txtai.embeddings import Embeddings
 
-from txtai.pipeline import LLM
 
 logger = logging.getLogger(__name__)
 
 default_importance = 0.3
-
+storage_root = resolve_path(load_config().get('embeddings', 'storage_root'))
 config = get_app_config()
-
-
-def get_default_completion():
-    llm = LLM(
-        verbose=config.verbose,
-        path=config.local_model,
-        method="llama.cpp",
-        n_ctx=8192,
-        n_gpu_layers=-1 if config.gpu else 0,
-    )
-
-    async def completion(prompt):
-        return llm(prompt)
-
-    return completion
 
 
 # TODO: Probably a minor issue, so hard-coding the tokenizer for now:
@@ -65,14 +51,14 @@ class DataIndex:
             cls._singleton = super(DataIndex, cls).__new__(cls)
         return cls._singleton
 
-    def __init__(self, character_name, storage_path: str = config.embeddings_storage_root, use_local_llm=True, completion=None):
+    def __init__(self, character_name, storage_path: str = storage_root, use_local_llm=True, completion=None):
         if not hasattr(self, 'is_initialized'):
             logger.info("Initializing DataIndex")
             self.storage_path = os.path.join(storage_path, "index")
             logger.info(f"Storage path: {self.storage_path}")
             os.makedirs(storage_path, exist_ok=True)
 
-            self.completion = completion or get_default_completion()
+            self.completion = completion
             self.character_name = character_name
             self.embeddings = Embeddings(
                 hybrid=True,
@@ -260,7 +246,8 @@ class DataIndex:
 
         # TODO: truncate the prompt to fit the context window
         if model == "local":
-            return await self.completion(prompt)
+            from selfie.text_generation.default_completion import default_completion
+            return await (self.completion or default_completion)(prompt)
         else:
             from litellm import completion
 
