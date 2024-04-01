@@ -107,7 +107,6 @@ export function RemoveButton<
       title={translateString(TranslatableString.RemoveButton)}
       {...props}
       className={`btn-error btn-outline ${props?.className}`}
-      // @ts-expect-error incomplete props from rjsf
       icon={<IoIosRemove />}
     />
   )

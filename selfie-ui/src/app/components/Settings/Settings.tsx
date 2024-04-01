@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { FormEvent, useEffect, useState } from "react";
 import TailwindForm from "../../components/rjsf";
 import validator from '@rjsf/validator-ajv8';
 import { apiBaseUrl } from "@/app/config";
 
-
 const Settings = () => {
-  const [settings, setSettings] = useState({});
+  const [settings, setSettings] = useState<any>({});
   const [models, setModels] = useState({ data: [] });
 
   const schema = {
@@ -117,7 +116,7 @@ const Settings = () => {
       // "ui:description": "E.g. `ollama/llama2`. Make sure your model is a valid <a className=\"link\" href=\"https://litellm.vercel.app/docs/#litellm-python-sdk\">LiteLLM model</a>."
       "ui:description": settings.method === "litellm" ?
         "E.g. `ollama/llama2`. Make sure your model is a valid <a className='link' href='https://litellm.vercel.app/docs/#litellm-python-sdk'>LiteLLM model</a>." :
-        `The following models were previously downloaded and can be used immediately:\n\n ${models?.data.map(m => `• ${m.id}`).join("\n\n")}`,
+        `The following models were previously downloaded and can be used immediately:\n\n ${models?.data.map((m: { id: string }) => `• ${m.id}`).join("\n\n")}`,
     },
   };
 
@@ -142,9 +141,8 @@ const Settings = () => {
     await getSettings();
   };
 
-  const onSubmit = async (args: { formData: any }) => {
-    const { formData } = args
-    console.log(schema, formData)
+  const onSubmit = async (data: any, event?: FormEvent<HTMLFormElement>) => {
+    const { formData } = data;
 
     // TODO: This is a hack, find a better way.
     // Ensure api_key, api_base, model are sent with empty strings if they are not present
@@ -178,7 +176,7 @@ const Settings = () => {
     })();
   }, [settings.method]);
 
-  const deepMerge = (target, source) => {
+  const deepMerge = (target: any, source: any) => {
     for (const key in source) {
       if (source[key] && typeof source[key] === 'object') {
         if (!target[key] || typeof target[key] !== 'object') {
@@ -192,13 +190,13 @@ const Settings = () => {
     return target;
   };
 
-  const applyPreset = (preset) => {
-    setSettings(prevSettings =>
+  const applyPreset = (preset: Preset) => {
+    setSettings((prevSettings: any) =>
       deepMerge({...prevSettings}, preset.settings)
     );
   }
 
-  const renderPreset = (preset) => {
+  const renderPreset = (preset: Preset) => {
     return (
       <div key={preset.label} className="preset-button inline-block mr-2">
         <button
@@ -222,7 +220,23 @@ const Settings = () => {
     );
   }
 
-  const presets = [
+  interface PresetSetting {
+    method: string;
+    model: string;
+    api_key: string;
+    api_base: string;
+    environment_variables?: {
+      [key: string]: string;
+    };
+  }
+
+  interface Preset {
+    label: string;
+    docsLink: string;
+    settings: PresetSetting;
+  }
+
+  const presets: Preset[] = [
     {
       label: 'Local Mistral 7B',
       docsLink: 'https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF',
