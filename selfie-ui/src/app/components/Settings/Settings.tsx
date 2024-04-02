@@ -2,10 +2,14 @@ import React, { FormEvent, useEffect, useState } from "react";
 import TailwindForm from "../../components/rjsf";
 import validator from '@rjsf/validator-ajv8';
 import { apiBaseUrl } from "@/app/config";
+import TaskToast from "@/app/components/TaskToast";
+import useAsyncTask from "@/app/hooks/useAsyncTask";
 
 const Settings = () => {
   const [settings, setSettings] = useState<any>({});
   const [models, setModels] = useState({ data: [] });
+  const [isSaving, setIsSaving] = useState(false);
+  const {isTaskRunning, taskMessage, executeTask} = useAsyncTask();
 
   const schema = {
     // title: "Settings",
@@ -13,6 +17,7 @@ const Settings = () => {
     type: "object",
     required: ["method"],
     properties: {
+      ngrok_enabled: { type: "boolean", title: "Enable ngrok", default: false },
       method: {
         type: "string",
         title: "LLM provider",
@@ -32,11 +37,30 @@ const Settings = () => {
       {
         if: {
           properties: {
+            ngrok_enabled: { const: true },
+          },
+        },
+        then: {
+          properties: {
+            ngrok_authtoken: {
+              type: "string",
+              title: "ngrok token",
+            },
+            ngrok_domain: {
+              type: "string",
+              title: "ngrok domain",
+            },
+          },
+          required: ["ngrok_authtoken"],
+        },
+      },
+      {
+        if: {
+          properties: {
             method: {
               title: "Local",
               description: "Local",
               const: "llama.cpp",
-              label: "ugh"
             }
           },
         },
@@ -104,6 +128,8 @@ const Settings = () => {
   console.log(models)
 
   const uiSchema = {
+    'ui:order': ['gpu', 'ngrok_enabled', 'ngrok_authtoken', 'ngrok_domain', '*'],
+
     method: {
       "ui:widget": "radio",
     },
@@ -127,19 +153,26 @@ const Settings = () => {
     setSettings(data);
   }
 
-  const saveSettings = async (formData: any) => {
-    console.log("Saving settings...", formData);
-
-    await fetch(`${apiBaseUrl}/v1/settings`, {
-      method: "PUT",
-      body: JSON.stringify(formData),
-      headers: {
-        "Content-Type": "application/json",
-      },
+  const saveSettings = (formData: any) => {
+    executeTask(async () => {
+      const response = await fetch(`${apiBaseUrl}/v1/settings`, {
+        method: "PUT",
+        body: JSON.stringify(formData),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to save settings: ${response.statusText}`);
+      }
+      await getSettings();
+    }, {
+      start: 'Saving settings...',
+      success: 'Settings saved successfully!',
+      error: 'Failed to save settings. Please try again.',
     });
-
-    await getSettings();
   };
+
 
   const onSubmit = async (data: any, event?: FormEvent<HTMLFormElement>) => {
     const { formData } = data;
@@ -325,6 +358,8 @@ const Settings = () => {
     <>
       <h2 className="text-xl font-bold mb-4">LLM Presets</h2>
 
+      {taskMessage && <TaskToast isTaskRunning={isTaskRunning} taskMessage={taskMessage}/>}
+
       <p>Customize your LLM provider using one of the presets below, or manually configure <a className="link" href="https://huggingface.co/models?pipeline_tag=text-generation&sort=trending&search=gguf" target="_blank">any llama.cpp</a> or <a className="link" href="https://litellm.vercel.app/docs/providers" target="_blank">LiteLLM-supported model.</a></p>
 
       <div className="my-3 flex gap-2 flex-wrap">
@@ -342,8 +377,8 @@ const Settings = () => {
         formData={settings}
       >
         <div>
-          <button type="submit" className="btn btn-lg btn-block btn-primary mt-4 w-full">
-            Save Settings
+          <button type="submit" className="btn btn-lg btn-block btn-primary mt-4 w-full" disabled={isSaving}>
+            {isSaving ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
       </TailwindForm>

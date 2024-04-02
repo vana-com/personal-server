@@ -45,6 +45,9 @@ class AppConfig(BaseModel):
     embedding_chunk_size: int = Field(default=512, description="Embedding chunk size")
     embedding_chunk_overlap: int = Field(default=50, description="Embedding chunk overlap")
     environment_variables: dict = Field(default={}, description="Environment variables to load, used by e.g. litellm")
+    ngrok_enabled: bool = Field(default=False, description="Enable ngrok")
+    ngrok_authtoken: Optional[str] = Field(default=None, description="ngrok authentication token")
+    ngrok_domain: Optional[str] = Field(default=None, description="ngrok domain")
 
     _runtime_overrides: dict = {}
 

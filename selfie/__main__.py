@@ -28,7 +28,7 @@ def deserialize_args_from_env():
 
     # Environment variable mappings with optional defaults
     env_vars = {
-        'share': ('SELFIE_SHARE', to_bool),
+        'ngrok_enabled': ('SELFIE_NGROK_ENABLED', to_bool),
         'api_port': ('SELFIE_API_PORT', int),
         'gpu': ('SELFIE_GPU', to_bool),
         'reload': ('SELFIE_RELOAD', to_bool),
@@ -53,10 +53,11 @@ def deserialize_args_from_env():
 
 
 def parse_args():
+    # TODO: Update these to sync with the configuration
     parser = argparse.ArgumentParser(description="Run the selfie app.")
     # Set all defaults to None, so that we can check if they were set by the user
     # Defaults will be set in the configuration
-    parser.add_argument("--share", action="store_true", default=None, help="Share the API via ngrok")
+    parser.add_argument("--ngrok_enabled", action="store_true", default=None, help="Share the API via ngrok, requires token to be set")
     parser.add_argument("--api_port", type=int, default=None, help="Specify the port to run on")
     parser.add_argument("--gpu", default=None, action="store_true", help="Enable GPU support")
     parser.add_argument("--reload", action="store_true", default=None, help="Enable hot-reloading")
@@ -76,22 +77,20 @@ def get_configured_app(shareable=False):
     if 'verbose' in args and args.verbose:
         logging.getLogger("selfie").setLevel(level=logging.DEBUG)
 
-    # TODO: Move these to the configuration
-    ngrok_auth_token = os.environ.get('NGROK_AUTHTOKEN', None)
-    ngrok_domain = os.environ.get('NGROK_DOMAIN', None)
-
-    if shareable and args.share:
-        if ngrok_auth_token is None:
-            raise ValueError("NGROK_AUTHTOKEN environment variable is required to share the API. Visit https://dashboard.ngrok.com to get your token.")
-
-        listener = ngrok.forward(args.api_port, authtoken_from_env=True, domain=ngrok_domain)
-        logger.info(f"Application is available at {listener.url()}")
-        os.environ['SELFIE_HOST'] = listener.url()
-        del os.environ['SELFIE_API_PORT']
-
     logger.info("Creating app configuration")
+    app_config = create_app_config(**vars(args))
 
-    create_app_config(**vars(args))
+    if shareable and app_config.ngrok_enabled:
+        if app_config.ngrok_authtoken is None:
+            raise ValueError("ngrok_authtoken is required to share the API.")
+
+        listener = ngrok.forward(app_config.api_port, authtoken=app_config.ngrok_authtoken, domain=app_config.ngrok_domain)
+        logger.info(f"Application is available at {listener.url()}")
+        # TODO: The idea was that these values could be used elsewhere in the app, but now that these values are synced with the database, this doesn't work. Figure out a way to make this work.
+        # os.environ["SELFIE_HOST"] = listener.url()
+        # del os.environ["SELFIE_API_PORT"] if "SELFIE_API_PORT" in os.environ else None
+    elif app_config.ngrok_enabled:
+        logger.warning("ngrok_enabled is set but ngrok_authtoken is not set. Disabling ngrok.")
 
     # Ensure this import happens after configuration is set
     from selfie.api import app
