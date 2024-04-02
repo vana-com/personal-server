@@ -38,6 +38,16 @@ runs:
         echo "TARGET_NAME=Selfie-${{ runner.os }}-$(uname -m)" >> $GITHUB_ENV
       shell: bash
 
+    - name: Set runner architecture
+      run: |
+        ARCH=$(uname -m)
+        if [ "$ARCH" == "x86_64" ]; then
+          echo "RUNNER_ARCH=x64" >> $GITHUB_ENV
+        else
+          echo "RUNNER_ARCH=$ARCH" >> $GITHUB_ENV
+        fi
+      shell: bash
+
     - name: Install the Apple certificate and provisioning profile
       if: runner.os == 'macOS'
       env:
@@ -74,12 +84,22 @@ runs:
         echo "$HOME/.local/bin" >> $GITHUB_PATH
       shell: bash
 
+    # Don't cache until we can avoid collisions between arm64 and x64 caches
     - name: Set up Python
+      if: ${{ env.RUNNER_ARCH }} != 'arm64'
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        architecture: ${{ env.RUNNER_ARCH }}
+
+    - name: Set up Python
+      if: ${{ env.RUNNER_ARCH }} == 'arm64'
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: poetry
         cache-dependency-path: poetry.lock
+        architecture: ${{ env.RUNNER_ARCH }}
 
     - name: Install dependencies with Poetry
       run: poetry install --no-dev
@@ -91,6 +111,7 @@ runs:
         node-version: '20'
         cache: 'yarn'
         cache-dependency-path: selfie-ui/yarn.lock
+        architecture: ${{ env.RUNNER_ARCH }}
 
     - name: Cache Next.js build artifacts
       uses: actions/cache@v4
@@ -165,26 +186,15 @@ runs:
 
     - name: Build Non-macOS App
       if: runner.os != 'macOS'
-      run: zip -r Selfie-${{ runner.os }}.zip dist/selfie
+      run: zip -r "${{ env.TARGET_NAME }}.zip" dist/selfie
       shell: bash
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
-      if: inputs.release_tag == '' && runner.os != 'macOS'
+      if: inputs.release_tag == ''
       with:
         name: ${{ env.TARGET_NAME }}
-        path: ${{ github.workspace }}/dist/selfie
-        overwrite: true
-        if-no-files-found: error
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      if: inputs.release_tag == '' && runner.os == 'macOS'
-      with:
-        name: ${{ env.TARGET_NAME }}
-        path: |
-          ${{ github.workspace }}/dist
-          !${{ github.workspace }}/dist/selfie/**
+        path: ${{ env.TARGET_NAME }}.zip
         overwrite: true
         if-no-files-found: error
 
