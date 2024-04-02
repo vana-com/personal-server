@@ -43,7 +43,13 @@ def deserialize_args_from_env():
         if value is not None:
             args[arg] = convert(value)
 
-    return argparse.Namespace(**args)
+    class FallbackToNoneNamespace(argparse.Namespace):
+        def __getattr__(self, name):
+            if name in self.__dict__:
+                return self.__dict__[name]
+            return None
+
+    return FallbackToNoneNamespace(**args)
 
 
 def parse_args():
@@ -97,8 +103,12 @@ def start_fastapi_server():
     args = deserialize_args_from_env()
     host = "0.0.0.0"
     port = args.api_port or default_port
-    if args.reload:
-        uvicorn.run("selfie.__main__:get_configured_app", host=host, port=port, reload=True, factory=True)
+
+    if not args.headless and args.reload:
+        logger.warning("Reloading is only supported in --headless mode. Disabling reload.")
+
+    if args.headless and args.reload:
+        uvicorn.run("selfie.__main__:get_configured_app", host=host, port=port, factory=True, reload=True)
     else:
         fastapi_app = get_configured_app(shareable=True)
 

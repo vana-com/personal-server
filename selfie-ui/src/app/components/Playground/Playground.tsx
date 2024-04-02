@@ -5,7 +5,7 @@ import NoDocumentsBanner from "./NoDocumentsBanner";
 import { apiBaseUrl } from "@/app/config";
 
 const Playground = () => {
-  const [documents, setDocuments] = useState([]);
+  const [documents, setDocuments] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -21,8 +21,8 @@ const Playground = () => {
 
   return (
     <>
-      <NoDocumentsBanner documents={documents} />
-      <PlaygroundChat hasIndexedDocuments={documents.length > 0} />
+      {documents && <NoDocumentsBanner documents={documents} /> }
+      <PlaygroundChat hasIndexedDocuments={(documents ?? []).length > 0} />
       <div className="h-4" />
       <PlaygroundQuery />
     </>

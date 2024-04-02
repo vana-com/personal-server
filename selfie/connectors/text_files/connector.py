@@ -7,11 +7,10 @@ from selfie.config import get_app_config
 from llama_index.core.node_parser import SentenceSplitter
 
 from selfie.connectors.base_connector import BaseConnector
-from selfie.database import BaseModel, DataManager
+from selfie.database import BaseModel
 from selfie.embeddings import EmbeddingDocumentModel
 from selfie.types.documents import DocumentDTO
 from selfie.utils.data_structures import data_uri_to_dict
-from selfie.utils.models import extract_timestamp
 
 config = get_app_config()
 

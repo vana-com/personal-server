@@ -10,7 +10,6 @@ import logging
 from selfie.embeddings import EmbeddingDocumentModel
 from selfie.database import DocumentModel, DocumentConnectionModel
 from selfie.embeddings import DataIndex
-from selfie.utils.models import map_selfie_documents_to_index_documents
 from selfie.types.documents import DocumentDTO
 
 logger = logging.getLogger(__name__)

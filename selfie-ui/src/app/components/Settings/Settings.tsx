@@ -351,4 +351,6 @@ const Settings = () => {
   );
 };
 
+Settings.displayName = "Settings";
+
 export default Settings;
