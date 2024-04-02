@@ -12,5 +12,8 @@ jobs:
         os: [macos-latest, macos-latest-xlarge]
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Build package
         uses: ./.github/actions/build-action
