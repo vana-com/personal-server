@@ -35,7 +35,7 @@ runs:
 
     - name: Determine target filename
       run: |
-        echo "TARGET_NAME=Selfie-${{ runner.os }}-$(uname -m).zip" >> $GITHUB_ENV
+        echo "TARGET_NAME=Selfie-${{ runner.os }}-$(uname -m)" >> $GITHUB_ENV
       shell: bash
 
     - name: Install the Apple certificate and provisioning profile
@@ -170,10 +170,21 @@ runs:
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
-      if: inputs.release_tag == ''
+      if: inputs.release_tag == '' && runner.os != 'macOS'
       with:
         name: ${{ env.TARGET_NAME }}
-        path: ${{ env.TARGET_NAME }}.zip
+        path: ${{ github.workspace }}/dist/selfie
+        overwrite: true
+        if-no-files-found: error
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      if: inputs.release_tag == '' && runner.os == 'macOS'
+      with:
+        name: ${{ env.TARGET_NAME }}
+        path: |
+          ${{ github.workspace }}/dist
+          !${{ github.workspace }}/dist/selfie/**
         overwrite: true
         if-no-files-found: error
 
