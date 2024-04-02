@@ -128,10 +128,10 @@ runs:
 
         ditto -c -k --keepParent "${{ github.workspace }}/dist/Selfie.app" "${{ env.TARGET_NAME }}.zip"
 
-        API_KEY_PATH=$RUNNER_TEMP/AuthKey_${{APPLE_ASC_API_KEY_ID}}.p8
+        API_KEY_PATH=$RUNNER_TEMP/AuthKey_$APPLE_ASC_API_KEY_ID.p8
         echo -n "$APPLE_ASC_API_KEY_KEY_BASE64" | base64 --decode > $API_KEY_PATH
 
-        NOTARIZATION_OUTPUT=$(xcrun notarytool submit "${{ env.TARGET_NAME }}.zip" --issuer ${{ APPLE_ASC_API_KEY_ISSUER_UUID }} --key-id ${{ APPLE_ASC_API_KEY_ID }} --key $API_KEY_PATH --wait 2>&1)
+        NOTARIZATION_OUTPUT=$(xcrun notarytool submit "${{ env.TARGET_NAME }}.zip" --issuer $APPLE_ASC_API_KEY_ISSUER_UUID --key-id $APPLE_ASC_API_KEY_ID --key $API_KEY_PATH --wait 2>&1)
 
         REQUEST_UUID=$(echo "${NOTARIZATION_OUTPUT}" | grep 'id:' | awk '{print $NF}')
         NOTARIZATION_STATUS=$(echo "${NOTARIZATION_OUTPUT}" | grep 'status:' | tail -n 1 | awk '{print $NF}')
@@ -147,7 +147,7 @@ runs:
         if [[ "$NOTARIZATION_STATUS" == "Invalid" ]]; then
           echo "Notarization failed with status: ${NOTARIZATION_STATUS}"
           echo "Fetching notarization log for RequestUUID: ${REQUEST_UUID}..."
-          xcrun notarytool log ${REQUEST_UUID} --key $API_KEY_PATH --key-id ${{ APPLE_ASC_API_KEY_ID }} --issuer ${{ APPLE_ASC_API_KEY_ISSUER_UUID }}
+          xcrun notarytool log ${REQUEST_UUID} --key $API_KEY_PATH --key-id $APPLE_ASC_API_KEY_ID --issuer $APPLE_ASC_API_KEY_ISSUER_UUID
           exit 1
         elif [[ "$NOTARIZATION_STATUS" != "Accepted" ]]; then
           echo "Notarization failed with an unexpected status: ${NOTARIZATION_STATUS}"
