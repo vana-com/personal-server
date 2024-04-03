@@ -1,0 +1,6 @@
+FROM node:18-alpine as selfie-ui
+WORKDIR /selfie
+COPY selfie-ui/package.json selfie-ui/yarn.lock ./
+RUN yarn install --frozen-lockfile --non-interactive
+COPY selfie-ui/ .
+RUN yarn run build
