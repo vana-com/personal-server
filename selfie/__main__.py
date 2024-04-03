@@ -32,7 +32,7 @@ def deserialize_args_from_env():
         'api_port': ('SELFIE_API_PORT', int),
         'gpu': ('SELFIE_GPU', to_bool),
         'reload': ('SELFIE_RELOAD', to_bool),
-        'verbose': ('SELFIE_VERBOSE', to_bool),
+        'verbose_logging': ('SELFIE_VERBOSE_LOGGING', to_bool),
         'headless': ('SELFIE_HEADLESS', to_bool),
         'model': ('SELFIE_MODEL', str),
     }
@@ -61,7 +61,7 @@ def parse_args():
     parser.add_argument("--api_port", type=int, default=None, help="Specify the port to run on")
     parser.add_argument("--gpu", default=None, action="store_true", help="Enable GPU support")
     parser.add_argument("--reload", action="store_true", default=None, help="Enable hot-reloading")
-    parser.add_argument("--verbose", action="store_true", default=None, help="Enable verbose logging")
+    parser.add_argument("--verbose_logging", action="store_true", default=None, help="Enable verbose logging")
     parser.add_argument("--headless", action="store_true", default=None, help="Run in headless mode (no GUI)")
     parser.add_argument("--model", type=str, default=None, help="Specify the model to use")
     args = parser.parse_args()
@@ -74,11 +74,14 @@ def get_configured_app(shareable=False):
 
     logger.info(f"Running with args: {args}")
 
-    if 'verbose' in args and args.verbose:
+    if 'verbose_logging' in args and args.verbose_logging:
         logging.getLogger("selfie").setLevel(level=logging.DEBUG)
 
     logger.info("Creating app configuration")
     app_config = create_app_config(**vars(args))
+
+    if app_config.verbose_logging:
+        logging.getLogger("selfie").setLevel(level=logging.DEBUG)
 
     if shareable and app_config.ngrok_enabled:
         if app_config.ngrok_authtoken is None:

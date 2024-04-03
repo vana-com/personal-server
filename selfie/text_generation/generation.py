@@ -56,7 +56,7 @@ async def completion(request: CompletionRequest | ChatCompletionRequest) -> Self
     if method == "llama.cpp":
         model = request.model or config.model
         logger.info(f"Using llama.cpp model {model}")
-        llm = get_llama_cpp_llm(model, config.verbose, config.gpu)
+        llm = get_llama_cpp_llm(model, config.verbose_logging, config.gpu)
 
         completion_fn = (llm.create_chat_completion if chat_mode else llm.create_completion)
 

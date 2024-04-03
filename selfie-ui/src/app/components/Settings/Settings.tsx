@@ -25,13 +25,13 @@ const Settings = () => {
         enumNames: ['Local (llama.cpp)', 'Other (litellm)'],
         default: "llama.cpp"
       },
+      verbose_logging: { type: "boolean", title: "Verbose logging", default: false },
       // name: { type: "string", title: "Name" },
       // description: { type: "string", title: "Description" },
       // apiKey: { type: "string", title: "API Key" },
       // host: { type: "string", title: "Host", default: "http://localhost" },
       // port: { type: "integer", title: "Port", default: 8000 },
       // share: { type: "boolean", title: "Share", default: false },
-      // verbose: { type: "boolean", title: "Verbose", default: false },
     },
     allOf: [
       {
@@ -128,7 +128,7 @@ const Settings = () => {
   console.log(models)
 
   const uiSchema = {
-    'ui:order': ['gpu', 'ngrok_enabled', 'ngrok_authtoken', 'ngrok_domain', '*'],
+    'ui:order': ['gpu', 'ngrok_enabled', 'ngrok_authtoken', 'ngrok_domain', '*', 'verbose_logging'],
 
     method: {
       "ui:widget": "radio",

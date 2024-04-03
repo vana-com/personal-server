@@ -17,7 +17,7 @@ default_local_model = 'TheBloke/Mistral-7B-Instruct-v0.2-GGUF/mistral-7b-instruc
 default_hosted_model = 'openai/gpt-3.5-turbo'
 default_local_gpu_model = 'TheBloke/Mistral-7B-OpenOrca-GPTQ'
 
-ensure_set_in_db = ['gpu', 'method', 'model']
+ensure_set_in_db = ['gpu', 'method', 'model', 'verbose_logging']
 
 
 # TODO: This is not accurate, e.g. if the user starts the app with --gpu
@@ -36,7 +36,7 @@ class AppConfig(BaseModel):
     api_port: Optional[int] = Field(default=default_port, description="Specify the port to run on")
     share: bool = Field(default=False, description="Enable sharing via ngrok")
     gpu: bool = Field(default=get_default_gpu_mode(), description="Enable GPU support")
-    verbose: bool = Field(default=False, description="Enable verbose logging")
+    verbose_logging: bool = Field(default=False, description="Enable verbose logging")
     db_name: str = Field(default='selfie.db', description="Database name")
     method: str = Field(default=default_method, description="LLM provider method, llama.cpp or litellm")
     model: str = Field(default=default_local_model, description="Local model")
@@ -125,16 +125,13 @@ def create_app_config(**kwargs):
             config_dict[key] = value
             runtime_overrides[key] = value
 
-    db_update_required = False
-    updates = {}
     for field in ensure_set_in_db:
+        updates = {}
         if field not in db_config or db_config[field] is None:
-            db_update_required = True
-            logger.info(f"No saved setting for {field}, saving {config_dict[field]}")  # Corrected access method
+            logger.info(f"No saved setting for {field}, saving {config_dict[field]}")
             updates[field] = config_dict[field]
-
-    if db_update_required:
-        update_config_in_database(updates)
+        if updates:
+            update_config_in_database(updates)
 
     global _singleton_instance
     logger.info(f"Creating AppConfig with: {config_dict}")
@@ -150,9 +147,9 @@ def load_config_from_database():
     return DataManager().get_settings()
 
 
-def update_config_in_database(settings):
+def update_config_in_database(settings, delete_others=False):
     from selfie.database import DataManager
-    DataManager().save_settings(settings, delete_others=True)
+    DataManager().save_settings(settings, delete_others=delete_others)
 
 
 def get_app_config():
