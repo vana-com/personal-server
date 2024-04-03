@@ -28,14 +28,14 @@ export default function IconButton<
   const variantClass =
     // @ts-expect-error incomplete type from rjsf
     props.variant === "danger"
-      ? "bg-red-500 hover:bg-red-700 text-white"
+      ? "btn-error"
       : disabled
-      ? "bg-gray-100 text-gray-300"
-      : "bg-gray-200 hover:bg-gray-500 text-gray-700"
+      ? "btn-disabled"
+      : ""
 
   return (
     <button
-      className={`grid justify-items-center px-4 py-2 text-base font-normal ${buttonClass} ${variantClass} ${className}`}
+      className={`btn grid justify-items-center px-4 py-2 text-base font-normal ${buttonClass} ${variantClass} ${className}`}
       {...otherProps}
     >
       {icon}
@@ -106,8 +106,7 @@ export function RemoveButton<
     <IconButton
       title={translateString(TranslatableString.RemoveButton)}
       {...props}
-      // @ts-expect-error incomplete props from rjsf
-      variant="danger"
+      className={`btn-error btn-outline ${props?.className}`}
       icon={<IoIosRemove />}
     />
   )

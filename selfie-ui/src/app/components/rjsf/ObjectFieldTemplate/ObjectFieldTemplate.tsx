@@ -77,13 +77,14 @@ export default function ObjectFieldTemplate<
         ))}
         {canExpand(schema, uiSchema, formData) ? (
           <div className="flex">
-            <div className="ml-auto w-1/4 py-4">
+            <div className="w-full">
               <AddButton
                 onClick={onAddClick(schema)}
                 disabled={disabled || readonly}
-                className="object-property-expand"
+                className="btn-accent object-property-expand"
                 uiSchema={uiSchema}
                 registry={registry}
+                type="button"
               />
             </div>
           </div>

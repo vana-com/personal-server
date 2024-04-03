@@ -7,7 +7,7 @@ from selfie.config import get_app_config
 from llama_index.core.node_parser import SentenceSplitter
 
 from selfie.connectors.base_connector import BaseConnector
-from selfie.database import BaseModel, DataManager
+from selfie.database import BaseModel
 from selfie.embeddings import EmbeddingDocumentModel
 from selfie.types.documents import DocumentDTO
 from selfie.utils.data_structures import data_uri_to_dict
@@ -47,7 +47,7 @@ class TextFilesConnector(BaseConnector, ABC):
             EmbeddingDocumentModel(
                 text=text_chunk,
                 source="text_files",
-                timestamp=DataManager._extract_timestamp(document),
+                timestamp=document.extract_timestamp(),
                 source_document_id=document.id,
             )
             for document in documents

@@ -4,7 +4,6 @@ import {
   RJSFSchema,
   StrictRJSFSchema,
 } from "@rjsf/utils"
-import { CSSProperties } from "react"
 
 export default function ArrayFieldItemTemplate<
   T = any,
@@ -30,69 +29,53 @@ export default function ArrayFieldItemTemplate<
 
   const { CopyButton, MoveDownButton, MoveUpButton, RemoveButton } =
     registry.templates.ButtonTemplates
-  const btnStyle: CSSProperties = {
-    flex: 1,
-    paddingLeft: 6,
-    paddingRight: 6,
-    fontWeight: "bold",
+
+
+  const renderToolbar = () => {
+    return <>
+      {(hasMoveUp || hasMoveDown) && (
+        <MoveUpButton
+          className="array-item-move-up self-end"
+          disabled={disabled || readonly || !hasMoveUp}
+          onClick={onReorderClick(index, index - 1)}
+          uiSchema={uiSchema}
+          registry={registry}
+        />
+      )}
+      {(hasMoveUp || hasMoveDown) && (
+        <MoveDownButton
+          className="self-end"
+          disabled={disabled || readonly || !hasMoveDown}
+          onClick={onReorderClick(index, index + 1)}
+          uiSchema={uiSchema}
+          registry={registry}
+        />
+      )}
+      {hasCopy && (
+        <CopyButton
+          className="self-end"
+          disabled={disabled || readonly}
+          onClick={onCopyIndexClick(index)}
+          uiSchema={uiSchema}
+          registry={registry}
+        />
+      )}
+      {hasRemove && (
+        <RemoveButton
+          className="self-end"
+          disabled={disabled || readonly}
+          onClick={onDropIndexClick(index)}
+          uiSchema={uiSchema}
+          registry={registry}
+        />
+      )}
+    </>
   }
 
   return (
-    <div>
-      <div className="mb-2 flex items-center">
-        <div className="w-3/4 flex-none lg:w-3/4">{children}</div>
-        <div className="w-1/4 flex-none px-4 py-6 lg:w-1/4">
-          {hasToolbar && (
-            <div className="flex ">
-              {(hasMoveUp || hasMoveDown) && (
-                <div className="m-0 p-0">
-                  <MoveUpButton
-                    className="array-item-move-up"
-                    style={btnStyle}
-                    disabled={disabled || readonly || !hasMoveUp}
-                    onClick={onReorderClick(index, index - 1)}
-                    uiSchema={uiSchema}
-                    registry={registry}
-                  />
-                </div>
-              )}
-              {(hasMoveUp || hasMoveDown) && (
-                <div className="m-0 p-0">
-                  <MoveDownButton
-                    style={btnStyle}
-                    disabled={disabled || readonly || !hasMoveDown}
-                    onClick={onReorderClick(index, index + 1)}
-                    uiSchema={uiSchema}
-                    registry={registry}
-                  />
-                </div>
-              )}
-              {hasCopy && (
-                <div className="m-0 p-0">
-                  <CopyButton
-                    style={btnStyle}
-                    disabled={disabled || readonly}
-                    onClick={onCopyIndexClick(index)}
-                    uiSchema={uiSchema}
-                    registry={registry}
-                  />
-                </div>
-              )}
-              {hasRemove && (
-                <div className="m-0 p-0">
-                  <RemoveButton
-                    style={btnStyle}
-                    disabled={disabled || readonly}
-                    onClick={onDropIndexClick(index)}
-                    uiSchema={uiSchema}
-                    registry={registry}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="mb-2 flex items-center gap-1">
+      <div className="w-full">{children}</div>
+        {hasToolbar && renderToolbar()}
     </div>
   )
 }

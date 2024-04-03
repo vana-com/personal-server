@@ -1,4 +1,5 @@
 import selfie.logging
+from selfie.config import get_default_gpu_mode
 
 from selfie.logging import get_log_path
 
@@ -14,7 +15,6 @@ from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QPlainTextEdit
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import pyqtSignal, pyqtSlot, QTimer
 
-from selfie.__main__ import get_default_gpu_mode
 
 logger = logging.getLogger(__name__)
 
@@ -76,11 +76,11 @@ class SystemTrayApp(QApplication):
 
         menu.addSeparator()
 
-        exit_action = menu.addAction("Exit")
-        exit_action.triggered.connect(self.quit)
-
         self.show_log_action = menu.addAction("Show Logs")
         self.show_log_action.triggered.connect(self.show_log_window)
+
+        self.exit_action = menu.addAction("Exit")
+        self.exit_action.triggered.connect(self.quit)
 
         menu.addSeparator()
 
@@ -96,8 +96,12 @@ class SystemTrayApp(QApplication):
         self.server_ready_signal.connect(self.post_server_start)
         self.server_stopped_signal.connect(self.post_server_stop)
 
+        self.start_service()
+
     def show_log_window(self):
         self.log_widget.show()
+        self.log_widget.raise_()
+        self.log_widget.activateWindow()
 
     def update_gpu_mode_status(self):
         # TODO: Fix this hack
@@ -108,7 +112,8 @@ class SystemTrayApp(QApplication):
 
         status_text = "GPU Mode Enabled" if gpu_mode_enabled else "GPU Mode Disabled" if gpu_mode_enabled is False else "GPU Mode Unknown"
         self.gpu_mode_action.setText(status_text)
-        self.gpu_mode_action.setVisible(True)
+        # TODO: Enable this when it's possible to correctly detect the GPU mode
+        # self.gpu_mode_action.setVisible(True)
 
     def update_service_icon(self, state):
         icon_paths = {

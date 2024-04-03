@@ -48,9 +48,11 @@ export default function RadioWidget<
           const radio = (
             <label
               key={index}
-              className={`block ${
-                inline ? "mr-3 inline-flex items-center" : ""
-              }`}
+              className={`label
+                flex justify-start gap-2
+                ${inline ? "inline-flex" : ""}
+                ${(disabled || itemDisabled || readonly) ? "" : "cursor-pointer"}
+              `}
             >
               <input
                 id={optionId(id, index)}
@@ -64,9 +66,9 @@ export default function RadioWidget<
                 onBlur={_onBlur}
                 onFocus={_onFocus}
                 aria-describedby={ariaDescribedByIds<T>(id)}
-                className="border-muted-foreground bg-background text-primary focus:ring-2 focus:ring-primary"
+                className="radio"
               />
-              <span className="ml-2">{option.label}</span>
+              <span className="label-text">{option.label}</span>
             </label>
           )
           return radio

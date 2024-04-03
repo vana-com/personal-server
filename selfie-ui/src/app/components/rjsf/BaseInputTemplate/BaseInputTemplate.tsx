@@ -43,10 +43,11 @@ export default function BaseInputTemplate<
   const _onFocus = ({ target: { value } }: FocusEvent<HTMLInputElement>) =>
     onFocus(id, value)
 
+  // TODO: It seems like input-error is never applied.
   const inputClass = `
-    border rounded-lg p-2 focus:border-primary focus:outline-none w-full bg-background
-    ${rawErrors.length > 0 ? "border-red-500" : "border-muted-foreground"}
-  `
+    input input-bordered w-full
+    ${rawErrors.length > 0 ? "input-error" : ""}
+    ${((disabled || readonly) ? "input-disabled" : "")}`
 
   return (
     <>

@@ -72,10 +72,6 @@ class BaseCompletionRequest(BaseModel):
             }
         }
 
-
-class ChatCompletionRequest(BaseCompletionRequest):
-    messages: List[Message] = Field(..., description="A list of messages comprising the conversation so far.")
-
     custom_params: ClassVar[List[str]] = ["method", "api_base", "api_key", "disable_augmentation"]
 
     def openai_params(self):
@@ -94,6 +90,10 @@ class ChatCompletionRequest(BaseCompletionRequest):
         :return: A dictionary of extra parameters
         """
         return {k: v for k, v in self.model_dump().items() if k not in self.model_fields.keys()}
+
+
+class ChatCompletionRequest(BaseCompletionRequest):
+    messages: List[Message] = Field(..., description="A list of messages comprising the conversation so far.")
 
     model_config = {
         "json_schema_extra": {

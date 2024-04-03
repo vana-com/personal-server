@@ -45,7 +45,7 @@ class ImportanceScorer(BaseScorer):
 
                 llm = LLM(
                     config.local_functionary_model,
-                    verbose=config.verbose,
+                    verbose=config.verbose_logging,
                     n_gpu_layers=-1 if config.gpu else 0,
                     method="llama.cpp",
                     chat_format="functionary",

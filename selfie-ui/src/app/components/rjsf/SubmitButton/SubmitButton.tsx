@@ -25,7 +25,7 @@ export default function SubmitButton<
     <div>
       <button
         type="submit"
-        className="bg-primary px-4 py-2 text-base font-normal text-primary-foreground hover:bg-primary/90"
+        className="btn btn-primary btn-lg btn-block"
         {...submitButtonProps}
       >
         {submitText}

@@ -12,5 +12,16 @@ jobs:
         os: [macos-latest, macos-latest-xlarge]
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Build package
         uses: ./.github/actions/build-action
+        with:
+          apple_build_certificate_base64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
+          apple_build_certificate_password: ${{ secrets.APPLE_BUILD_CERTIFICATE_PASSWORD }}
+          apple_provisioning_profile_base64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          apple_macos_keychain_password: ${{ secrets.APPLE_MACOS_KEYCHAIN_PASSWORD }}
+          apple_asc_api_key_key_base64: ${{ secrets.APPLE_ASC_API_KEY_KEY_BASE64 }}
+          apple_asc_api_key_id: ${{ secrets.APPLE_ASC_API_KEY_ID }}
+          apple_asc_api_key_issuer_uuid: ${{ secrets.APPLE_ASC_API_KEY_ISSUER_UUID }}

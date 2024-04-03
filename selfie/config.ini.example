@@ -1,0 +1,7 @@
+; Can be used to override the default configuration
+[database]
+storage_root = ~/.Selfie/data/database
+db_name = selfie.db
+
+[embeddings]
+storage_root = ~/.Selfie/data/embeddings

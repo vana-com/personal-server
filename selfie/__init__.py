@@ -1,27 +1,20 @@
+import os
+
 import selfie.logging
 
 import logging
 import warnings
 import colorlog
 
-### Preemptive fix based on suggestion in https://github.com/BerriAI/litellm/issues/2607
-# import platform
-# import os
-#
-# os_name = platform.system()
-#
-# if os_name == 'Darwin':  # macOS
-#     cache_dir = os.path.expanduser('~/Library/Caches/TikToken')
-# elif os_name == 'Windows':
-#     cache_dir = os.path.join(os.environ['APPDATA'], 'TikToken', 'Cache')
-# else:  # Assume Linux/Unix
-#     cache_dir = os.path.expanduser('~/TikToken/Cache')
-#
-# # LiteLLM writes to a read-only directory in the built application bundle, try to override it
-# # Source: https://github.com/BerriAI/litellm/pull/1947, with the latest code here: https://github.com/BerriAI/litellm/blob/main/litellm/utils.py
-# os.environ['TIKTOKEN_CACHE_DIR'] = cache_dir
-#
-# # Now we can safely import litellm
+from selfie.utils.filesystem import get_nltk_dir, get_tiktoken_dir
+
+# Override the data dir for nltk as LlamaIndex chooses a write-protected directory (https://github.com/run-llama/llama_index/blob/v0.10.26/llama-index-core/llama_index/core/utils.py#L47)
+# https://github.com/nltk/nltk/blob/3.8.1/web/data.rst
+os.environ["NLTK_DATA"] = get_nltk_dir("Selfie")
+os.environ["TIKTOKEN_CACHE_DIR"] = get_tiktoken_dir("Selfie")
+# LiteLLM doesn't (yet?) respect the TIKTOK_CACHE_DIR environment variable
+# Source: https://github.com/BerriAI/litellm/pull/1947, with the latest code here: https://github.com/BerriAI/litellm/blob/main/litellm/utils.py
+# Now we can safely import litellm
 import litellm
 
 # Suppress specific warnings

@@ -40,24 +40,30 @@ class ModelsResponse(BaseModel):
 async def get_models() -> ModelsResponse:
     hf_cache_info = scan_cache_dir()
     models = []
+    seen = set()
 
     for repo in hf_cache_info.repos:
         for revision in repo.revisions:
             gguf_files = [file for file in revision.files if file.file_name.endswith('.gguf')]
             if gguf_files:
                 for gguf_file in gguf_files:
+                    model_id = f"{repo.repo_id}/{gguf_file.file_name}"
+                    if model_id not in seen:
+                        models.append(Model(
+                            id=model_id,
+                            object="model",
+                            created=gguf_file.blob_last_modified,
+                            owned_by="user"
+                        ))
+                        seen.add(model_id)
+            else:
+                if repo.repo_id not in seen:
                     models.append(Model(
-                        id=f"{repo.repo_id}/{gguf_file.file_name}",
+                        id=repo.repo_id,
                         object="model",
-                        created=gguf_file.blob_last_modified,
+                        created=min(revision.last_modified for revision in repo.revisions),
                         owned_by="user"
                     ))
-            else:
-                models.append(Model(
-                    id=repo.repo_id,
-                    object="model",
-                    created=min(file.last_modified for file in repo.revisions),
-                    owned_by="user"
-                ))
+                    seen.add(repo.repo_id)
 
     return ModelsResponse(object="list", data=models)

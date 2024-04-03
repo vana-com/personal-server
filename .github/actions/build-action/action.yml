@@ -5,6 +5,27 @@ inputs:
   release_tag:
     description: 'The tag name of the release'
     required: false
+  apple_build_certificate_base64:
+    description: 'The base64-encoded Apple build certificate'
+    required: false
+  apple_build_certificate_password:
+    description: 'The password for the Apple build certificate'
+    required: false
+  apple_provisioning_profile_base64:
+    description: 'The base64-encoded Apple provisioning profile'
+    required: false
+  apple_macos_keychain_password:
+    description: 'The password for the macOS keychain'
+    required: false
+  apple_asc_api_key_key_base64:
+    description: 'The base64-encoded Apple ASC API key'
+    required: false
+  apple_asc_api_key_id:
+    description: 'The ID of the Apple ASC API key'
+    required: false
+  apple_asc_api_key_issuer_uuid:
+    description: 'The UUID of the Apple ASC API key issuer'
+    required: false
 
 runs:
   using: 'composite'
@@ -14,16 +35,27 @@ runs:
 
     - name: Determine target filename
       run: |
-        echo "TARGET_NAME=Selfie-${{ runner.os }}-$(uname -m).zip" >> $GITHUB_ENV
+        echo "TARGET_NAME=Selfie-${{ runner.os }}-$(uname -m)" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Set runner architecture
+      run: |
+        ARCH=$(uname -m)
+        if [ "$ARCH" == "x86_64" ]; then
+          echo "RUNNER_ARCH=x64" >> $GITHUB_ENV
+        else
+          echo "RUNNER_ARCH=$ARCH" >> $GITHUB_ENV
+        fi
       shell: bash
 
     - name: Install the Apple certificate and provisioning profile
       if: runner.os == 'macOS'
       env:
-        APPLE_BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
-        APPLE_BUILD_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_BUILD_CERTIFICATE_PASSWORD }}
-        APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
-        APPLE_MACOS_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_MACOS_KEYCHAIN_PASSWORD }}
+        APPLE_BUILD_CERTIFICATE_BASE64: ${{ inputs.apple_build_certificate_base64 }}
+        APPLE_BUILD_CERTIFICATE_PASSWORD: ${{ inputs.apple_build_certificate_password }}
+        APPLE_PROVISIONING_PROFILE_BASE64: ${{ inputs.apple_provisioning_profile_base64 }}
+        APPLE_MACOS_KEYCHAIN_PASSWORD: ${{ inputs.apple_macos_keychain_password }}
+        APPLE_ASC_API_KEY_KEY_BASE64: ${{ inputs.apple_asc_api_key_key_base64 }}
       run: |
         CERTIFICATE_PATH=$RUNNER_TEMP/apple_certificate.p12
         PROVISIONING_PROFILE_PATH=$RUNNER_TEMP/apple_provisioning_profile.provisionprofile
@@ -52,16 +84,28 @@ runs:
         echo "$HOME/.local/bin" >> $GITHUB_PATH
       shell: bash
 
+    # Handle Poetry caching manually, based on the following workaround, until caches are keyed by architecture.
+    # https://github.com/actions/setup-python/issues/826#issuecomment-2021999109
     - name: Set up Python
       uses: actions/setup-python@v5
+      id: setup-python
       with:
         python-version: '3.11'
-        cache: poetry
-        cache-dependency-path: poetry.lock
+        architecture: ${{ env.RUNNER_ARCH }}
 
     - name: Install dependencies with Poetry
-      run: poetry install --no-dev
+      run: |
+        poetry install --no-dev
+        echo "POETRY_CACHE_DIR=$(poetry config cache-dir)" >> $GITHUB_ENV
       shell: bash
+
+    - name: Cache Poetry dependencies
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.POETRY_CACHE_DIR }}
+        key: ${{ runner.os }}-poetry-${{ steps.setup-python.outputs.python-version }}-${{ env.RUNNER_ARCH }}-${{ hashFiles('**/poetry.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-poetry-${{ steps.setup-python.outputs.python-version }}-${{ env.RUNNER_ARCH }}
 
     - name: Use Node.js
       uses: actions/setup-node@v4
@@ -69,6 +113,7 @@ runs:
         node-version: '20'
         cache: 'yarn'
         cache-dependency-path: selfie-ui/yarn.lock
+        architecture: ${{ env.RUNNER_ARCH }}
 
     - name: Cache Next.js build artifacts
       uses: actions/cache@v4
@@ -98,16 +143,18 @@ runs:
     - name: Build macOS App
       if: runner.os == 'macOS'
       env:
-        APPLE_ASC_API_KEY_KEY_BASE64: ${{ secrets.APPLE_ASC_API_KEY_KEY_BASE64 }}
+        APPLE_ASC_API_KEY_KEY_BASE64: ${{ inputs.apple_asc_api_key_key_base64 }}
+        APPLE_ASC_API_KEY_ID: ${{ inputs.apple_asc_api_key_id }}
+        APPLE_ASC_API_KEY_ISSUER_UUID: ${{ inputs.apple_asc_api_key_issuer_uuid }}
       run: |
         sh scripts/package-macos-app.sh
 
         ditto -c -k --keepParent "${{ github.workspace }}/dist/Selfie.app" "${{ env.TARGET_NAME }}.zip"
 
-        API_KEY_PATH=$RUNNER_TEMP/AuthKey_${{secrets.APPLE_ASC_API_KEY_ID}}.p8
+        API_KEY_PATH=$RUNNER_TEMP/AuthKey_$APPLE_ASC_API_KEY_ID.p8
         echo -n "$APPLE_ASC_API_KEY_KEY_BASE64" | base64 --decode > $API_KEY_PATH
 
-        NOTARIZATION_OUTPUT=$(xcrun notarytool submit "${{ env.TARGET_NAME }}.zip" --issuer ${{ secrets.APPLE_ASC_API_KEY_ISSUER_UUID }} --key-id ${{ secrets.APPLE_ASC_API_KEY_ID }} --key $API_KEY_PATH --wait 2>&1)
+        NOTARIZATION_OUTPUT=$(xcrun notarytool submit "${{ env.TARGET_NAME }}.zip" --issuer $APPLE_ASC_API_KEY_ISSUER_UUID --key-id $APPLE_ASC_API_KEY_ID --key $API_KEY_PATH --wait 2>&1)
 
         REQUEST_UUID=$(echo "${NOTARIZATION_OUTPUT}" | grep 'id:' | awk '{print $NF}')
         NOTARIZATION_STATUS=$(echo "${NOTARIZATION_OUTPUT}" | grep 'status:' | tail -n 1 | awk '{print $NF}')
@@ -123,7 +170,7 @@ runs:
         if [[ "$NOTARIZATION_STATUS" == "Invalid" ]]; then
           echo "Notarization failed with status: ${NOTARIZATION_STATUS}"
           echo "Fetching notarization log for RequestUUID: ${REQUEST_UUID}..."
-          xcrun notarytool log ${REQUEST_UUID} --key $API_KEY_PATH --key-id ${{ secrets.APPLE_ASC_API_KEY_ID }} --issuer ${{ secrets.APPLE_ASC_API_KEY_ISSUER_UUID }}
+          xcrun notarytool log ${REQUEST_UUID} --key $API_KEY_PATH --key-id $APPLE_ASC_API_KEY_ID --issuer $APPLE_ASC_API_KEY_ISSUER_UUID
           exit 1
         elif [[ "$NOTARIZATION_STATUS" != "Accepted" ]]; then
           echo "Notarization failed with an unexpected status: ${NOTARIZATION_STATUS}"
@@ -141,7 +188,7 @@ runs:
 
     - name: Build Non-macOS App
       if: runner.os != 'macOS'
-      run: zip -r Selfie-${{ runner.os }}.zip dist/selfie
+      run: zip -r "${{ env.TARGET_NAME }}.zip" dist/selfie
       shell: bash
 
     - name: Upload Artifact
