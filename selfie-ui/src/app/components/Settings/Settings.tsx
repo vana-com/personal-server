@@ -130,6 +130,12 @@ const Settings = () => {
   const uiSchema = {
     'ui:order': ['gpu', 'ngrok_enabled', 'ngrok_authtoken', 'ngrok_domain', '*', 'verbose_logging'],
 
+    // TODO: this doesn't work
+    // ngrok_enabled: {
+    //   "ui:enableMarkdownInDescription": true,
+    //   "ui:description": "Enables <a className='link' href='https://ngrok.com'>ngrok</a> for exposing your local server to the internet.",
+    // },
+
     method: {
       "ui:widget": "radio",
     },
@@ -359,8 +365,22 @@ const Settings = () => {
       <h2 className="text-xl font-bold mb-4">LLM Presets</h2>
 
       {taskMessage && <TaskToast isTaskRunning={isTaskRunning} taskMessage={taskMessage}/>}
+      {settings.method === "llama.cpp" && (
+          <div role="alert" className="alert my-6">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                 className="stroke-info shrink-0 w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>Heads up, you've selected llama.cpp - please ensure you have enough system RAM to load the configured model!</span>
+          </div>
+      )}
 
-      <p>Customize your LLM provider using one of the presets below, or manually configure <a className="link" href="https://huggingface.co/models?pipeline_tag=text-generation&sort=trending&search=gguf" target="_blank">any llama.cpp</a> or <a className="link" href="https://litellm.vercel.app/docs/providers" target="_blank">LiteLLM-supported model.</a></p>
+      <p>Customize your LLM provider using one of the presets below, or manually configure <a className="link"
+                                                                                              href="https://huggingface.co/models?pipeline_tag=text-generation&sort=trending&search=gguf"
+                                                                                              target="_blank">any
+        llama.cpp</a> or <a className="link" href="https://litellm.vercel.app/docs/providers" target="_blank">LiteLLM-supported
+        model.</a> Configure <a href="https://ngrok.com" target="_blank" className="link">ngrok</a> to expose your local server to the internet.</p>
 
       <div className="my-3 flex gap-2 flex-wrap">
         {presets.map(renderPreset)}

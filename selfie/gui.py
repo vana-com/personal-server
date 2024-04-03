@@ -100,6 +100,8 @@ class SystemTrayApp(QApplication):
 
     def show_log_window(self):
         self.log_widget.show()
+        self.log_widget.raise_()
+        self.log_widget.activateWindow()
 
     def update_gpu_mode_status(self):
         # TODO: Fix this hack
