@@ -17,7 +17,7 @@ const Settings = () => {
     type: "object",
     required: ["method"],
     properties: {
-      ngrok_enabled: { type: "boolean", title: "Enable ngrok", default: false },
+      ngrok_enabled: { type: "boolean", title: "Enable ngrok (create a public URL for your app via http://ngrok.com)", default: false },
       method: {
         type: "string",
         title: "LLM provider",
