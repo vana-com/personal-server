@@ -8,7 +8,7 @@
 
 # Selfie
 
-[Jump to Quick Start](#quick-start)
+[Quick Start](#quick-start) | [Releases (+MacOS executables)](https://github.com/vana-com/selfie/releases/latest)
 
 Imagine AI that is not just smart, but personal. Selfie turns your data into APIs for text generation and natural language search that can power chatbots, storytelling experiences, games, and more.
 
@@ -20,7 +20,7 @@ Selfie is a local-first, open-source project that runs on your device.
  </a>
 </div>
 <div align="center">
-   <i style="font-size: 9.5pt">Check out the video tour!</i>
+   <i style="font-size: 9.5pt">Check out the video tour! (recorded using an older version of Selfie)</i>
 </div>
 
 ## Core Features
@@ -68,18 +68,34 @@ curl -X POST 'http://localhost:8181/v1/chat/completions' \
 
 ## Quick Start
 
-For MacOS and Linux:
+Choose an installation method that best suits your operating system.
 
-1. Install [python](https://www.python.org) 3.9+, [poetry](https://python-poetry.org), and [Node.js](https://nodejs.org).
-2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
-3. Run `start.sh`.
-4. http://localhost:8181 will open in your default web browser.
-5. Head to the Add Data page in the UI and follow the instructions.
-6. Chat with your data in the Playground, connect it to a tool like SillyTavern, or integrate it with your own application.
+> **Important**: The first time you run Selfie, it will download ~4GB of model weights and may appear to be unresponsive.
 
-> **Tip**: On macOS you can run `brew install poetry nodejs` with [brew](https://brew.sh).
+### MacOS: Running a Downloadable Executable
 
-For Windows, please follow the instructions in [Installation](#installation).
+1. Choose and download the latest executable for your MacOS based on the processor type:
+- [Apple silicon processors (includes M1, M2, and later models)](https://github.com/vana-com/selfie/releases/latest/download/Selfie-macOS-arm64.zip)
+- [Intel processors](https://github.com/vana-com/selfie/releases/latest/download/Selfie-macOS-x86_64.zip)
+2. Unzip the downloaded file and run the executable to start Selfie.
+3. Right-click on the system tray icon and click Launch UI to open the Selfie UI in your default web browser.
+
+### MacOS, Linux: Running the Quick Start Script with Python
+
+To run Selfie using Python, follow these steps:
+
+1. Ensure [Python](https://www.python.org) (version 3.9 or later), [Poetry](https://python-poetry.org), and [Node.js](https://nodejs.org) are installed on your system.
+2. Clone the Selfie repository or <a target="_blank" href="https://github.com/vana-com/selfie/releases/latest">download the source code for the latest release</a>.
+3. Execute `start.sh` to run the application.
+4. Right-click on the system tray icon and click Launch UI to open the Selfie UI in your default web browser.
+
+> **Tip**: On MacOS, you can quickly install Poetry and Node.js using Homebrew with the following command: `brew install poetry nodejs`. Visit [Homebrew's website](https://brew.sh) for installation instructions.
+
+If you encounter any issues, refer to the detailed manual installation instructions in the [Installation](#installation) section.
+
+### MacOS, Linux, Windows: Manual Installation
+
+Windows users should refer to the detailed installation instructions in the [Installation](#installation) section.
 
 ## Overview
 
@@ -112,12 +128,13 @@ For most users, the easiest way to install Selfie is to follow the [Quick Start]
 1. Ensure that [python](https://www.python.org) 3.9+, [poetry](https://python-poetry.org), and [Node.js](https://nodejs.org) are installed.
 2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
 3. In a terminal, navigate to the project directory.
-4. Run `cp selfie/.env.example selfie/.env` to create a `.env` file in which you can configure the default port that Selfie runs on and hosting with ngrok.
-5. Run `./scripts/build-ui.sh` to build the UI and copy it to the server.
-6. Run `poetry install` to install required Python dependencies.
-7. Optional: Run `./scripts/llama-cpp-python-cublas.sh` to enable hardware acceleration (for details, see [Scripts](#llama-cpp-python-cublassh)).
-8. Run `poetry run python -m selfie`, or `poetry run python -m selfie --gpu` if your device is GPU-enabled. The first time you run this, it will download ~4GB of model weights.
-   -  On macOS, you may need to run `OMP_NUM_THREADS=1 KMP_DUPLICATE_LIB_OK=TRUE poetry run python -m selfie` to avoid OpenMP errors (with or without `--gpu`). [Read more about OMP_NUM_THREADS here](https://github.com/vana-com/selfie/issues/33#issuecomment-2004637058).
+4. Run `./scripts/build-ui.sh` to build the UI and copy it to the server.
+5. Run `poetry install` to install required Python dependencies.
+6. Optional: Run `./scripts/llama-cpp-python-cublas.sh` to enable hardware acceleration (for details, see [Scripts](#llama-cpp-python-cublassh)).
+7. Run `poetry run python -m selfie`. The first time you run this, it will download ~4GB of model weights.
+   -  On macOS, you may need to run `OMP_NUM_THREADS=1 KMP_DUPLICATE_LIB_OK=TRUE poetry run python -m selfie` to avoid OpenMP errors. [Read more about OMP_NUM_THREADS here](https://github.com/vana-com/selfie/issues/33#issuecomment-2004637058).
+
+If you encounter any issues, you can try running in headless mode: `poetry run python -m selfie --headless` and opening `http://localhost:8181` in your browser.
 
 [//]: # (Disable this note about installing with GPU support until supported via transformers, etc.)
 
