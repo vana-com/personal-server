@@ -8,7 +8,7 @@
 
 # Selfie
 
-[Quick Start](#quick-start) | [Releases (+MacOS executables)](https://github.com/vana-com/selfie/releases/latest)
+[Quick Start](#quick-start) | [Releases (+MacOS executables)](https://github.com/vana-com/personal-server/releases)
 
 Imagine AI that is not just smart, but personal. Selfie turns your data into APIs for text generation and natural language search that can power chatbots, storytelling experiences, games, and more.
 
@@ -75,8 +75,8 @@ Choose an installation method that best suits your operating system.
 ### MacOS: Running a Downloadable Executable
 
 1. Choose and download the latest executable for your MacOS based on the processor type:
-- [Apple silicon processors (includes M1, M2, and later models)](https://github.com/vana-com/selfie/releases/latest/download/Selfie-macOS-arm64.zip)
-- [Intel processors](https://github.com/vana-com/selfie/releases/latest/download/Selfie-macOS-x86_64.zip)
+- [Apple silicon processors (includes M1, M2, and later models)](https://github.com/vana-com/personal-server/releases/latest/download/Selfie-macOS-arm64.zip)
+- [Intel processors](https://github.com/vana-com/personal-server/releases/latest/download/Selfie-macOS-x86_64.zip)
 2. Unzip the downloaded file and run the executable to start Selfie.
 3. Right-click on the system tray icon and click Launch UI to open the Selfie UI in your default web browser.
 
@@ -85,7 +85,7 @@ Choose an installation method that best suits your operating system.
 To run Selfie using Python, follow these steps:
 
 1. Ensure [Python](https://www.python.org) (version 3.9 or later), [Poetry](https://python-poetry.org), and [Node.js](https://nodejs.org) are installed on your system.
-2. Clone the Selfie repository or <a target="_blank" href="https://github.com/vana-com/selfie/releases/latest">download the source code for the latest release</a>.
+2. Clone the Selfie repository or <a target="_blank" href="https://github.com/vana-com/personal-server/releases/latest">download the source code for the latest release</a>.
 3. Execute `start.sh` to run the application.
 4. Right-click on the system tray icon and click Launch UI to open the Selfie UI in your default web browser.
 
@@ -126,13 +126,13 @@ For most users, the easiest way to install Selfie is to follow the [Quick Start]
 <summary>Manual Installation</summary>
 
 1. Ensure that [python](https://www.python.org) 3.9+, [poetry](https://python-poetry.org), and [Node.js](https://nodejs.org) are installed.
-2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
+2. Clone or [download](https://github.com/vana-com/personal-server/archive/refs/heads/main.zip) the repository.
 3. In a terminal, navigate to the project directory.
 4. Run `./scripts/build-ui.sh` to build the UI and copy it to the server.
 5. Run `poetry install` to install required Python dependencies.
 6. Optional: Run `./scripts/llama-cpp-python-cublas.sh` to enable hardware acceleration (for details, see [Scripts](#llama-cpp-python-cublassh)).
 7. Run `poetry run python -m selfie`. The first time you run this, it will download ~4GB of model weights.
-   -  On macOS, you may need to run `OMP_NUM_THREADS=1 KMP_DUPLICATE_LIB_OK=TRUE poetry run python -m selfie` to avoid OpenMP errors. [Read more about OMP_NUM_THREADS here](https://github.com/vana-com/selfie/issues/33#issuecomment-2004637058).
+   -  On macOS, you may need to run `OMP_NUM_THREADS=1 KMP_DUPLICATE_LIB_OK=TRUE poetry run python -m selfie` to avoid OpenMP errors. [Read more about OMP_NUM_THREADS here](https://github.com/vana-com/personal-server/issues/33#issuecomment-2004637058).
 
 If you encounter any issues, you can try running in headless mode: `poetry run python -m selfie --headless` and opening `http://localhost:8181` in your browser.
 
@@ -149,7 +149,7 @@ If you encounter any issues, you can try running in headless mode: `poetry run p
 You can also run Selfie using Docker. To do so, follow these steps:
 
 1. Ensure that [Docker](https://www.docker.com) is installed.
-2. Clone or [download](https://github.com/vana-com/selfie) selfie repository.
+2. Clone or [download](https://github.com/vana-com/personal-server) selfie repository.
 3. In a terminal, navigate to the project directory.
 4. Run the following commands for the image you want to use (CPU, GPU, or ARM64).
 
