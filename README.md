@@ -8,7 +8,7 @@
 
 # Selfie
 
-[Quick Start](#quick-start) | [Releases (+MacOS executables)](https://github.com/vana-com/selfie/releases/latest)
+[Quick Start](#quick-start) | [Releases (+MacOS executables)](https://github.com/vana-com/personal-server/releases)
 
 Imagine AI that is not just smart, but personal. Selfie turns your data into APIs for text generation and natural language search that can power chatbots, storytelling experiences, games, and more.
 
@@ -75,8 +75,8 @@ Choose an installation method that best suits your operating system.
 ### MacOS: Running a Downloadable Executable
 
 1. Choose and download the latest executable for your MacOS based on the processor type:
-- [Apple silicon processors (includes M1, M2, and later models)](https://github.com/vana-com/selfie/releases/latest/download/Selfie-macOS-arm64.zip)
-- [Intel processors](https://github.com/vana-com/selfie/releases/latest/download/Selfie-macOS-x86_64.zip)
+- [Apple silicon processors (includes M1, M2, and later models)](https://github.com/vana-com/personal-server/releases/latest/download/Selfie-macOS-arm64.zip)
+- [Intel processors](https://github.com/vana-com/personal-server/releases/latest/download/Selfie-macOS-x86_64.zip)
 2. Unzip the downloaded file and run the executable to start Selfie.
 3. Right-click on the system tray icon and click Launch UI to open the Selfie UI in your default web browser.
 
@@ -85,7 +85,7 @@ Choose an installation method that best suits your operating system.
 To run Selfie using Python, follow these steps:
 
 1. Ensure [Python](https://www.python.org) (version 3.9 or later), [Poetry](https://python-poetry.org), and [Node.js](https://nodejs.org) are installed on your system.
-2. Clone the Selfie repository or <a target="_blank" href="https://github.com/vana-com/selfie/releases/latest">download the source code for the latest release</a>.
+2. Clone the Selfie repository or <a target="_blank" href="https://github.com/vana-com/personal-server/releases/latest">download the source code for the latest release</a>.
 3. Execute `start.sh` to run the application.
 4. Right-click on the system tray icon and click Launch UI to open the Selfie UI in your default web browser.
 
