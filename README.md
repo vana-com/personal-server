@@ -126,13 +126,13 @@ For most users, the easiest way to install Selfie is to follow the [Quick Start]
 <summary>Manual Installation</summary>
 
 1. Ensure that [python](https://www.python.org) 3.9+, [poetry](https://python-poetry.org), and [Node.js](https://nodejs.org) are installed.
-2. Clone or [download](https://github.com/vana-com/selfie/archive/refs/heads/main.zip) the repository.
+2. Clone or [download](https://github.com/vana-com/personal-server/archive/refs/heads/main.zip) the repository.
 3. In a terminal, navigate to the project directory.
 4. Run `./scripts/build-ui.sh` to build the UI and copy it to the server.
 5. Run `poetry install` to install required Python dependencies.
 6. Optional: Run `./scripts/llama-cpp-python-cublas.sh` to enable hardware acceleration (for details, see [Scripts](#llama-cpp-python-cublassh)).
 7. Run `poetry run python -m selfie`. The first time you run this, it will download ~4GB of model weights.
-   -  On macOS, you may need to run `OMP_NUM_THREADS=1 KMP_DUPLICATE_LIB_OK=TRUE poetry run python -m selfie` to avoid OpenMP errors. [Read more about OMP_NUM_THREADS here](https://github.com/vana-com/selfie/issues/33#issuecomment-2004637058).
+   -  On macOS, you may need to run `OMP_NUM_THREADS=1 KMP_DUPLICATE_LIB_OK=TRUE poetry run python -m selfie` to avoid OpenMP errors. [Read more about OMP_NUM_THREADS here](https://github.com/vana-com/personal-server/issues/33#issuecomment-2004637058).
 
 If you encounter any issues, you can try running in headless mode: `poetry run python -m selfie --headless` and opening `http://localhost:8181` in your browser.
 
@@ -149,7 +149,7 @@ If you encounter any issues, you can try running in headless mode: `poetry run p
 You can also run Selfie using Docker. To do so, follow these steps:
 
 1. Ensure that [Docker](https://www.docker.com) is installed.
-2. Clone or [download](https://github.com/vana-com/selfie) selfie repository.
+2. Clone or [download](https://github.com/vana-com/personal-server) selfie repository.
 3. In a terminal, navigate to the project directory.
 4. Run the following commands for the image you want to use (CPU, GPU, or ARM64).
 
