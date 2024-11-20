@@ -6,11 +6,11 @@
 [//]: # (  <a href="https://vana.com/" target="_blank"><img alt="selfie" src="https://assets-global.website-files.com/62dfa5318bb52f5fea8dc489/62dfb34210f09278d8bce721_Vana_Logo.svg" style="background-color: #dbff00; padding: 5px; height: 20px; border-radius: 2px"></a>)
 </div>
 
-# Selfie
+# Selfie Personal Server
 
 [Quick Start](#quick-start) | [Releases (+MacOS executables)](https://github.com/vana-com/personal-server/releases)
 
-Imagine AI that is not just smart, but personal. Selfie turns your data into APIs for text generation and natural language search that can power chatbots, storytelling experiences, games, and more.
+Imagine AI that is not just smart, but personal. The Selfie Personal Server turns your data into APIs for text generation and natural language search that can power chatbots, storytelling experiences, games, and more, while keeping you in control of your data. 
 
 Selfie is a local-first, open-source project that runs on your device.
 
