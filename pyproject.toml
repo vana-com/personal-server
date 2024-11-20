@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "selfie"
-version = "0.1.0"
+version = "0.1.1"
 description = "Data mixin for LLMs"
 authors = ["Vana <services@vana.com>"]
 readme = "README.md"
