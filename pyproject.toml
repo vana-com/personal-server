@@ -6,7 +6,7 @@ authors = ["Vana <services@vana.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
+python = ">=3.9,<4.0" # >=3.9 for numpy, <4 for llama-index
 beautifulsoup4 = "^4.12.3"
 colorlog = "^6.8.2"
 fastapi = "^0.109.0"
