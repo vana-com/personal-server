@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/vana-com/personal-server/compare/v0.1.0...v0.1.1) (2024-11-20)
+
+
+### Documentation
+
+* update README.md with latest run instructions ([#40](https://github.com/vana-com/personal-server/issues/40)) ([a79b3a1](https://github.com/vana-com/personal-server/commit/a79b3a137e2bef07df212f43938668ca7e233f24))
+
 ## 0.1.0 (2024-04-03)
 
 
