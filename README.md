@@ -9,7 +9,7 @@
 
 # Selfie Personal Server
 
-[Quick Start](#quick-start) | [Releases (+MacOS executables)](https://github.com/vana-com/personal-server/releases)
+[Quick Start](#quick-start) | [Releases (+MacOS executables)](https://github.com/vana-com/personal-server/releases) | [License](https://github.com/vana-com/personal-server/blob/main/LICENSE)
 
 Imagine AI that is not just smart, but personal. The Selfie Personal Server turns your data into APIs for text generation and natural language search that can power chatbots, storytelling experiences, games, and more, while keeping you in control of your data. 
 
