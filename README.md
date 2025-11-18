@@ -2,7 +2,7 @@
   <img alt="selfie" src="./docs/images/hero.png" height="300px">
   <br>
   <a href="https://x.com/vana" target="_blank"><img alt="Join our Twitter" src="https://img.shields.io/twitter/follow/vana"></a>
-  <a href="https://discord.gg/GhYDaDqENx" target="_blank"><img alt="Join our Discord" src="https://dcbadge.vercel.app/api/server/GhYDaDqENx?style=flat&compact=true"></a>
+  <a href="https://discord.gg/GhYDaDqENx" target="_blank"><img alt="Join our Discord" src="https://img.shields.io/badge/Discord-5865F2?style=flat&logo=discord&logoColor=white"></a>
 
 [//]: # (  <a href="https://vana.com/" target="_blank"><img alt="selfie" src="https://assets-global.website-files.com/62dfa5318bb52f5fea8dc489/62dfb34210f09278d8bce721_Vana_Logo.svg" style="background-color: #dbff00; padding: 5px; height: 20px; border-radius: 2px"></a>)
 </div>
