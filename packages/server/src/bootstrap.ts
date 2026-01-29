@@ -43,7 +43,7 @@ export function createServer(config: ServerConfig, options?: CreateServerOptions
   const gatewayClient = createGatewayClient(config.gatewayUrl)
 
   const serverPort = config.server.port
-  const serverOrigin = `http://localhost:${serverPort}`
+  const serverOrigin = config.server.origin ?? `http://localhost:${serverPort}`
   const serverOwner = (config.server.address
     ?? '0x0000000000000000000000000000000000000000') as `0x${string}`
 
