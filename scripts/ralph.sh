@@ -133,6 +133,11 @@ while true; do
     exit "$AGENT_EXIT_CODE_RAW"
   fi
 
+  if [[ "$COMMIT_MADE" -eq 0 && "$DIRTY_COUNT" -eq 0 ]]; then
+    echo "Agent exited cleanly with no changes. Nothing left to do. Stopping loop."
+    break
+  fi
+
   ITERATION=$((ITERATION + 1))
   echo ""
   echo "======================== LOOP $ITERATION ========================"
