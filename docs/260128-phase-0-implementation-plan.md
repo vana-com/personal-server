@@ -76,7 +76,7 @@ Layer 5 (final):
 - **Done when:** File exists, has `workspaces: ["packages/*"]`, has build/test/lint scripts
 
 #### Task 0.2: Root tsconfig.json
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `tsconfig.json`
 - **Deps:** none
 - **Spec:**

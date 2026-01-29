@@ -4,8 +4,10 @@ set -euo pipefail
 # Ralph loop runner
 #
 # Usage:
-#   ./ralph.sh <prompt_file>               # unlimited iterations
-#   ./ralph.sh <prompt_file> 10            # max 10 iterations
+#   ./ralph.sh                             # use default prompt, unlimited
+#   ./ralph.sh <prompt_file>               # custom prompt, unlimited
+#   ./ralph.sh <prompt_file> 10            # custom prompt, max 10 iterations
+#   ./ralph.sh 10                          # default prompt, max 10 iterations
 #
 # Notes:
 # - This script assumes you have Claude Code CLI and jq installed.
@@ -22,20 +24,26 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$ROOT_DIR/.."
 
 # --- Parse arguments ---------------------------------------------------------
-if [[ -z "${1:-}" ]]; then
-  echo "Usage: $0 <prompt_file> [max_iterations]" >&2
-  exit 1
-fi
-
-PROMPT_FILE="$1"
-# Resolve relative paths against REPO_DIR
-if [[ ! "$PROMPT_FILE" = /* ]]; then
-  PROMPT_FILE="$REPO_DIR/$PROMPT_FILE"
-fi
-
+# $1 can be a prompt file path or an integer (max iterations).
+# $2, if present, is max iterations.
 MAX_ITERATIONS=0
-if [[ "${2:-}" =~ ^[0-9]+$ ]]; then
-  MAX_ITERATIONS="$2"
+
+if [[ "${1:-}" =~ ^[0-9]+$ ]]; then
+  # First arg is a number — treat as max_iterations, use default prompt
+  PROMPT_FILE="$REPO_DIR/docs/ralph-prompt.md"
+  MAX_ITERATIONS="$1"
+elif [[ -n "${1:-}" ]]; then
+  # First arg is a file path
+  PROMPT_FILE="$1"
+  if [[ ! "$PROMPT_FILE" = /* ]]; then
+    PROMPT_FILE="$REPO_DIR/$PROMPT_FILE"
+  fi
+  if [[ "${2:-}" =~ ^[0-9]+$ ]]; then
+    MAX_ITERATIONS="$2"
+  fi
+else
+  # No args — use default prompt
+  PROMPT_FILE="$REPO_DIR/docs/ralph-prompt.md"
 fi
 
 if [[ ! -f "$PROMPT_FILE" ]]; then
