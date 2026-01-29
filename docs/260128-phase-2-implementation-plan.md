@@ -527,7 +527,7 @@ Layer 5 (final):
 ---
 
 #### Task 2.3: Grant check middleware
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/middleware/grant-check.ts`, `packages/server/src/middleware/grant-check.test.ts`
 - **Deps:** 1.2, 1.3
 - **Spec:**
