@@ -200,7 +200,7 @@ Layer 5 (final):
 ---
 
 #### Task 0.4: Access log writer
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/logging/access-log.ts`, `packages/core/src/logging/access-log.test.ts`
 - **Deps:** Phase 1 complete
 - **Spec:**
