@@ -293,7 +293,7 @@ Layer 5 (final):
 ---
 
 #### Task 0.6: Test utilities — wallet fixtures
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/test-utils/wallet.ts`, `packages/core/src/test-utils/wallet.test.ts`, `packages/core/src/test-utils/index.ts`
 - **Deps:** 0.1 (needs viem)
 - **Spec:**
