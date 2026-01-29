@@ -49,7 +49,7 @@ Layer 5 (final):
 ### Layer 0: Root Project Setup
 
 #### Task 0.1: Root package.json
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `package.json`
 - **Deps:** none
 - **Spec:**
