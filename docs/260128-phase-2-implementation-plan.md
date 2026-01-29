@@ -89,7 +89,7 @@ Layer 5 (final):
 ---
 
 #### Task 0.2: Scope wildcard matching + scopes barrel
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/scopes/match.ts`, `packages/core/src/scopes/match.test.ts`, `packages/core/src/scopes/index.ts` (new barrel)
 - **Deps:** Phase 1 complete
 - **Spec:**

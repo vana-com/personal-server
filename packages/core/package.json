@@ -20,8 +20,8 @@
       "import": "./dist/schemas/server-config.js"
     },
     "./scopes": {
-      "types": "./dist/scopes/parse.d.ts",
-      "import": "./dist/scopes/parse.js"
+      "types": "./dist/scopes/index.d.ts",
+      "import": "./dist/scopes/index.js"
     },
     "./storage/hierarchy": {
       "types": "./dist/storage/hierarchy/index.d.ts",
