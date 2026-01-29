@@ -447,7 +447,7 @@ Layer 5 (final):
 ---
 
 #### Task 3.2: GET /v1/grants route
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/routes/grants.ts` (modify — add GET), `packages/server/src/routes/grants.test.ts` (modify)
 - **Deps:** 1.1, 1.2
 - **Spec:**

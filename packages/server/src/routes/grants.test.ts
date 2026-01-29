@@ -72,6 +72,59 @@ function createApp() {
   });
 }
 
+describe('GET /', () => {
+  it('returns grants from gateway', async () => {
+    const mockGateway = createMockGateway();
+    const grants = [
+      {
+        grantId: 'grant-1',
+        builder: builder.address,
+        scopes: ['instagram.*'],
+        expiresAt: futureExpiry,
+        createdAt: '2025-01-01T00:00:00Z',
+      },
+      {
+        grantId: 'grant-2',
+        builder: builder.address,
+        scopes: ['twitter.*'],
+        expiresAt: futureExpiry,
+        createdAt: '2025-01-02T00:00:00Z',
+      },
+    ];
+    vi.mocked(mockGateway.listGrantsByUser).mockResolvedValue(grants);
+
+    const app = grantsRoutes({ logger, gateway: mockGateway, serverOwner: owner.address });
+    const res = await app.request('/', { method: 'GET' });
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.grants).toEqual(grants);
+    expect(mockGateway.listGrantsByUser).toHaveBeenCalledWith(owner.address);
+  });
+
+  it('returns empty grants array when gateway has none', async () => {
+    const mockGateway = createMockGateway();
+    vi.mocked(mockGateway.listGrantsByUser).mockResolvedValue([]);
+
+    const app = grantsRoutes({ logger, gateway: mockGateway, serverOwner: owner.address });
+    const res = await app.request('/', { method: 'GET' });
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.grants).toEqual([]);
+  });
+
+  it('returns 500 on gateway error', async () => {
+    const mockGateway = createMockGateway();
+    vi.mocked(mockGateway.listGrantsByUser).mockRejectedValue(new Error('Gateway down'));
+
+    const app = grantsRoutes({ logger, gateway: mockGateway, serverOwner: owner.address });
+    const res = await app.request('/', { method: 'GET' });
+
+    expect(res.status).toBe(500);
+  });
+});
+
 describe('POST /verify', () => {
   it('valid grant + signature returns { valid: true, user, builder, scopes, expiresAt }', async () => {
     const app = createApp();

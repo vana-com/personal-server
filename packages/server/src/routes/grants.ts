@@ -51,6 +51,12 @@ function isValidVerifyBody(body: unknown): body is VerifyRequestBody {
 export function grantsRoutes(deps: GrantsRouteDeps): Hono {
   const app = new Hono();
 
+  // GET / — list all grants for the server owner (owner auth wired in Task 4.1)
+  app.get('/', async (c) => {
+    const grants = await deps.gateway.listGrantsByUser(deps.serverOwner);
+    return c.json({ grants });
+  });
+
   // POST /verify — public endpoint, no auth required
   app.post('/verify', async (c) => {
     let body: unknown;
