@@ -125,7 +125,7 @@ Layer 4 (final):
 ---
 
 #### Task 0.3: Data file Zod schema
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/schemas/data-file.ts`, `packages/core/src/schemas/data-file.test.ts`
 - **Deps:** Phase 0 complete
 - **Spec:**
