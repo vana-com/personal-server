@@ -105,6 +105,10 @@ This specification does NOT cover:
 * **Master key material** = raw signature bytes produced by EIP-191 `personal_sign` over the fixed message `"vana-master-key-v1"`.
 * **Scope key** = `HKDF-SHA256(master_key_material, "vana", "scope:{scope}")` (32 bytes output).
 
+**Data Encryption** :
+* **Encryption scheme** = OpenPGP password-based encryption (`openpgp` library, symmetric mode).
+* **Encryption password** = `hex(scope_key)` — the 32-byte scope key hex-encoded as a 64-character string, used as the OpenPGP password.
+* Produces standard OpenPGP binary messages; compatible with vana-sdk encryption format.
 ---
 
 ## **3. Protocol Model**
@@ -901,7 +905,7 @@ Phase 1: Add on-chain anchoring, the operations can be verified on-chain after o
 
 ```
 # Personal Server Operations
-POST   /v1/servers/                Register/update Personal Server URL
+POST   /v1/servers                 Register/update Personal Server URL
 GET    /v1/servers/{address}       Get Personal Server info
 GET    /v1/servers/{address}/status 
                                    Get confirmation status (pending/confirmed)
@@ -931,7 +935,7 @@ GET    /v1/schemas/{schemaId}/status
                                    Get confirmation status (pending/confirmed)
 
 # Builder Operations
-POST   /v1/builders/register       Register builder (public key + app URL)
+POST   /v1/builders                Register builder (public key + app URL)
 GET    /v1/builders/{address}      Get builder info (public key + app URL)
 GET    /v1/builders/{address}/status 
                                    Get confirmation status (pending/confirmed)
@@ -949,7 +953,32 @@ GET    /v1/nonces?user={address}&operation={operation}
 
 `serverAddress` and `builderAddress` are used as their idempotent IDs. `grantId` and `fileId` are computed deterministically from their input parameters. Those IDs are consistent between the off-chain gateway and the on-chain smart contracts, so that they can be used to query both on-chain and off-chain with the Gateway. 
 
-#### **4.2.5 Gateway Response Format**
+#### **4.2.5 Gateway Request and Response Format**
+
+**Request**
+
+Each POST request has an `Authorization` header with the user's EIP-712 signature against the fields in the request's body. The request's body includes the parameters of the corresponding on-chain function with a nonce to prevent replay attacks.
+
+Example:
+```
+POST /v1/files
+Authorization: Signature 0xabc123...def
+Content-Type: application/json
+{
+  "url": "https://storage.vana.com/alice/encrypted/instagram-profile-2025-01-28.enc",
+  "schemaId": 7,
+  "nonce": 42
+}
+```
+
+| Gateway API | On-chain function | Contract |
+|---|---|---|
+| `POST /v1/files` | `addFileWithSchema(string url, uint256 schemaId)` | `DataRegistry` (`0x8C8788f98385F6ba1adD4234e551ABba0f82Cb7C`) |
+| `POST /v1/servers` | `addServer(address serverAddress, string publicKey, string serverUrl)` | `DataPortabilityServer` (`0x1483B1F634DBA75AeaE60da7f01A679aabd5ee2c`) |
+| `POST /v1/builders` | `registerGrantee(address owner, address granteeAddress, string publicKey)` | `DataPortabilityGrantees` (`0x8325C0A0948483EdA023A1A2Fd895e62C5131234`) |
+| `POST /v1/grants` | `addPermission(uint256 granteeId, string grant, uint256[] fileIds)` | `DataPortabilityPermissions` (`0xD54523048AdD05b4d734aFaE7C68324Ebb7373eF`) |
+
+**Response**
 
 All responses include verification data:
 
@@ -964,11 +993,45 @@ All responses include verification data:
     "gatewaySignature": "0x...",    // Gateway attestation
     "timestamp": 1737500000,
     "status": "pending",            // Chain sync status, pending or confirmed
-    "estimatedConfirmation": "30s", // Estimated on-chain confirmation timechainConfirmed": true,       // Has been synced to chain
+    "estimatedConfirmation": "30s", // Estimated on-chain confirmation time
     "chainBlockHeight": null        // Block where confirmed
   }
 }
 ```
+
+#### **4.2.6 Gateway Operations**
+
+**Write Operations**
+
+Each Gateway's POST API endpoint performs the same verification on the inputs as the corresponding on-chain function against the Gateway's current state. In addition, the Gateway manages the user nonces and verifies the signatures in the `Authorization` headers.
+
+After all the verification, the Gateway commits the operations to its off-chain DB and marks them as `pending` for on-chain submission and confirmation.
+
+The Gateway assigns to each operation record (files, grants, builders, and servers) a `bytes32` ID, which is deterministically computed from hashing the operation's parameters. The smart contracts uses the same way to compute the IDs of those entities so that the records in the off-chain Gateway's DB and the on-chain entities always have the same IDs.
+
+```
+DOMAIN_TYPE_HASH = keccak256("DataPortabilityDomain(uint256 chainId,address verifyingContract)")
+domainSeparator = keccak256(DOMAIN_TYPE_HASH, chainId, verifyingContract)
+```
+
+```
+fileId = keccak256(abi.encode(domainSeparator, ownerAddress, url, schemaId))
+```
+To prevent front-running attacks, in which a file `url` is registered before the Gateway with another `ownerAddress` or `schemaId`, the `DataRegistry` contract MUST use the hash-based `fileId` for uniqueness. If a `fileId` is already registered, the contract returns immediately. (Currently, the `DataRegistry` contract uses only `url` for uniqueness that prevents the Gateway from registering an `url` if it is front-runned.)
+
+```
+serverId = keccak256(abi.encode(domainSeparator, serverAddress, publicKey, serverUrl))
+builderId = keccak256(abi.encode(domainSeparator, owner, granteeAddress, publicKey))
+grantId = keccak256(abi.encode(domainSeparator, granteeId, grant, fileIds))
+```
+
+Note: Don't use `abi.encodePacked` because it creates collisions in some dynamic types like string or arrays.
+
+The Gateway stores the `pending` operations in a queue and submit them on-chain periodically. For efficiency, the Gateway broadcasts the operations in batch, via a batch function per operation types or via Account Abstraction bundler-style `handleOps` function. After those operations are confirmed on-chain, the Gateway updates their chain sync statuses to `confirmed`.
+
+**Read Operations**
+
+The Gateway returns the records in its off-chain DB if the chain sync status is `pending`. Otherwise, it reads the on-chain records and returns. The Gateway also provides a proof, including its attestation on `(requestHash, responseHash)`. 
 
 ### **4.3 Vana L1 (On-Chain Contracts)**
 
@@ -1398,7 +1461,7 @@ In v1, data files are JSON objects before encryption (future versions may suppor
 }
 ```
 
-After encryption, the file is stored as raw ciphertext bytes.
+After encryption, the file is stored as an OpenPGP binary message.
 
 ### **5.3 Grant Format (EIP-712)**
 
@@ -1806,7 +1869,7 @@ The builder-facing React package provides the default "Connect data" UX and abst
 
 #### **7.1.1 Data Encryption**
 
-* All user data MUST be encrypted with AES-256-GCM before being written to a storage backend
+* All user data MUST be encrypted with OpenPGP password-based encryption before being written to a storage backend. The password is `hex(scope_key)` where the scope key is derived per §2.3.
 * Personal Servers serve decrypted data to authorized builders over TLS
 * Vana (or any intermediary) MUST NOT have access to plaintext data
 
