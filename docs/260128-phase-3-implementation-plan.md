@@ -75,7 +75,7 @@ Layer 5 (final):
 ---
 
 #### Task 0.2: Key derivation (master + scope keys)
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/keys/derive.ts`, `packages/core/src/keys/derive.test.ts`, `packages/core/src/keys/index.ts`
 - **Deps:** 0.1
 - **Spec:**
