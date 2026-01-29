@@ -565,7 +565,7 @@ Layer 5 (final):
 ---
 
 #### Task 2.4: Access log middleware
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/middleware/access-log.ts`, `packages/server/src/middleware/access-log.test.ts`
 - **Deps:** 0.4
 - **Spec:**
