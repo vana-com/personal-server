@@ -347,7 +347,7 @@ Layer 4 (final):
 ### Layer 3: Route + Integration
 
 #### Task 3.1: Body size limit middleware
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/middleware/body-limit.ts`, `packages/server/src/middleware/body-limit.test.ts`
 - **Deps:** Phase 0 (Hono available)
 - **Spec:**
