@@ -458,7 +458,7 @@ Layer 4 (final):
 ### Layer 4: Final Verification
 
 #### Task 4.1: Install, build, test
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Deps:** all previous
 - **Steps:**
   1. `npm install` — succeeds (better-sqlite3 native module compiles)
