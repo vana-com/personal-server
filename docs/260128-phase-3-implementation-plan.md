@@ -472,7 +472,7 @@ Layer 5 (final):
 ---
 
 #### Task 3.3: GET /v1/access-logs route
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/routes/access-logs.ts` (new), `packages/server/src/routes/access-logs.test.ts` (new)
 - **Deps:** 0.3, 1.2
 - **Spec:**
