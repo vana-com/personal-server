@@ -2,6 +2,8 @@ import { Hono } from 'hono'
 import { ProtocolError } from '@personal-server/core/errors'
 import type { IndexManager } from '@personal-server/core/storage/index'
 import type { HierarchyManagerOptions } from '@personal-server/core/storage/hierarchy'
+import type { GatewayClient } from '@personal-server/core/gateway'
+import type { AccessLogWriter } from '@personal-server/core/logging/access-log'
 import { healthRoute } from './routes/health.js'
 import { dataRoutes } from './routes/data.js'
 import type { Logger } from 'pino'
@@ -12,6 +14,10 @@ export interface AppDeps {
   startedAt: Date
   indexManager: IndexManager
   hierarchyOptions: HierarchyManagerOptions
+  serverOrigin: string
+  serverOwner: `0x${string}`
+  gateway: GatewayClient
+  accessLogWriter: AccessLogWriter
 }
 
 export function createApp(deps: AppDeps): Hono {
@@ -20,13 +26,17 @@ export function createApp(deps: AppDeps): Hono {
   // Mount health route
   app.route('/', healthRoute({ version: deps.version, startedAt: deps.startedAt }))
 
-  // Mount data ingest routes
+  // Mount data routes (ingest + read)
   app.route(
     '/v1/data',
     dataRoutes({
       indexManager: deps.indexManager,
       hierarchyOptions: deps.hierarchyOptions,
       logger: deps.logger,
+      serverOrigin: deps.serverOrigin,
+      serverOwner: deps.serverOwner,
+      gateway: deps.gateway,
+      accessLogWriter: deps.accessLogWriter,
     }),
   )
 

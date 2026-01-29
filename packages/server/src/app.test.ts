@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createApp } from './app.js'
 import { MissingAuthError } from '@personal-server/core/errors'
 import {
@@ -9,7 +9,23 @@ import {
   createIndexManager,
   type IndexManager,
 } from '@personal-server/core/storage/index'
+import type { GatewayClient } from '@personal-server/core/gateway'
+import type { AccessLogWriter } from '@personal-server/core/logging/access-log'
 import pino from 'pino'
+
+function createMockGateway(): GatewayClient {
+  return {
+    isRegisteredBuilder: vi.fn().mockResolvedValue(true),
+    getBuilder: vi.fn().mockResolvedValue(null),
+    getGrant: vi.fn().mockResolvedValue(null),
+  }
+}
+
+function createMockAccessLogWriter(): AccessLogWriter {
+  return {
+    write: vi.fn().mockResolvedValue(undefined),
+  }
+}
 
 describe('createApp', () => {
   let tempDir: string
@@ -34,6 +50,10 @@ describe('createApp', () => {
       startedAt: new Date(),
       indexManager,
       hierarchyOptions: { dataDir: join(tempDir, 'data') },
+      serverOrigin: 'http://localhost:8080',
+      serverOwner: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
     })
   }
 

@@ -20,6 +20,7 @@ export const ServerConfigSchema = z.object({
     .object({
       port: z.number().int().min(1).max(65535).default(8080),
       address: z.string().optional(),
+      origin: z.string().url().optional(),
     })
     .default({}),
   gatewayUrl: z.string().url().default('https://rpc.vana.org'),

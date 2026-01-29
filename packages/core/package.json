@@ -20,8 +20,8 @@
       "import": "./dist/schemas/server-config.js"
     },
     "./scopes": {
-      "types": "./dist/scopes/parse.d.ts",
-      "import": "./dist/scopes/parse.js"
+      "types": "./dist/scopes/index.d.ts",
+      "import": "./dist/scopes/index.js"
     },
     "./storage/hierarchy": {
       "types": "./dist/storage/hierarchy/index.d.ts",
@@ -34,6 +34,26 @@
     "./schemas/data-file": {
       "types": "./dist/schemas/data-file.d.ts",
       "import": "./dist/schemas/data-file.js"
+    },
+    "./auth": {
+      "types": "./dist/auth/web3-signed.d.ts",
+      "import": "./dist/auth/web3-signed.js"
+    },
+    "./grants": {
+      "types": "./dist/grants/index.d.ts",
+      "import": "./dist/grants/index.js"
+    },
+    "./gateway": {
+      "types": "./dist/gateway/client.d.ts",
+      "import": "./dist/gateway/client.js"
+    },
+    "./logging/access-log": {
+      "types": "./dist/logging/access-log.d.ts",
+      "import": "./dist/logging/access-log.js"
+    },
+    "./test-utils": {
+      "types": "./dist/test-utils/index.d.ts",
+      "import": "./dist/test-utils/index.js"
     }
   },
   "scripts": {
@@ -43,6 +63,7 @@
     "better-sqlite3": "^11.0.0",
     "pino": "^9.0.0",
     "pino-pretty": "^13.0.0",
+    "viem": "^2.23.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {

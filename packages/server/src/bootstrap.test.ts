@@ -107,4 +107,74 @@ describe('createServer', () => {
 
     expect(() => ctx.cleanup()).not.toThrow()
   })
+
+  it('ServerContext has gatewayClient property', () => {
+    const config = makeDefaultConfig()
+    const ctx = createServer(config, { configDir: tempDir })
+
+    expect(ctx).toHaveProperty('gatewayClient')
+    expect(typeof ctx.gatewayClient.isRegisteredBuilder).toBe('function')
+    expect(typeof ctx.gatewayClient.getGrant).toBe('function')
+    ctx.cleanup()
+  })
+
+  it('GET /v1/data returns 401 (auth middleware wired)', async () => {
+    const config = makeDefaultConfig()
+    const ctx = createServer(config, { configDir: tempDir })
+
+    const res = await ctx.app.request('/v1/data')
+    expect(res.status).toBe(401)
+
+    const body = await res.json()
+    expect(body.error.errorCode).toBe('MISSING_AUTH')
+    ctx.cleanup()
+  })
+
+  it('GET /v1/data/instagram.profile returns 401 (auth middleware wired)', async () => {
+    const config = makeDefaultConfig()
+    const ctx = createServer(config, { configDir: tempDir })
+
+    const res = await ctx.app.request('/v1/data/instagram.profile')
+    expect(res.status).toBe(401)
+
+    const body = await res.json()
+    expect(body.error.errorCode).toBe('MISSING_AUTH')
+    ctx.cleanup()
+  })
+
+  it('GET /v1/data/instagram.profile/versions returns 401 (auth middleware wired)', async () => {
+    const config = makeDefaultConfig()
+    const ctx = createServer(config, { configDir: tempDir })
+
+    const res = await ctx.app.request('/v1/data/instagram.profile/versions')
+    expect(res.status).toBe(401)
+
+    const body = await res.json()
+    expect(body.error.errorCode).toBe('MISSING_AUTH')
+    ctx.cleanup()
+  })
+
+  it('POST /v1/data/:scope still works without auth (Phase 1 preserved)', async () => {
+    const config = makeDefaultConfig()
+    const ctx = createServer(config, { configDir: tempDir })
+
+    const res = await ctx.app.request('/v1/data/test.scope', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: 'value' }),
+    })
+    expect(res.status).toBe(201)
+
+    const body = await res.json()
+    expect(body.scope).toBe('test.scope')
+    expect(body.status).toBe('stored')
+    ctx.cleanup()
+  })
+
+  it('config schema accepts server.origin', () => {
+    const config = ServerConfigSchema.parse({
+      server: { origin: 'https://my-server.example.com' },
+    })
+    expect(config.server.origin).toBe('https://my-server.example.com')
+  })
 })

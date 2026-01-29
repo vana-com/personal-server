@@ -4,20 +4,141 @@ import { createDataFileEnvelope } from '@personal-server/core/schemas/data-file'
 import {
   generateCollectedAt,
   writeDataFile,
+  readDataFile,
 } from '@personal-server/core/storage/hierarchy'
 import type { HierarchyManagerOptions } from '@personal-server/core/storage/hierarchy'
 import type { IndexManager } from '@personal-server/core/storage/index'
+import type { GatewayClient } from '@personal-server/core/gateway'
+import type { AccessLogWriter } from '@personal-server/core/logging/access-log'
 import type { Logger } from 'pino'
 import { createBodyLimit, DATA_INGEST_MAX_SIZE } from '../middleware/body-limit.js'
+import { createWeb3AuthMiddleware } from '../middleware/web3-auth.js'
+import { createBuilderCheckMiddleware } from '../middleware/builder-check.js'
+import { createGrantCheckMiddleware } from '../middleware/grant-check.js'
+import { createAccessLogMiddleware } from '../middleware/access-log.js'
 
 export interface DataRouteDeps {
   indexManager: IndexManager
   hierarchyOptions: HierarchyManagerOptions
   logger: Logger
+  serverOrigin: string
+  serverOwner: `0x${string}`
+  gateway: GatewayClient
+  accessLogWriter: AccessLogWriter
 }
 
 export function dataRoutes(deps: DataRouteDeps): Hono {
   const app = new Hono()
+
+  // Create middleware instances
+  const web3Auth = createWeb3AuthMiddleware(deps.serverOrigin)
+  const builderCheck = createBuilderCheckMiddleware(deps.gateway)
+  const grantCheck = createGrantCheckMiddleware({
+    gateway: deps.gateway,
+    serverOwner: deps.serverOwner,
+  })
+  const accessLog = createAccessLogMiddleware(deps.accessLogWriter)
+
+  // GET /v1/data/:scope/versions — list versions for a scope (requires auth + builder, no grant)
+  app.get('/:scope/versions', web3Auth, builderCheck, async (c) => {
+    // 1. Validate scope
+    const scopeParam = c.req.param('scope')
+    const scopeResult = ScopeSchema.safeParse(scopeParam)
+    if (!scopeResult.success) {
+      return c.json(
+        {
+          error: 'INVALID_SCOPE',
+          message: scopeResult.error.issues[0].message,
+        },
+        400,
+      )
+    }
+    const scope = scopeResult.data
+
+    // 2. Parse pagination
+    const limit = c.req.query('limit') ? parseInt(c.req.query('limit')!, 10) : 20
+    const offset = c.req.query('offset') ? parseInt(c.req.query('offset')!, 10) : 0
+
+    // 3. Query index
+    const entries = deps.indexManager.findByScope({ scope, limit, offset })
+    const total = deps.indexManager.countByScope(scope)
+
+    // 4. Return response
+    return c.json({
+      scope,
+      versions: entries.map((e) => ({ fileId: e.fileId, collectedAt: e.collectedAt })),
+      total,
+      limit,
+      offset,
+    })
+  })
+
+  // GET /v1/data — list distinct scopes (requires auth + builder, no grant)
+  app.get('/', web3Auth, builderCheck, async (c) => {
+    const scopePrefix = c.req.query('scopePrefix')
+    const limit = c.req.query('limit') ? parseInt(c.req.query('limit')!, 10) : 20
+    const offset = c.req.query('offset') ? parseInt(c.req.query('offset')!, 10) : 0
+
+    const result = deps.indexManager.listDistinctScopes({
+      scopePrefix: scopePrefix || undefined,
+      limit,
+      offset,
+    })
+
+    return c.json({
+      scopes: result.scopes,
+      total: result.total,
+      limit,
+      offset,
+    })
+  })
+
+  // GET /v1/data/:scope — read a data file (requires auth + grant)
+  app.get('/:scope', web3Auth, builderCheck, grantCheck, accessLog, async (c) => {
+    // 1. Validate scope
+    const scopeParam = c.req.param('scope')
+    const scopeResult = ScopeSchema.safeParse(scopeParam)
+    if (!scopeResult.success) {
+      return c.json(
+        {
+          error: 'INVALID_SCOPE',
+          message: scopeResult.error.issues[0].message,
+        },
+        400,
+      )
+    }
+    const scope = scopeResult.data
+
+    // 2. Determine lookup strategy: fileId, at, or latest
+    const fileIdParam = c.req.query('fileId')
+    const atParam = c.req.query('at')
+
+    let entry
+    if (fileIdParam) {
+      entry = deps.indexManager.findByFileId(fileIdParam)
+    } else if (atParam) {
+      entry = deps.indexManager.findClosestByScope(scope, atParam)
+    } else {
+      entry = deps.indexManager.findLatestByScope(scope)
+    }
+
+    // 3. 404 if not found
+    if (!entry) {
+      return c.json(
+        {
+          error: 'NOT_FOUND',
+          message: `No data found for scope "${scope}"`,
+        },
+        404,
+      )
+    }
+
+    // 4. Read the data file from disk
+    const envelope = await readDataFile(deps.hierarchyOptions, scope, entry.collectedAt)
+
+    // 5. Return 200 with envelope
+    return c.json(envelope)
+  })
 
   app.use('/:scope', createBodyLimit(DATA_INGEST_MAX_SIZE))
 
