@@ -18,14 +18,34 @@
     "./schemas": {
       "types": "./dist/schemas/server-config.d.ts",
       "import": "./dist/schemas/server-config.js"
+    },
+    "./scopes": {
+      "types": "./dist/scopes/parse.d.ts",
+      "import": "./dist/scopes/parse.js"
+    },
+    "./storage/hierarchy": {
+      "types": "./dist/storage/hierarchy/index.d.ts",
+      "import": "./dist/storage/hierarchy/index.js"
+    },
+    "./storage/index": {
+      "types": "./dist/storage/index/index.d.ts",
+      "import": "./dist/storage/index/index.js"
+    },
+    "./schemas/data-file": {
+      "types": "./dist/schemas/data-file.d.ts",
+      "import": "./dist/schemas/data-file.js"
     }
   },
   "scripts": {
     "build": "tsc --build"
   },
   "dependencies": {
+    "better-sqlite3": "^11.0.0",
     "pino": "^9.0.0",
     "pino-pretty": "^13.0.0",
     "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0"
   }
 }

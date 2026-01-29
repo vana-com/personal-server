@@ -265,7 +265,7 @@ Layer 5 (final):
 ### Layer 4: Entry Point
 
 #### Task 4.1: Server entry point + lifecycle
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/index.ts`
 - **Deps:** 3.3
 - **Spec:** Loads config via `loadConfig()`, creates server via `createServer()`, starts HTTP via `@hono/node-server` `serve()`. Registers SIGTERM/SIGINT handlers for graceful shutdown (5s drain timeout). Logs "Server started" with port/version on start, "Server stopped" on shutdown.
