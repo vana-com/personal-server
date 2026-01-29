@@ -114,7 +114,7 @@ Layer 5 (final):
 ---
 
 #### Task 0.3: Access log reader
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/logging/access-reader.ts`, `packages/core/src/logging/access-reader.test.ts`
 - **Deps:** Phase 2 (AccessLogEntry type exists in access-log.ts)
 - **Spec:**
