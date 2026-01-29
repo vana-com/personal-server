@@ -208,7 +208,7 @@ Layer 4 (final):
 ---
 
 #### Task 1.2: SQLite index types + schema
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/storage/index/types.ts`, `packages/core/src/storage/index/schema.ts`, `packages/core/src/storage/index/schema.test.ts`
 - **Deps:** 0.1
 - **Spec:**
