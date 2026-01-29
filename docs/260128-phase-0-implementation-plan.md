@@ -115,7 +115,7 @@ Layer 5 (final):
 - **`.nvmrc`:** `20`
 
 #### Task 0.4: Vitest config
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `vitest.config.ts`
 - **Deps:** none
 - **Spec:**
