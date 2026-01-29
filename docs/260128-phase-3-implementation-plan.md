@@ -50,7 +50,7 @@ Layer 5 (final):
 ### Layer 0: Foundation (all parallel)
 
 #### Task 0.1: Update core package.json
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/package.json`
 - **Deps:** Phase 2 complete
 - **Spec:**
