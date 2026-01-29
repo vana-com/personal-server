@@ -276,7 +276,7 @@ Layer 5 (final):
 ### Layer 5: Final Verification
 
 #### Task 5.1: Install, build, test
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Deps:** all previous
 - **Steps:**
   1. `npm install` — succeeds
