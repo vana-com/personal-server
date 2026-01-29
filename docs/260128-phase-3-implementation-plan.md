@@ -283,7 +283,7 @@ Layer 5 (final):
 ### Layer 2: Hierarchy Delete + Grant Verify + Schema Update
 
 #### Task 2.1: Hierarchy manager — deleteAllForScope()
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/storage/hierarchy/manager.ts` (modify), `packages/core/src/storage/hierarchy/manager.test.ts` (modify), `packages/core/src/storage/hierarchy/index.ts` (modify — re-export)
 - **Deps:** Phase 2 hierarchy manager
 - **Spec:**

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtemp, rm, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { writeDataFile, readDataFile, listVersions, deleteDataFile } from './manager.js'
+import { writeDataFile, readDataFile, listVersions, deleteDataFile, deleteAllForScope } from './manager.js'
 import { createDataFileEnvelope } from '../../schemas/data-file.js'
 import type { HierarchyManagerOptions } from './manager.js'
 
@@ -110,6 +110,48 @@ describe('HierarchyManager', () => {
       await writeDataFile(options, makeEnvelope())
       await deleteDataFile(options, scope, collectedAt)
       await expect(readDataFile(options, scope, collectedAt)).rejects.toThrow(/ENOENT/)
+    })
+  })
+
+  describe('deleteAllForScope', () => {
+    it('deletes scope with 2 versions — files and directory removed', async () => {
+      const ts1 = '2026-01-21T08:00:00Z'
+      const ts2 = '2026-01-21T10:00:00Z'
+      await writeDataFile(options, makeEnvelope(scope, ts1))
+      await writeDataFile(options, makeEnvelope(scope, ts2))
+
+      await deleteAllForScope(options, scope)
+
+      // Scope directory should be gone
+      const { stat } = await import('node:fs/promises')
+      const { buildScopeDir } = await import('./paths.js')
+      const scopeDir = buildScopeDir(dataDir, scope)
+      await expect(stat(scopeDir)).rejects.toThrow(/ENOENT/)
+    })
+
+    it('after delete, listVersions returns empty array', async () => {
+      await writeDataFile(options, makeEnvelope(scope, '2026-01-21T08:00:00Z'))
+      await writeDataFile(options, makeEnvelope(scope, '2026-01-21T10:00:00Z'))
+
+      await deleteAllForScope(options, scope)
+
+      const versions = await listVersions(options, scope)
+      expect(versions).toEqual([])
+    })
+
+    it('deleting nonexistent scope does not throw (idempotent)', async () => {
+      await expect(deleteAllForScope(options, 'nonexistent.scope')).resolves.toBeUndefined()
+    })
+
+    it('deletes scope with nested subcategory — entire subtree removed', async () => {
+      const nestedScope = 'chatgpt.conversations.shared'
+      await writeDataFile(options, makeEnvelope(nestedScope, '2026-01-21T08:00:00Z'))
+      await writeDataFile(options, makeEnvelope(nestedScope, '2026-01-21T10:00:00Z'))
+
+      await deleteAllForScope(options, nestedScope)
+
+      const versions = await listVersions(options, nestedScope)
+      expect(versions).toEqual([])
     })
   })
 })

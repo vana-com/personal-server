@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile, readdir, unlink, rename, stat } from 'node:fs/promises'
+import { mkdir, readFile, writeFile, readdir, unlink, rename, stat, rm } from 'node:fs/promises'
 import { dirname, relative } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { DataFileEnvelope } from '../../schemas/data-file.js'
@@ -81,4 +81,16 @@ export async function deleteDataFile(
 ): Promise<void> {
   const filePath = buildDataFilePath(options.dataDir, scope, collectedAt)
   await unlink(filePath)
+}
+
+/**
+ * Delete all files for a scope by removing the scope directory recursively.
+ * No-op if directory doesn't exist.
+ */
+export async function deleteAllForScope(
+  options: HierarchyManagerOptions,
+  scope: string,
+): Promise<void> {
+  const scopeDir = buildScopeDir(options.dataDir, scope)
+  await rm(scopeDir, { recursive: true, force: true })
 }
