@@ -178,7 +178,7 @@ Layer 5 (final):
   - All fields have defaults so empty `{}` is valid
 
 #### Task 2.2: Config loader + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/config/defaults.ts`, `packages/core/src/config/loader.ts`, `packages/core/src/config/loader.test.ts`
 - **Deps:** 2.1
 - **defaults.ts:** Export `DEFAULT_CONFIG_DIR` (`~/.vana`), `DEFAULT_CONFIG_PATH` (`~/.vana/server.json`)

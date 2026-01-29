@@ -1,7 +1,9 @@
 {
   "name": "personal-server-ts",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "tsc --build",
     "clean": "tsc --build --clean",
@@ -13,8 +15,9 @@
     "node": ">=20.0.0"
   },
   "devDependencies": {
+    "@types/node": "^25.1.0",
+    "esbuild": "^0.24.0",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0",
-    "esbuild": "^0.24.0"
+    "vitest": "^3.0.0"
   }
 }
