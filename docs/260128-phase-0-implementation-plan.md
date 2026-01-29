@@ -49,7 +49,7 @@ Layer 5 (final):
 ### Layer 0: Root Project Setup
 
 #### Task 0.1: Root package.json
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `package.json`
 - **Deps:** none
 - **Spec:**
@@ -76,7 +76,7 @@ Layer 5 (final):
 - **Done when:** File exists, has `workspaces: ["packages/*"]`, has build/test/lint scripts
 
 #### Task 0.2: Root tsconfig.json
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `tsconfig.json`
 - **Deps:** none
 - **Spec:**
@@ -108,14 +108,14 @@ Layer 5 (final):
 - **Done when:** References all 3 packages, `strict: true`, `composite: true`, `ES2022` + `Node16`
 
 #### Task 0.3: Git config files
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `.gitignore`, `.nvmrc`
 - **Deps:** none
 - **`.gitignore`:** `node_modules/`, `dist/`, `*.tsbuildinfo`, `.DS_Store`, `coverage/`, `.env`, `*.log`
 - **`.nvmrc`:** `20`
 
 #### Task 0.4: Vitest config
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `vitest.config.ts`
 - **Deps:** none
 - **Spec:**
@@ -139,21 +139,21 @@ Layer 5 (final):
 ### Layer 1: Package Scaffolds
 
 #### Task 1.1: Core package scaffold
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/package.json`, `packages/core/tsconfig.json`
 - **Deps:** 0.1, 0.2
 - **package.json:** name `@personal-server/core`, `"type": "module"`, exports map for `./config`, `./logger`, `./errors`, `./schemas` subpaths. Deps: `pino ^9`, `pino-pretty ^13`, `zod ^3.24`
 - **tsconfig.json:** extends `../../tsconfig.json`, `outDir: "dist"`, `rootDir: "src"`, `composite: true`. Exclude `src/**/*.test.ts`
 
 #### Task 1.2: Server package scaffold
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/package.json`, `packages/server/tsconfig.json`
 - **Deps:** 0.1, 0.2
 - **package.json:** name `@personal-server/server`, `"type": "module"`. Deps: `@personal-server/core *`, `hono ^4.7`, `@hono/node-server ^1.14`. Scripts: `start`, `dev`
 - **tsconfig.json:** extends root, references `../core`
 
 #### Task 1.3: CLI package scaffold (placeholder)
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/cli/package.json`, `packages/cli/tsconfig.json`, `packages/cli/src/index.ts`
 - **Deps:** 0.1, 0.2
 - **package.json:** name `@personal-server/cli`, `"type": "module"`. Deps: `@personal-server/core *`, `@personal-server/server *`
@@ -165,7 +165,7 @@ Layer 5 (final):
 ### Layer 2: Core Module Implementation
 
 #### Task 2.1: Zod config schema
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/schemas/server-config.ts`
 - **Deps:** 1.1
 - **Spec:** Export `ServerConfigSchema` (Zod object) and `ServerConfig` type. Fields:
@@ -178,7 +178,7 @@ Layer 5 (final):
   - All fields have defaults so empty `{}` is valid
 
 #### Task 2.2: Config loader + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/config/defaults.ts`, `packages/core/src/config/loader.ts`, `packages/core/src/config/loader.test.ts`
 - **Deps:** 2.1
 - **defaults.ts:** Export `DEFAULT_CONFIG_DIR` (`~/.vana`), `DEFAULT_CONFIG_PATH` (`~/.vana/server.json`)
@@ -193,7 +193,7 @@ Layer 5 (final):
 - **Verify:** `npx vitest run packages/core/src/config/`
 
 #### Task 2.3: Logger setup + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/logger/index.ts`, `packages/core/src/logger/index.test.ts`
 - **Deps:** 2.1 (for LoggingConfig type)
 - **index.ts:** `createLogger(config: LoggingConfig): Logger` — pino instance, pretty when `config.pretty || NODE_ENV !== 'production'`
@@ -205,7 +205,7 @@ Layer 5 (final):
 - **Verify:** `npx vitest run packages/core/src/logger/`
 
 #### Task 2.4: Error catalog + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/errors/catalog.ts`, `packages/core/src/errors/catalog.test.ts`
 - **Deps:** 1.1
 - **catalog.ts:** `ProtocolError` base class (code, errorCode, message, details, toJSON). 10 subclasses:
@@ -225,7 +225,7 @@ Layer 5 (final):
 ### Layer 3: Server Implementation
 
 #### Task 3.1: Health route + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/routes/health.ts`, `packages/server/src/routes/health.test.ts`
 - **Deps:** 2.4
 - **health.ts:** `healthRoute(deps: { version, startedAt })` returns Hono sub-app. `GET /health` → `{ status: "healthy", version, uptime }` (uptime in seconds)
@@ -237,7 +237,7 @@ Layer 5 (final):
 - **Verify:** `npx vitest run packages/server/src/routes/`
 
 #### Task 3.2: Hono app setup + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/app.ts`, `packages/server/src/app.test.ts`
 - **Deps:** 3.1, 2.4
 - **app.ts:** `createApp(deps: { logger, version, startedAt })` returns Hono app. Mounts health route. Global error handler: ProtocolError → JSON with correct status; other errors → 500 INTERNAL_ERROR.
@@ -249,7 +249,7 @@ Layer 5 (final):
 - **Verify:** `npx vitest run packages/server/src/app.test.ts`
 
 #### Task 3.3: Composition root + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/bootstrap.ts`, `packages/server/src/bootstrap.test.ts`
 - **Deps:** 2.2, 2.3, 3.2
 - **bootstrap.ts:** `createServer(config: ServerConfig): ServerContext` — wires logger, app, config, startedAt. Returns `{ app, logger, config, startedAt }`.
@@ -265,7 +265,7 @@ Layer 5 (final):
 ### Layer 4: Entry Point
 
 #### Task 4.1: Server entry point + lifecycle
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/index.ts`
 - **Deps:** 3.3
 - **Spec:** Loads config via `loadConfig()`, creates server via `createServer()`, starts HTTP via `@hono/node-server` `serve()`. Registers SIGTERM/SIGINT handlers for graceful shutdown (5s drain timeout). Logs "Server started" with port/version on start, "Server stopped" on shutdown.
@@ -276,7 +276,7 @@ Layer 5 (final):
 ### Layer 5: Final Verification
 
 #### Task 5.1: Install, build, test
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Deps:** all previous
 - **Steps:**
   1. `npm install` — succeeds
