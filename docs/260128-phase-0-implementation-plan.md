@@ -225,7 +225,7 @@ Layer 5 (final):
 ### Layer 3: Server Implementation
 
 #### Task 3.1: Health route + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/routes/health.ts`, `packages/server/src/routes/health.test.ts`
 - **Deps:** 2.4
 - **health.ts:** `healthRoute(deps: { version, startedAt })` returns Hono sub-app. `GET /health` → `{ status: "healthy", version, uptime }` (uptime in seconds)
