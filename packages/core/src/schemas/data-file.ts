@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const DataFileEnvelopeSchema = z.object({
+  $schema: z.string().url().optional(),
   version: z.literal('1.0'),
   scope: z.string(),
   collectedAt: z.string().datetime(),
@@ -13,8 +14,10 @@ export function createDataFileEnvelope(
   scope: string,
   collectedAt: string,
   data: Record<string, unknown>,
+  schemaUrl?: string,
 ): DataFileEnvelope {
   return {
+    ...(schemaUrl !== undefined && { $schema: schemaUrl }),
     version: '1.0',
     scope,
     collectedAt,

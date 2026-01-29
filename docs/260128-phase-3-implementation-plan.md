@@ -360,7 +360,7 @@ Layer 5 (final):
 ---
 
 #### Task 2.3: DataFileEnvelope — add optional $schema field
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/schemas/data-file.ts` (modify), `packages/core/src/schemas/data-file.test.ts` (modify)
 - **Deps:** Phase 2 (DataFileEnvelopeSchema exists)
 - **Spec:**

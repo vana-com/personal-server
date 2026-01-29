@@ -29,6 +29,14 @@ describe('DataFileEnvelopeSchema', () => {
       DataFileEnvelopeSchema.parse({ ...validEnvelope, collectedAt: 'not-a-date' }),
     ).toThrow()
   })
+
+  it('parses an envelope with optional $schema field', () => {
+    const result = DataFileEnvelopeSchema.parse({
+      $schema: 'https://ipfs.io/ipfs/QmTest123',
+      ...validEnvelope,
+    })
+    expect(result.$schema).toBe('https://ipfs.io/ipfs/QmTest123')
+  })
 })
 
 describe('createDataFileEnvelope', () => {
@@ -44,6 +52,31 @@ describe('createDataFileEnvelope', () => {
       collectedAt: '2026-01-21T10:00:00Z',
       data: { username: 'testuser' },
     })
+  })
+
+  it('includes $schema when schemaUrl is provided', () => {
+    const envelope = createDataFileEnvelope(
+      'instagram.profile',
+      '2026-01-21T10:00:00Z',
+      { username: 'testuser' },
+      'https://ipfs.io/ipfs/QmTest123',
+    )
+    expect(envelope).toEqual({
+      $schema: 'https://ipfs.io/ipfs/QmTest123',
+      version: '1.0',
+      scope: 'instagram.profile',
+      collectedAt: '2026-01-21T10:00:00Z',
+      data: { username: 'testuser' },
+    })
+  })
+
+  it('omits $schema key when schemaUrl is not provided', () => {
+    const envelope = createDataFileEnvelope(
+      'instagram.profile',
+      '2026-01-21T10:00:00Z',
+      { username: 'testuser' },
+    )
+    expect(envelope).not.toHaveProperty('$schema')
   })
 })
 
