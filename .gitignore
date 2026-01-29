@@ -5,11 +5,8 @@ dist/
 coverage/
 .env
 *.log
-*.config.js
-*.config.js.map
-*.config.d.ts
-*.config.d.ts.map
-*.test.js
-*.test.js.map
-*.test.d.ts
-*.test.d.ts.map
+# Build artifacts that may land in src/ (should go to dist/)
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
