@@ -193,7 +193,7 @@ Layer 5 (final):
 - **Verify:** `npx vitest run packages/core/src/config/`
 
 #### Task 2.3: Logger setup + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/logger/index.ts`, `packages/core/src/logger/index.test.ts`
 - **Deps:** 2.1 (for LoggingConfig type)
 - **index.ts:** `createLogger(config: LoggingConfig): Logger` — pino instance, pretty when `config.pretty || NODE_ENV !== 'production'`
