@@ -404,7 +404,7 @@ Layer 5 (final):
 ---
 
 #### Task 1.2: Grant verification (local)
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/grants/verify.ts`, `packages/core/src/grants/verify.test.ts`, `packages/core/src/grants/index.ts`
 - **Deps:** 0.1, 0.2, 0.3
 - **Spec:**
