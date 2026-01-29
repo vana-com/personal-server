@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { mkdtemp, rm, readFile } from 'node:fs/promises'
+import { mkdtemp, rm, readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { pino } from 'pino'
 import { initializeDatabase, createIndexManager } from '@personal-server/core/storage/index'
 import type { IndexManager } from '@personal-server/core/storage/index'
 import type { HierarchyManagerOptions } from '@personal-server/core/storage/hierarchy'
-import { buildDataFilePath } from '@personal-server/core/storage/hierarchy'
+import { buildDataFilePath, buildScopeDir } from '@personal-server/core/storage/hierarchy'
 import type { GatewayClient } from '@personal-server/core/gateway'
 import type { GatewayGrantResponse } from '@personal-server/core/grants'
 import type { AccessLogWriter } from '@personal-server/core/logging/access-log'
@@ -682,5 +682,148 @@ describe('GET /v1/data/:scope', () => {
     const json = await res.json()
     expect(json.data).toEqual({ version: 1 })
     expect(json.collectedAt).toBe(json1.collectedAt)
+  })
+})
+
+describe('DELETE /v1/data/:scope', () => {
+  let dataDir: string
+  let hierarchyOptions: HierarchyManagerOptions
+  let indexManager: IndexManager
+  let cleanup: () => void
+
+  function createApp(overrides: Partial<DataRouteDeps> = {}) {
+    return dataRoutes({
+      indexManager,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: '0xOwnerAddress' as `0x${string}`,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      ...overrides,
+    })
+  }
+
+  async function ingestData(
+    scope: string,
+    data: Record<string, unknown>,
+    app: ReturnType<typeof dataRoutes>,
+  ) {
+    const res = await app.request(`/${scope}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    return res.json()
+  }
+
+  beforeEach(async () => {
+    dataDir = await mkdtemp(join(tmpdir(), 'data-route-delete-test-'))
+    hierarchyOptions = { dataDir }
+
+    const db = initializeDatabase(':memory:')
+    indexManager = createIndexManager(db)
+
+    cleanup = () => {
+      indexManager.close()
+    }
+  })
+
+  afterEach(async () => {
+    cleanup()
+    await rm(dataDir, { recursive: true, force: true })
+  })
+
+  it('returns 204 and removes files + index for existing scope', async () => {
+    const app = createApp()
+
+    // Ingest 2 versions
+    await ingestData('instagram.profile', { version: 1 }, app)
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    await ingestData('instagram.profile', { version: 2 }, app)
+
+    // Verify data exists
+    expect(indexManager.countByScope('instagram.profile')).toBe(2)
+
+    // DELETE
+    const res = await app.request('/instagram.profile', { method: 'DELETE' })
+    expect(res.status).toBe(204)
+
+    // Index should be empty
+    expect(indexManager.countByScope('instagram.profile')).toBe(0)
+
+    // Scope directory should not exist
+    const scopeDir = buildScopeDir(dataDir, 'instagram.profile')
+    await expect(readdir(scopeDir)).rejects.toThrow()
+  })
+
+  it('returns 204 for nonexistent scope (idempotent)', async () => {
+    const app = createApp()
+
+    const res = await app.request('/instagram.profile', { method: 'DELETE' })
+    expect(res.status).toBe(204)
+  })
+
+  it('returns 400 for invalid scope', async () => {
+    const app = createApp()
+
+    const res = await app.request('/bad', { method: 'DELETE' })
+    expect(res.status).toBe(400)
+
+    const json = await res.json()
+    expect(json.error).toBe('INVALID_SCOPE')
+  })
+
+  it('after DELETE, GET same scope returns 404', async () => {
+    const grant = makeGrant()
+    const gateway = createMockGateway({
+      getGrant: vi.fn().mockResolvedValue(grant),
+    })
+    const app = createApp({ gateway })
+
+    // Ingest data
+    await ingestData('instagram.profile', { username: 'test' }, app)
+
+    // DELETE
+    const deleteRes = await app.request('/instagram.profile', { method: 'DELETE' })
+    expect(deleteRes.status).toBe(204)
+
+    // GET should be 404
+    const uri = '/instagram.profile'
+    const header = await buildWeb3SignedHeader({
+      wallet,
+      aud: SERVER_ORIGIN,
+      method: 'GET',
+      uri,
+      grantId: 'grant-123',
+    })
+    const getRes = await app.request('/instagram.profile', {
+      headers: { Authorization: header },
+    })
+    expect(getRes.status).toBe(404)
+  })
+
+  it('after DELETE, can re-create with POST', async () => {
+    const app = createApp()
+
+    // Ingest, delete, re-ingest
+    await ingestData('instagram.profile', { version: 1 }, app)
+
+    const deleteRes = await app.request('/instagram.profile', { method: 'DELETE' })
+    expect(deleteRes.status).toBe(204)
+
+    const res = await app.request('/instagram.profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: 2 }),
+    })
+    expect(res.status).toBe(201)
+
+    const json = await res.json()
+    expect(json.scope).toBe('instagram.profile')
+    expect(json.status).toBe('stored')
+
+    // Index should have 1 entry
+    expect(indexManager.countByScope('instagram.profile')).toBe(1)
   })
 })

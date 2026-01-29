@@ -405,7 +405,7 @@ Layer 5 (final):
 ### Layer 3: Routes
 
 #### Task 3.1: DELETE /v1/data/:scope route
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/routes/data.ts` (modify), `packages/server/src/routes/data.test.ts` (modify)
 - **Deps:** 1.2, 1.3, 2.1
 - **Spec:**

@@ -5,6 +5,7 @@ import {
   generateCollectedAt,
   writeDataFile,
   readDataFile,
+  deleteAllForScope,
 } from '@personal-server/core/storage/hierarchy'
 import type { HierarchyManagerOptions } from '@personal-server/core/storage/hierarchy'
 import type { IndexManager } from '@personal-server/core/storage/index'
@@ -203,6 +204,34 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
 
     // 7. Return 201
     return c.json({ scope, collectedAt, status: 'stored' as const }, 201)
+  })
+
+  // DELETE /v1/data/:scope — delete all versions for a scope (owner auth wired in Task 4.1)
+  app.delete('/:scope', async (c) => {
+    // 1. Validate scope
+    const scopeParam = c.req.param('scope')
+    const scopeResult = ScopeSchema.safeParse(scopeParam)
+    if (!scopeResult.success) {
+      return c.json(
+        {
+          error: 'INVALID_SCOPE',
+          message: scopeResult.error.issues[0].message,
+        },
+        400,
+      )
+    }
+    const scope = scopeResult.data
+
+    // 2. Delete from index
+    const deletedCount = deps.indexManager.deleteByScope(scope)
+
+    // 3. Delete from filesystem
+    await deleteAllForScope(deps.hierarchyOptions, scope)
+
+    deps.logger.info({ scope, deletedCount }, 'Scope deleted')
+
+    // 4. Return 204
+    return c.body(null, 204)
   })
 
   return app
