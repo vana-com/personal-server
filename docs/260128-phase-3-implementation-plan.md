@@ -505,7 +505,7 @@ Layer 5 (final):
 ---
 
 #### Task 3.4: Sync stub routes
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/routes/sync.ts` (new), `packages/server/src/routes/sync.test.ts` (new)
 - **Deps:** 1.2
 - **Spec:**
