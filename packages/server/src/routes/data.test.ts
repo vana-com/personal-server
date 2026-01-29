@@ -25,6 +25,13 @@ function createMockGateway(overrides: Partial<GatewayClient> = {}): GatewayClien
     isRegisteredBuilder: vi.fn().mockResolvedValue(true),
     getBuilder: vi.fn().mockResolvedValue(null),
     getGrant: vi.fn().mockResolvedValue(null),
+    listGrantsByUser: vi.fn().mockResolvedValue([]),
+    getSchemaForScope: vi.fn().mockResolvedValue({
+      schemaId: 'schema-1',
+      scope: 'instagram.profile',
+      url: 'https://ipfs.io/ipfs/QmTestSchema',
+    }),
+    getServer: vi.fn().mockResolvedValue(null),
     ...overrides,
   }
 }
@@ -187,6 +194,82 @@ describe('POST /v1/data/:scope', () => {
 
     const json = await res.json()
     expect(json.error).toBe('INVALID_BODY')
+  })
+
+  it('includes $schema field in envelope when schema found', async () => {
+    const res = await post('instagram.profile', { username: 'test' })
+    expect(res.status).toBe(201)
+
+    const json = await res.json()
+    const filePath = buildDataFilePath(dataDir, 'instagram.profile', json.collectedAt)
+    const content = JSON.parse(await readFile(filePath, 'utf-8'))
+    expect(content.$schema).toBe('https://ipfs.io/ipfs/QmTestSchema')
+  })
+
+  it('returns 400 NO_SCHEMA when no schema registered for scope', async () => {
+    const db2 = initializeDatabase(':memory:')
+    const indexManager2 = createIndexManager(db2)
+    const gateway = createMockGateway({
+      getSchemaForScope: vi.fn().mockResolvedValue(null),
+    })
+    const localApp = dataRoutes({
+      indexManager: indexManager2,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: '0xOwnerAddress' as `0x${string}`,
+      gateway,
+      accessLogWriter: createMockAccessLogWriter(),
+    })
+
+    const res = await localApp.request('/instagram.profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'test' }),
+    })
+    expect(res.status).toBe(400)
+
+    const json = await res.json()
+    expect(json.error).toBe('NO_SCHEMA')
+
+    indexManager2.close()
+  })
+
+  it('returns 502 GATEWAY_ERROR when gateway schema lookup fails', async () => {
+    const db2 = initializeDatabase(':memory:')
+    const indexManager2 = createIndexManager(db2)
+    const gateway = createMockGateway({
+      getSchemaForScope: vi.fn().mockRejectedValue(new Error('Gateway error: 500 Internal Server Error')),
+    })
+    const localApp = dataRoutes({
+      indexManager: indexManager2,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: '0xOwnerAddress' as `0x${string}`,
+      gateway,
+      accessLogWriter: createMockAccessLogWriter(),
+    })
+
+    const res = await localApp.request('/instagram.profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'test' }),
+    })
+    expect(res.status).toBe(502)
+
+    const json = await res.json()
+    expect(json.error).toBe('GATEWAY_ERROR')
+
+    indexManager2.close()
+  })
+
+  it('existing POST tests pass with schema mock returning schema', async () => {
+    // Verify the default mock gateway returns a schema
+    const gateway = createMockGateway()
+    const schema = await gateway.getSchemaForScope('instagram.profile')
+    expect(schema).toBeDefined()
+    expect(schema!.url).toBe('https://ipfs.io/ipfs/QmTestSchema')
   })
 
   it('creates two separate versions for same scope', async () => {

@@ -84,7 +84,7 @@ describe('createServer', () => {
     ctx.cleanup()
   })
 
-  it('app responds to POST /v1/data/test.scope with 201', async () => {
+  it('POST /v1/data/test.scope returns 400 NO_SCHEMA or 502 GATEWAY_ERROR (schema enforcement)', async () => {
     const config = makeDefaultConfig()
     const ctx = createServer(config, { configDir: tempDir })
 
@@ -93,11 +93,11 @@ describe('createServer', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ hello: 'world' }),
     })
-    expect(res.status).toBe(201)
+    // Schema enforcement: gateway returns no schema (400) or gateway unreachable (502)
+    expect([400, 502]).toContain(res.status)
 
     const body = await res.json()
-    expect(body.scope).toBe('test.scope')
-    expect(body.status).toBe('stored')
+    expect(['NO_SCHEMA', 'GATEWAY_ERROR']).toContain(body.error)
     ctx.cleanup()
   })
 
@@ -154,7 +154,7 @@ describe('createServer', () => {
     ctx.cleanup()
   })
 
-  it('POST /v1/data/:scope still works without auth (Phase 1 preserved)', async () => {
+  it('POST /v1/data/:scope does not require auth (schema enforcement may reject)', async () => {
     const config = makeDefaultConfig()
     const ctx = createServer(config, { configDir: tempDir })
 
@@ -163,11 +163,9 @@ describe('createServer', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: 'value' }),
     })
-    expect(res.status).toBe(201)
-
-    const body = await res.json()
-    expect(body.scope).toBe('test.scope')
-    expect(body.status).toBe('stored')
+    // No auth required: does NOT return 401. Returns 400 (NO_SCHEMA) or 502 (gateway error).
+    expect(res.status).not.toBe(401)
+    expect([400, 502]).toContain(res.status)
     ctx.cleanup()
   })
 

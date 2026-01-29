@@ -561,7 +561,7 @@ Layer 5 (final):
 ---
 
 #### Task 3.5: POST /v1/data/:scope — schema enforcement
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/routes/data.ts` (modify POST handler), `packages/server/src/routes/data.test.ts` (modify)
 - **Deps:** 1.1, 2.3
 - **Spec:**

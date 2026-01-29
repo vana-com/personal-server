@@ -182,16 +182,35 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
       )
     }
 
-    // 3. Generate collectedAt
+    // 3. Look up schema via Gateway (strict: reject if not found)
+    let schemaUrl: string | undefined
+    try {
+      const schema = await deps.gateway.getSchemaForScope(scope)
+      if (!schema) {
+        return c.json(
+          { error: 'NO_SCHEMA', message: `No schema registered for scope: ${scope}` },
+          400,
+        )
+      }
+      schemaUrl = schema.url
+    } catch (err) {
+      deps.logger.error({ err, scope }, 'Gateway schema lookup failed')
+      return c.json(
+        { error: 'GATEWAY_ERROR', message: 'Failed to look up schema for scope' },
+        502,
+      )
+    }
+
+    // 4. Generate collectedAt
     const collectedAt = generateCollectedAt()
 
-    // 4. Construct envelope
-    const envelope = createDataFileEnvelope(scope, collectedAt, body as Record<string, unknown>)
+    // 5. Construct envelope
+    const envelope = createDataFileEnvelope(scope, collectedAt, body as Record<string, unknown>, schemaUrl)
 
-    // 5. Write atomically
+    // 6. Write atomically
     const writeResult = await writeDataFile(deps.hierarchyOptions, envelope)
 
-    // 6. Insert into index
+    // 7. Insert into index
     deps.indexManager.insert({
       fileId: null,
       path: writeResult.relativePath,
@@ -202,7 +221,7 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
 
     deps.logger.info({ scope, collectedAt, path: writeResult.relativePath }, 'Data file ingested')
 
-    // 7. Return 201
+    // 8. Return 201
     return c.json({ scope, collectedAt, status: 'stored' as const }, 201)
   })
 
