@@ -215,7 +215,7 @@ Layer 5 (final):
 ---
 
 #### Task 1.2: Owner-check middleware
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/middleware/owner-check.ts`, `packages/server/src/middleware/owner-check.test.ts`
 - **Deps:** Phase 2 (web3-auth middleware sets c.get('auth'))
 - **Spec:**
