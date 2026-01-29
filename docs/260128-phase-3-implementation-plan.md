@@ -161,7 +161,7 @@ Layer 5 (final):
 ### Layer 1: Gateway + Middleware + Index Extensions
 
 #### Task 1.1: GatewayClient expansion
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/gateway/client.ts` (modify), `packages/core/src/gateway/client.test.ts` (modify)
 - **Deps:** Phase 2 GatewayClient (client.ts exists with isRegisteredBuilder, getBuilder, getGrant)
 - **Spec:**
