@@ -303,7 +303,7 @@ Layer 4 (final):
 ---
 
 #### Task 2.2: Index manager (CRUD on SQLite)
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/storage/index/manager.ts`, `packages/core/src/storage/index/manager.test.ts`, `packages/core/src/storage/index/index.ts`
 - **Deps:** 1.2
 - **Spec:**
