@@ -345,6 +345,154 @@ describe('GET /v1/data (list scopes)', () => {
   })
 })
 
+describe('GET /v1/data/:scope/versions', () => {
+  let dataDir: string
+  let hierarchyOptions: HierarchyManagerOptions
+  let indexManager: IndexManager
+  let cleanup: () => void
+
+  function createApp(overrides: Partial<DataRouteDeps> = {}) {
+    return dataRoutes({
+      indexManager,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: '0xOwnerAddress' as `0x${string}`,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      ...overrides,
+    })
+  }
+
+  async function ingestData(scope: string, data: Record<string, unknown>, app: ReturnType<typeof dataRoutes>) {
+    const res = await app.request(`/${scope}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    return res.json()
+  }
+
+  async function getVersionsWithAuth(
+    app: ReturnType<typeof dataRoutes>,
+    scope: string,
+    query = '',
+  ) {
+    const uri = `/${scope}/versions`
+    const header = await buildWeb3SignedHeader({
+      wallet,
+      aud: SERVER_ORIGIN,
+      method: 'GET',
+      uri,
+    })
+    const url = query ? `/${scope}/versions${query}` : `/${scope}/versions`
+    return app.request(url, {
+      headers: { Authorization: header },
+    })
+  }
+
+  beforeEach(async () => {
+    dataDir = await mkdtemp(join(tmpdir(), 'data-route-versions-test-'))
+    hierarchyOptions = { dataDir }
+
+    const db = initializeDatabase(':memory:')
+    indexManager = createIndexManager(db)
+
+    cleanup = () => {
+      indexManager.close()
+    }
+  })
+
+  afterEach(async () => {
+    cleanup()
+    await rm(dataDir, { recursive: true, force: true })
+  })
+
+  it('returns 200 with versions array for valid auth', async () => {
+    const app = createApp()
+    await ingestData('instagram.profile', { version: 1 }, app)
+
+    const res = await getVersionsWithAuth(app, 'instagram.profile')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.scope).toBe('instagram.profile')
+    expect(json.versions).toHaveLength(1)
+    expect(json.versions[0]).toHaveProperty('fileId')
+    expect(json.versions[0]).toHaveProperty('collectedAt')
+    expect(json.total).toBe(1)
+  })
+
+  it('returns versions ordered by collectedAt DESC', async () => {
+    const app = createApp()
+    const json1 = await ingestData('instagram.profile', { version: 1 }, app)
+
+    // Wait to ensure different timestamps
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+
+    const json2 = await ingestData('instagram.profile', { version: 2 }, app)
+
+    const res = await getVersionsWithAuth(app, 'instagram.profile')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.versions).toHaveLength(2)
+    expect(json.total).toBe(2)
+    // Most recent first
+    expect(json.versions[0].collectedAt).toBe(json2.collectedAt)
+    expect(json.versions[1].collectedAt).toBe(json1.collectedAt)
+  })
+
+  it('supports limit and offset pagination', async () => {
+    const app = createApp()
+    await ingestData('instagram.profile', { version: 1 }, app)
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    const json2 = await ingestData('instagram.profile', { version: 2 }, app)
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    await ingestData('instagram.profile', { version: 3 }, app)
+
+    // Get middle item: offset=1, limit=1 (skip latest, get second)
+    const res = await getVersionsWithAuth(app, 'instagram.profile', '?limit=1&offset=1')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.versions).toHaveLength(1)
+    expect(json.versions[0].collectedAt).toBe(json2.collectedAt)
+    expect(json.total).toBe(3)
+    expect(json.limit).toBe(1)
+    expect(json.offset).toBe(1)
+  })
+
+  it('returns 400 for invalid scope', async () => {
+    const app = createApp()
+
+    const uri = '/bad/versions'
+    const header = await buildWeb3SignedHeader({
+      wallet,
+      aud: SERVER_ORIGIN,
+      method: 'GET',
+      uri,
+    })
+    const res = await app.request('/bad/versions', {
+      headers: { Authorization: header },
+    })
+
+    expect(res.status).toBe(400)
+    const json = await res.json()
+    expect(json.error).toBe('INVALID_SCOPE')
+  })
+
+  it('returns 401 without authorization header', async () => {
+    const app = createApp()
+
+    const res = await app.request('/instagram.profile/versions')
+
+    expect(res.status).toBe(401)
+    const json = await res.json()
+    expect(json.error.errorCode).toBe('MISSING_AUTH')
+  })
+})
+
 describe('GET /v1/data/:scope', () => {
   let dataDir: string
   let hierarchyOptions: HierarchyManagerOptions

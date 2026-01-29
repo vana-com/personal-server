@@ -661,7 +661,7 @@ Layer 5 (final):
 ---
 
 #### Task 3.3: GET /v1/data/:scope/versions
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/routes/data.ts` (modify), `packages/server/src/routes/data.test.ts` (modify)
 - **Deps:** 2.1, 2.2, 0.5
 - **Spec:**

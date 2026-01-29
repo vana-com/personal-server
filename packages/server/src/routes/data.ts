@@ -39,6 +39,40 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
   })
   const accessLog = createAccessLogMiddleware(deps.accessLogWriter)
 
+  // GET /v1/data/:scope/versions — list versions for a scope (requires auth + builder, no grant)
+  app.get('/:scope/versions', web3Auth, builderCheck, async (c) => {
+    // 1. Validate scope
+    const scopeParam = c.req.param('scope')
+    const scopeResult = ScopeSchema.safeParse(scopeParam)
+    if (!scopeResult.success) {
+      return c.json(
+        {
+          error: 'INVALID_SCOPE',
+          message: scopeResult.error.issues[0].message,
+        },
+        400,
+      )
+    }
+    const scope = scopeResult.data
+
+    // 2. Parse pagination
+    const limit = c.req.query('limit') ? parseInt(c.req.query('limit')!, 10) : 20
+    const offset = c.req.query('offset') ? parseInt(c.req.query('offset')!, 10) : 0
+
+    // 3. Query index
+    const entries = deps.indexManager.findByScope({ scope, limit, offset })
+    const total = deps.indexManager.countByScope(scope)
+
+    // 4. Return response
+    return c.json({
+      scope,
+      versions: entries.map((e) => ({ fileId: e.fileId, collectedAt: e.collectedAt })),
+      total,
+      limit,
+      offset,
+    })
+  })
+
   // GET /v1/data — list distinct scopes (requires auth + builder, no grant)
   app.get('/', web3Auth, builderCheck, async (c) => {
     const scopePrefix = c.req.query('scopePrefix')
