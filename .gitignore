@@ -9,3 +9,7 @@ coverage/
 *.config.js.map
 *.config.d.ts
 *.config.d.ts.map
+*.test.js
+*.test.js.map
+*.test.d.ts
+*.test.d.ts.map
