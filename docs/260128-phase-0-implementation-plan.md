@@ -146,7 +146,7 @@ Layer 5 (final):
 - **tsconfig.json:** extends `../../tsconfig.json`, `outDir: "dist"`, `rootDir: "src"`, `composite: true`. Exclude `src/**/*.test.ts`
 
 #### Task 1.2: Server package scaffold
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/package.json`, `packages/server/tsconfig.json`
 - **Deps:** 0.1, 0.2
 - **package.json:** name `@personal-server/server`, `"type": "module"`. Deps: `@personal-server/core *`, `hono ^4.7`, `@hono/node-server ^1.14`. Scripts: `start`, `dev`

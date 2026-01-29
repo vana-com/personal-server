@@ -1,0 +1,21 @@
+{
+  "name": "@personal-server/server",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "start": "node dist/index.js",
+    "dev": "node --watch dist/index.js"
+  },
+  "dependencies": {
+    "@personal-server/core": "*",
+    "hono": "^4.7.0",
+    "@hono/node-server": "^1.14.0"
+  }
+}
