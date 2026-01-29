@@ -205,7 +205,7 @@ Layer 5 (final):
 - **Verify:** `npx vitest run packages/core/src/logger/`
 
 #### Task 2.4: Error catalog + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/errors/catalog.ts`, `packages/core/src/errors/catalog.test.ts`
 - **Deps:** 1.1
 - **catalog.ts:** `ProtocolError` base class (code, errorCode, message, details, toJSON). 10 subclasses:
