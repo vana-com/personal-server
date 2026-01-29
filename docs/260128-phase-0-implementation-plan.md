@@ -165,7 +165,7 @@ Layer 5 (final):
 ### Layer 2: Core Module Implementation
 
 #### Task 2.1: Zod config schema
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/schemas/server-config.ts`
 - **Deps:** 1.1
 - **Spec:** Export `ServerConfigSchema` (Zod object) and `ServerConfig` type. Fields:
