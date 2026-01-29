@@ -249,7 +249,7 @@ Layer 5 (final):
 - **Verify:** `npx vitest run packages/server/src/app.test.ts`
 
 #### Task 3.3: Composition root + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/bootstrap.ts`, `packages/server/src/bootstrap.test.ts`
 - **Deps:** 2.2, 2.3, 3.2
 - **bootstrap.ts:** `createServer(config: ServerConfig): ServerContext` — wires logger, app, config, startedAt. Returns `{ app, logger, config, startedAt }`.
