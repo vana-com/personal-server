@@ -79,7 +79,7 @@ Layer 4 (final):
 ---
 
 #### Task 0.2: Scope parsing + validation
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/scopes/parse.ts`, `packages/core/src/scopes/parse.test.ts`
 - **Deps:** Phase 0 complete
 - **Spec:**
