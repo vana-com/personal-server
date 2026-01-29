@@ -5,3 +5,7 @@ dist/
 coverage/
 .env
 *.log
+*.config.js
+*.config.js.map
+*.config.d.ts
+*.config.d.ts.map
