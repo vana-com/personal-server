@@ -485,7 +485,7 @@ Layer 5 (final):
 ### Layer 2: Server Middleware
 
 #### Task 2.1: Web3Auth middleware
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/middleware/web3-auth.ts`, `packages/server/src/middleware/web3-auth.test.ts`
 - **Deps:** 1.1
 - **Spec:**
