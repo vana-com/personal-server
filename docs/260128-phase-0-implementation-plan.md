@@ -237,7 +237,7 @@ Layer 5 (final):
 - **Verify:** `npx vitest run packages/server/src/routes/`
 
 #### Task 3.2: Hono app setup + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/app.ts`, `packages/server/src/app.test.ts`
 - **Deps:** 3.1, 2.4
 - **app.ts:** `createApp(deps: { logger, version, startedAt })` returns Hono app. Mounts health route. Global error handler: ProtocolError → JSON with correct status; other errors → 500 INTERNAL_ERROR.
