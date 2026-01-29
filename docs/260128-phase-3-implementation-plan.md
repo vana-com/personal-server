@@ -318,7 +318,7 @@ Layer 5 (final):
 ---
 
 #### Task 2.2: POST /v1/grants/verify route
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/routes/grants.ts` (new), `packages/server/src/routes/grants.test.ts` (new)
 - **Deps:** Phase 2 (grants/verify.ts, grants/types.ts, eip712.ts)
 - **Spec:**
