@@ -1,15 +1,42 @@
-import { describe, it, expect } from 'vitest'
-import { Hono } from 'hono'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { createApp } from './app.js'
-import { ProtocolError, MissingAuthError } from '@personal-server/core/errors'
+import { MissingAuthError } from '@personal-server/core/errors'
+import {
+  initializeDatabase,
+  createIndexManager,
+  type IndexManager,
+} from '@personal-server/core/storage/index'
 import pino from 'pino'
 
-function makeApp() {
-  const logger = pino({ level: 'silent' })
-  return createApp({ logger, version: '0.0.1', startedAt: new Date() })
-}
-
 describe('createApp', () => {
+  let tempDir: string
+  let indexManager: IndexManager
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'app-test-'))
+    const db = initializeDatabase(':memory:')
+    indexManager = createIndexManager(db)
+  })
+
+  afterEach(async () => {
+    indexManager.close()
+    await rm(tempDir, { recursive: true, force: true })
+  })
+
+  function makeApp() {
+    const logger = pino({ level: 'silent' })
+    return createApp({
+      logger,
+      version: '0.0.1',
+      startedAt: new Date(),
+      indexManager,
+      hierarchyOptions: { dataDir: join(tempDir, 'data') },
+    })
+  }
+
   it('GET /health returns 200', async () => {
     const app = makeApp()
     const res = await app.request('/health')
@@ -21,7 +48,6 @@ describe('createApp', () => {
   it('ProtocolError returns correct status and JSON body', async () => {
     const app = makeApp()
 
-    // Add a test route that throws a ProtocolError
     app.get('/test-protocol-error', () => {
       throw new MissingAuthError({ reason: 'no token' })
     })
