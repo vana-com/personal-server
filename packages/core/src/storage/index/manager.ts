@@ -15,6 +15,8 @@ export interface IndexManager {
   }): { scopes: ScopeSummary[]; total: number }
   findClosestByScope(scope: string, at: string): IndexEntry | undefined
   findByFileId(fileId: string): IndexEntry | undefined
+  /** Deletes all index entries for a scope. Returns count of deleted rows. */
+  deleteByScope(scope: string): number
   close(): void
 }
 
@@ -74,6 +76,10 @@ export function createIndexManager(db: Database.Database): IndexManager {
 
   const findByFileIdStmt = db.prepare<{ file_id: string }>(
     'SELECT * FROM data_files WHERE file_id = @file_id',
+  )
+
+  const deleteByScopeStmt = db.prepare<{ scope: string }>(
+    'DELETE FROM data_files WHERE scope = @scope',
   )
 
   return {
@@ -184,6 +190,11 @@ export function createIndexManager(db: Database.Database): IndexManager {
     findByFileId(fileId) {
       const row = findByFileIdStmt.get({ file_id: fileId }) as RawRow | undefined
       return row ? rowToEntry(row) : undefined
+    },
+
+    deleteByScope(scope) {
+      const result = deleteByScopeStmt.run({ scope })
+      return result.changes
     },
 
     close() {

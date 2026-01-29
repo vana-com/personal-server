@@ -353,6 +353,66 @@ describe('IndexManager', () => {
     expect(notFound).toBeUndefined()
   })
 
+  // --- deleteByScope ---
+
+  it('deleteByScope with entries returns deleted count', () => {
+    manager.insert({
+      fileId: null,
+      path: 'ig/profile/2026-01-01T00-00-00Z.json',
+      scope: 'instagram.profile',
+      collectedAt: '2026-01-01T00:00:00Z',
+      sizeBytes: 100,
+    })
+    manager.insert({
+      fileId: null,
+      path: 'ig/profile/2026-01-02T00-00-00Z.json',
+      scope: 'instagram.profile',
+      collectedAt: '2026-01-02T00:00:00Z',
+      sizeBytes: 200,
+    })
+    manager.insert({
+      fileId: null,
+      path: 'ig/profile/2026-01-03T00-00-00Z.json',
+      scope: 'instagram.profile',
+      collectedAt: '2026-01-03T00:00:00Z',
+      sizeBytes: 300,
+    })
+
+    const deleted = manager.deleteByScope('instagram.profile')
+    expect(deleted).toBe(3)
+  })
+
+  it('deleteByScope for nonexistent scope returns 0', () => {
+    const deleted = manager.deleteByScope('nonexistent.scope')
+    expect(deleted).toBe(0)
+  })
+
+  it('deleteByScope removes entries so findByScope returns empty', () => {
+    manager.insert({
+      fileId: null,
+      path: 'ig/profile/2026-01-01T00-00-00Z.json',
+      scope: 'instagram.profile',
+      collectedAt: '2026-01-01T00:00:00Z',
+      sizeBytes: 100,
+    })
+    manager.insert({
+      fileId: null,
+      path: 'tw/likes/2026-01-01T00-00-00Z.json',
+      scope: 'twitter.likes',
+      collectedAt: '2026-01-01T00:00:00Z',
+      sizeBytes: 150,
+    })
+
+    manager.deleteByScope('instagram.profile')
+
+    const igEntries = manager.findByScope({ scope: 'instagram.profile' })
+    expect(igEntries).toHaveLength(0)
+
+    // Other scope unaffected
+    const twEntries = manager.findByScope({ scope: 'twitter.likes' })
+    expect(twEntries).toHaveLength(1)
+  })
+
   it('deleteByPath returns true when exists, false otherwise', () => {
     manager.insert({
       fileId: null,

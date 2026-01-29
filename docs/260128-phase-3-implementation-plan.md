@@ -249,7 +249,7 @@ Layer 5 (final):
 ---
 
 #### Task 1.3: IndexManager — add deleteByScope()
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/storage/index/manager.ts` (modify), `packages/core/src/storage/index/manager.test.ts` (modify)
 - **Deps:** Phase 2 IndexManager
 - **Spec:**
