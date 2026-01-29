@@ -43,7 +43,7 @@ Layer 4 (final):
 ### Layer 0: Foundation (all parallel)
 
 #### Task 0.1: Update core package.json
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/package.json`
 - **Deps:** Phase 0 complete
 - **Spec:**
