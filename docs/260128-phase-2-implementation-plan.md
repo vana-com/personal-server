@@ -135,7 +135,7 @@ Layer 5 (final):
 ---
 
 #### Task 0.3: Grant types + EIP-712 domain/types constants
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/grants/types.ts`, `packages/core/src/grants/eip712.ts`, `packages/core/src/grants/eip712.test.ts`
 - **Deps:** Phase 1 complete
 - **Spec:**
