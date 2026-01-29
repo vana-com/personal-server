@@ -507,7 +507,7 @@ Layer 5 (final):
 ---
 
 #### Task 2.2: Builder check middleware
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/middleware/builder-check.ts`, `packages/server/src/middleware/builder-check.test.ts`
 - **Deps:** 1.3
 - **Spec:**
