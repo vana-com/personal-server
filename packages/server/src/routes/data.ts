@@ -5,6 +5,7 @@ import {
   generateCollectedAt,
   writeDataFile,
   readDataFile,
+  deleteAllForScope,
 } from '@personal-server/core/storage/hierarchy'
 import type { HierarchyManagerOptions } from '@personal-server/core/storage/hierarchy'
 import type { IndexManager } from '@personal-server/core/storage/index'
@@ -16,6 +17,7 @@ import { createWeb3AuthMiddleware } from '../middleware/web3-auth.js'
 import { createBuilderCheckMiddleware } from '../middleware/builder-check.js'
 import { createGrantCheckMiddleware } from '../middleware/grant-check.js'
 import { createAccessLogMiddleware } from '../middleware/access-log.js'
+import { createOwnerCheckMiddleware } from '../middleware/owner-check.js'
 
 export interface DataRouteDeps {
   indexManager: IndexManager
@@ -181,16 +183,35 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
       )
     }
 
-    // 3. Generate collectedAt
+    // 3. Look up schema via Gateway (strict: reject if not found)
+    let schemaUrl: string | undefined
+    try {
+      const schema = await deps.gateway.getSchemaForScope(scope)
+      if (!schema) {
+        return c.json(
+          { error: 'NO_SCHEMA', message: `No schema registered for scope: ${scope}` },
+          400,
+        )
+      }
+      schemaUrl = schema.url
+    } catch (err) {
+      deps.logger.error({ err, scope }, 'Gateway schema lookup failed')
+      return c.json(
+        { error: 'GATEWAY_ERROR', message: 'Failed to look up schema for scope' },
+        502,
+      )
+    }
+
+    // 4. Generate collectedAt
     const collectedAt = generateCollectedAt()
 
-    // 4. Construct envelope
-    const envelope = createDataFileEnvelope(scope, collectedAt, body as Record<string, unknown>)
+    // 5. Construct envelope
+    const envelope = createDataFileEnvelope(scope, collectedAt, body as Record<string, unknown>, schemaUrl)
 
-    // 5. Write atomically
+    // 6. Write atomically
     const writeResult = await writeDataFile(deps.hierarchyOptions, envelope)
 
-    // 6. Insert into index
+    // 7. Insert into index
     deps.indexManager.insert({
       fileId: null,
       path: writeResult.relativePath,
@@ -201,8 +222,39 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
 
     deps.logger.info({ scope, collectedAt, path: writeResult.relativePath }, 'Data file ingested')
 
-    // 7. Return 201
+    // 8. Return 201
     return c.json({ scope, collectedAt, status: 'stored' as const }, 201)
+  })
+
+  // Owner-check middleware (web3-auth + owner-check)
+  const ownerCheck = createOwnerCheckMiddleware(deps.serverOwner)
+
+  // DELETE /v1/data/:scope — delete all versions for a scope (owner auth required)
+  app.delete('/:scope', web3Auth, ownerCheck, async (c) => {
+    // 1. Validate scope
+    const scopeParam = c.req.param('scope')
+    const scopeResult = ScopeSchema.safeParse(scopeParam)
+    if (!scopeResult.success) {
+      return c.json(
+        {
+          error: 'INVALID_SCOPE',
+          message: scopeResult.error.issues[0].message,
+        },
+        400,
+      )
+    }
+    const scope = scopeResult.data
+
+    // 2. Delete from index
+    const deletedCount = deps.indexManager.deleteByScope(scope)
+
+    // 3. Delete from filesystem
+    await deleteAllForScope(deps.hierarchyOptions, scope)
+
+    deps.logger.info({ scope, deletedCount }, 'Scope deleted')
+
+    // 4. Return 204
+    return c.body(null, 204)
   })
 
   return app

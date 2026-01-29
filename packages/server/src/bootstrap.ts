@@ -11,6 +11,8 @@ import type { HierarchyManagerOptions } from '@personal-server/core/storage/hier
 import { createGatewayClient } from '@personal-server/core/gateway'
 import type { GatewayClient } from '@personal-server/core/gateway'
 import { createAccessLogWriter } from '@personal-server/core/logging/access-log'
+import { createAccessLogReader } from '@personal-server/core/logging/access-reader'
+import type { AccessLogReader } from '@personal-server/core/logging/access-reader'
 import type { Hono } from 'hono'
 import { createApp } from './app.js'
 
@@ -21,6 +23,7 @@ export interface ServerContext {
   startedAt: Date
   indexManager: IndexManager
   gatewayClient: GatewayClient
+  accessLogReader: AccessLogReader
   cleanup: () => void
 }
 
@@ -49,6 +52,7 @@ export function createServer(config: ServerConfig, options?: CreateServerOptions
 
   const logsDir = join(configDir, 'logs')
   const accessLogWriter = createAccessLogWriter(logsDir)
+  const accessLogReader = createAccessLogReader(logsDir)
 
   const app = createApp({
     logger,
@@ -60,11 +64,12 @@ export function createServer(config: ServerConfig, options?: CreateServerOptions
     serverOwner,
     gateway: gatewayClient,
     accessLogWriter,
+    accessLogReader,
   })
 
   const cleanup = () => {
     indexManager.close()
   }
 
-  return { app, logger, config, startedAt, indexManager, gatewayClient, cleanup }
+  return { app, logger, config, startedAt, indexManager, gatewayClient, accessLogReader, cleanup }
 }

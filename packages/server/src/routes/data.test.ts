@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { mkdtemp, rm, readFile } from 'node:fs/promises'
+import { mkdtemp, rm, readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { pino } from 'pino'
 import { initializeDatabase, createIndexManager } from '@personal-server/core/storage/index'
 import type { IndexManager } from '@personal-server/core/storage/index'
 import type { HierarchyManagerOptions } from '@personal-server/core/storage/hierarchy'
-import { buildDataFilePath } from '@personal-server/core/storage/hierarchy'
+import { buildDataFilePath, buildScopeDir } from '@personal-server/core/storage/hierarchy'
 import type { GatewayClient } from '@personal-server/core/gateway'
 import type { GatewayGrantResponse } from '@personal-server/core/grants'
 import type { AccessLogWriter } from '@personal-server/core/logging/access-log'
@@ -25,6 +25,13 @@ function createMockGateway(overrides: Partial<GatewayClient> = {}): GatewayClien
     isRegisteredBuilder: vi.fn().mockResolvedValue(true),
     getBuilder: vi.fn().mockResolvedValue(null),
     getGrant: vi.fn().mockResolvedValue(null),
+    listGrantsByUser: vi.fn().mockResolvedValue([]),
+    getSchemaForScope: vi.fn().mockResolvedValue({
+      schemaId: 'schema-1',
+      scope: 'instagram.profile',
+      url: 'https://ipfs.io/ipfs/QmTestSchema',
+    }),
+    getServer: vi.fn().mockResolvedValue(null),
     ...overrides,
   }
 }
@@ -187,6 +194,82 @@ describe('POST /v1/data/:scope', () => {
 
     const json = await res.json()
     expect(json.error).toBe('INVALID_BODY')
+  })
+
+  it('includes $schema field in envelope when schema found', async () => {
+    const res = await post('instagram.profile', { username: 'test' })
+    expect(res.status).toBe(201)
+
+    const json = await res.json()
+    const filePath = buildDataFilePath(dataDir, 'instagram.profile', json.collectedAt)
+    const content = JSON.parse(await readFile(filePath, 'utf-8'))
+    expect(content.$schema).toBe('https://ipfs.io/ipfs/QmTestSchema')
+  })
+
+  it('returns 400 NO_SCHEMA when no schema registered for scope', async () => {
+    const db2 = initializeDatabase(':memory:')
+    const indexManager2 = createIndexManager(db2)
+    const gateway = createMockGateway({
+      getSchemaForScope: vi.fn().mockResolvedValue(null),
+    })
+    const localApp = dataRoutes({
+      indexManager: indexManager2,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: '0xOwnerAddress' as `0x${string}`,
+      gateway,
+      accessLogWriter: createMockAccessLogWriter(),
+    })
+
+    const res = await localApp.request('/instagram.profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'test' }),
+    })
+    expect(res.status).toBe(400)
+
+    const json = await res.json()
+    expect(json.error).toBe('NO_SCHEMA')
+
+    indexManager2.close()
+  })
+
+  it('returns 502 GATEWAY_ERROR when gateway schema lookup fails', async () => {
+    const db2 = initializeDatabase(':memory:')
+    const indexManager2 = createIndexManager(db2)
+    const gateway = createMockGateway({
+      getSchemaForScope: vi.fn().mockRejectedValue(new Error('Gateway error: 500 Internal Server Error')),
+    })
+    const localApp = dataRoutes({
+      indexManager: indexManager2,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: '0xOwnerAddress' as `0x${string}`,
+      gateway,
+      accessLogWriter: createMockAccessLogWriter(),
+    })
+
+    const res = await localApp.request('/instagram.profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'test' }),
+    })
+    expect(res.status).toBe(502)
+
+    const json = await res.json()
+    expect(json.error).toBe('GATEWAY_ERROR')
+
+    indexManager2.close()
+  })
+
+  it('existing POST tests pass with schema mock returning schema', async () => {
+    // Verify the default mock gateway returns a schema
+    const gateway = createMockGateway()
+    const schema = await gateway.getSchemaForScope('instagram.profile')
+    expect(schema).toBeDefined()
+    expect(schema!.url).toBe('https://ipfs.io/ipfs/QmTestSchema')
   })
 
   it('creates two separate versions for same scope', async () => {
@@ -682,5 +765,174 @@ describe('GET /v1/data/:scope', () => {
     const json = await res.json()
     expect(json.data).toEqual({ version: 1 })
     expect(json.collectedAt).toBe(json1.collectedAt)
+  })
+})
+
+describe('DELETE /v1/data/:scope', () => {
+  let dataDir: string
+  let hierarchyOptions: HierarchyManagerOptions
+  let indexManager: IndexManager
+  let cleanup: () => void
+
+  const ownerWallet = createTestWallet(2)
+
+  function createApp(overrides: Partial<DataRouteDeps> = {}) {
+    return dataRoutes({
+      indexManager,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: ownerWallet.address,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      ...overrides,
+    })
+  }
+
+  async function deleteWithAuth(app: ReturnType<typeof dataRoutes>, scope: string) {
+    const auth = await buildWeb3SignedHeader({
+      wallet: ownerWallet,
+      aud: SERVER_ORIGIN,
+      method: 'DELETE',
+      uri: `/${scope}`,
+    })
+    return app.request(`/${scope}`, {
+      method: 'DELETE',
+      headers: { authorization: auth },
+    })
+  }
+
+  async function ingestData(
+    scope: string,
+    data: Record<string, unknown>,
+    app: ReturnType<typeof dataRoutes>,
+  ) {
+    const res = await app.request(`/${scope}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    return res.json()
+  }
+
+  beforeEach(async () => {
+    dataDir = await mkdtemp(join(tmpdir(), 'data-route-delete-test-'))
+    hierarchyOptions = { dataDir }
+
+    const db = initializeDatabase(':memory:')
+    indexManager = createIndexManager(db)
+
+    cleanup = () => {
+      indexManager.close()
+    }
+  })
+
+  afterEach(async () => {
+    cleanup()
+    await rm(dataDir, { recursive: true, force: true })
+  })
+
+  it('returns 204 and removes files + index for existing scope', async () => {
+    const app = createApp()
+
+    // Ingest 2 versions
+    await ingestData('instagram.profile', { version: 1 }, app)
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    await ingestData('instagram.profile', { version: 2 }, app)
+
+    // Verify data exists
+    expect(indexManager.countByScope('instagram.profile')).toBe(2)
+
+    // DELETE with owner auth
+    const res = await deleteWithAuth(app, 'instagram.profile')
+    expect(res.status).toBe(204)
+
+    // Index should be empty
+    expect(indexManager.countByScope('instagram.profile')).toBe(0)
+
+    // Scope directory should not exist
+    const scopeDir = buildScopeDir(dataDir, 'instagram.profile')
+    await expect(readdir(scopeDir)).rejects.toThrow()
+  })
+
+  it('returns 204 for nonexistent scope (idempotent)', async () => {
+    const app = createApp()
+
+    const res = await deleteWithAuth(app, 'instagram.profile')
+    expect(res.status).toBe(204)
+  })
+
+  it('returns 400 for invalid scope', async () => {
+    const app = createApp()
+
+    const auth = await buildWeb3SignedHeader({
+      wallet: ownerWallet,
+      aud: SERVER_ORIGIN,
+      method: 'DELETE',
+      uri: '/bad',
+    })
+    const res = await app.request('/bad', {
+      method: 'DELETE',
+      headers: { authorization: auth },
+    })
+    expect(res.status).toBe(400)
+
+    const json = await res.json()
+    expect(json.error).toBe('INVALID_SCOPE')
+  })
+
+  it('after DELETE, GET same scope returns 404', async () => {
+    const grant = makeGrant({
+      user: ownerWallet.address,
+    })
+    const gateway = createMockGateway({
+      getGrant: vi.fn().mockResolvedValue(grant),
+    })
+    const app = createApp({ gateway })
+
+    // Ingest data
+    await ingestData('instagram.profile', { username: 'test' }, app)
+
+    // DELETE with owner auth
+    const deleteRes = await deleteWithAuth(app, 'instagram.profile')
+    expect(deleteRes.status).toBe(204)
+
+    // GET should be 404
+    const uri = '/instagram.profile'
+    const header = await buildWeb3SignedHeader({
+      wallet,
+      aud: SERVER_ORIGIN,
+      method: 'GET',
+      uri,
+      grantId: 'grant-123',
+    })
+    const getRes = await app.request('/instagram.profile', {
+      headers: { Authorization: header },
+    })
+    expect(getRes.status).toBe(404)
+  })
+
+  it('after DELETE, can re-create with POST', async () => {
+    const app = createApp()
+
+    // Ingest, delete, re-ingest
+    await ingestData('instagram.profile', { version: 1 }, app)
+
+    const deleteRes = await deleteWithAuth(app, 'instagram.profile')
+    expect(deleteRes.status).toBe(204)
+
+    const res = await app.request('/instagram.profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: 2 }),
+    })
+    expect(res.status).toBe(201)
+
+    const json = await res.json()
+    expect(json.scope).toBe('instagram.profile')
+    expect(json.status).toBe('stored')
+
+    // Index should have 1 entry
+    expect(indexManager.countByScope('instagram.profile')).toBe(1)
   })
 })

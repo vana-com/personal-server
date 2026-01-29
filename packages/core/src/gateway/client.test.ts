@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import type { GatewayGrantResponse } from '../grants/types.js';
 
+import type { GrantListItem, Schema, ServerInfo } from './client.js';
 import { createGatewayClient } from './client.js';
 
 const BASE_URL = 'https://gateway.example.com';
@@ -80,6 +81,94 @@ describe('GatewayClient', () => {
       const client = createGatewayClient(BASE_URL);
       mockFetchError(new Error('Network failure'));
       await expect(client.getGrant('grant-1')).rejects.toThrow('Network failure');
+    });
+  });
+
+  describe('listGrantsByUser', () => {
+    it('returns grants array on 200', async () => {
+      const client = createGatewayClient(BASE_URL);
+      const grants: GrantListItem[] = [
+        {
+          grantId: 'grant-1',
+          builder: '0xbuilder1',
+          scopes: ['instagram.*'],
+          expiresAt: 9999999999,
+          createdAt: '2025-01-01T00:00:00Z',
+        },
+        {
+          grantId: 'grant-2',
+          builder: '0xbuilder2',
+          scopes: ['twitter.profile'],
+          expiresAt: 9999999999,
+          createdAt: '2025-01-02T00:00:00Z',
+        },
+      ];
+      mockFetch(200, grants);
+      const result = await client.listGrantsByUser('0xuser');
+      expect(result).toEqual(grants);
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${BASE_URL}/v1/grants?user=0xuser`);
+    });
+
+    it('returns empty array on 404', async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(404);
+      const result = await client.listGrantsByUser('0xuser');
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getSchemaForScope', () => {
+    it('returns Schema on 200', async () => {
+      const client = createGatewayClient(BASE_URL);
+      const schema: Schema = {
+        schemaId: 'schema-1',
+        scope: 'instagram.profile',
+        url: 'https://ipfs.io/ipfs/Qm123',
+      };
+      mockFetch(200, schema);
+      const result = await client.getSchemaForScope('instagram.profile');
+      expect(result).toEqual(schema);
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        `${BASE_URL}/v1/schemas?scope=instagram.profile`,
+      );
+    });
+
+    it('returns null on 404', async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(404);
+      const result = await client.getSchemaForScope('nonexistent.scope');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getServer', () => {
+    it('returns ServerInfo on 200', async () => {
+      const client = createGatewayClient(BASE_URL);
+      const serverInfo: ServerInfo = {
+        address: '0xserver',
+        endpoint: 'https://server.example.com',
+        registered: true,
+        trusted: true,
+      };
+      mockFetch(200, serverInfo);
+      const result = await client.getServer('0xserver');
+      expect(result).toEqual(serverInfo);
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${BASE_URL}/v1/servers/0xserver`);
+    });
+  });
+
+  describe('error handling for new methods', () => {
+    it('all throw on non-404 errors', async () => {
+      const client = createGatewayClient(BASE_URL);
+
+      mockFetch(500);
+      await expect(client.listGrantsByUser('0xuser')).rejects.toThrow('Gateway error: 500');
+
+      mockFetch(503);
+      await expect(client.getSchemaForScope('scope')).rejects.toThrow('Gateway error: 503');
+
+      mockFetch(500);
+      await expect(client.getServer('0xaddr')).rejects.toThrow('Gateway error: 500');
     });
   });
 });
