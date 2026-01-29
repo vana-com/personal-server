@@ -373,7 +373,7 @@ Layer 4 (final):
 ---
 
 #### Task 3.2: POST /v1/data/{scope} route + tests
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/routes/data.ts`, `packages/server/src/routes/data.test.ts`
 - **Deps:** 2.1, 2.2, 0.3, 3.1
 - **Spec:**
