@@ -256,7 +256,7 @@ Layer 4 (final):
 ### Layer 2: Managers
 
 #### Task 2.1: Hierarchy manager (atomic write/read/list/delete)
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/storage/hierarchy/manager.ts`, `packages/core/src/storage/hierarchy/manager.test.ts`, `packages/core/src/storage/hierarchy/index.ts`
 - **Deps:** 1.1, 0.3
 - **Spec:**
