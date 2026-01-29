@@ -418,7 +418,7 @@ Layer 4 (final):
 ---
 
 #### Task 3.3: Update bootstrap.ts + app.ts
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/bootstrap.ts` (modify), `packages/server/src/app.ts` (modify)
 - **Deps:** 3.2
 - **Spec:**
