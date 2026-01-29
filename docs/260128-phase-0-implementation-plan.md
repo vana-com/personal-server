@@ -153,7 +153,7 @@ Layer 5 (final):
 - **tsconfig.json:** extends root, references `../core`
 
 #### Task 1.3: CLI package scaffold (placeholder)
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/cli/package.json`, `packages/cli/tsconfig.json`, `packages/cli/src/index.ts`
 - **Deps:** 0.1, 0.2
 - **package.json:** name `@personal-server/cli`, `"type": "module"`. Deps: `@personal-server/core *`, `@personal-server/server *`
