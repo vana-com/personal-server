@@ -7,10 +7,11 @@ import {
   grantToEip712Message,
 } from '@personal-server/core/grants';
 import type { GrantPayload } from '@personal-server/core/grants';
-import { createTestWallet } from '@personal-server/core/test-utils';
+import { createTestWallet, buildWeb3SignedHeader } from '@personal-server/core/test-utils';
 import { grantsRoutes } from './grants.js';
 
 const logger = pino({ level: 'silent' });
+const SERVER_ORIGIN = 'http://localhost:8080';
 
 // Wallet 0 = owner/user (signs grants), Wallet 1 = builder
 const owner = createTestWallet(0);
@@ -64,15 +65,29 @@ async function signGrant(payload: GrantPayload): Promise<{
   };
 }
 
-function createApp() {
+function createApp(overrides?: Partial<{ gateway: GatewayClient }>) {
   return grantsRoutes({
     logger,
-    gateway: createMockGateway(),
+    gateway: overrides?.gateway ?? createMockGateway(),
     serverOwner: owner.address,
+    serverOrigin: SERVER_ORIGIN,
   });
 }
 
 describe('GET /', () => {
+  async function getWithOwnerAuth(app: ReturnType<typeof grantsRoutes>) {
+    const auth = await buildWeb3SignedHeader({
+      wallet: owner,
+      aud: SERVER_ORIGIN,
+      method: 'GET',
+      uri: '/',
+    });
+    return app.request('/', {
+      method: 'GET',
+      headers: { authorization: auth },
+    });
+  }
+
   it('returns grants from gateway', async () => {
     const mockGateway = createMockGateway();
     const grants = [
@@ -93,8 +108,8 @@ describe('GET /', () => {
     ];
     vi.mocked(mockGateway.listGrantsByUser).mockResolvedValue(grants);
 
-    const app = grantsRoutes({ logger, gateway: mockGateway, serverOwner: owner.address });
-    const res = await app.request('/', { method: 'GET' });
+    const app = createApp({ gateway: mockGateway });
+    const res = await getWithOwnerAuth(app);
 
     expect(res.status).toBe(200);
     const json = await res.json();
@@ -106,8 +121,8 @@ describe('GET /', () => {
     const mockGateway = createMockGateway();
     vi.mocked(mockGateway.listGrantsByUser).mockResolvedValue([]);
 
-    const app = grantsRoutes({ logger, gateway: mockGateway, serverOwner: owner.address });
-    const res = await app.request('/', { method: 'GET' });
+    const app = createApp({ gateway: mockGateway });
+    const res = await getWithOwnerAuth(app);
 
     expect(res.status).toBe(200);
     const json = await res.json();
@@ -118,8 +133,8 @@ describe('GET /', () => {
     const mockGateway = createMockGateway();
     vi.mocked(mockGateway.listGrantsByUser).mockRejectedValue(new Error('Gateway down'));
 
-    const app = grantsRoutes({ logger, gateway: mockGateway, serverOwner: owner.address });
-    const res = await app.request('/', { method: 'GET' });
+    const app = createApp({ gateway: mockGateway });
+    const res = await getWithOwnerAuth(app);
 
     expect(res.status).toBe(500);
   });

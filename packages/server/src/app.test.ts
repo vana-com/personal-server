@@ -11,19 +11,46 @@ import {
 } from '@personal-server/core/storage/index'
 import type { GatewayClient } from '@personal-server/core/gateway'
 import type { AccessLogWriter } from '@personal-server/core/logging/access-log'
+import type { AccessLogReader } from '@personal-server/core/logging/access-reader'
+import {
+  createTestWallet,
+  buildWeb3SignedHeader,
+} from '@personal-server/core/test-utils'
 import pino from 'pino'
+
+const SERVER_ORIGIN = 'http://localhost:8080'
+const ownerWallet = createTestWallet(0)
+const nonOwnerWallet = createTestWallet(1)
 
 function createMockGateway(): GatewayClient {
   return {
     isRegisteredBuilder: vi.fn().mockResolvedValue(true),
     getBuilder: vi.fn().mockResolvedValue(null),
     getGrant: vi.fn().mockResolvedValue(null),
+    listGrantsByUser: vi.fn().mockResolvedValue([]),
+    getSchemaForScope: vi.fn().mockResolvedValue({
+      schemaId: 'schema-1',
+      scope: 'test.scope',
+      url: 'https://ipfs.io/ipfs/QmTestSchema',
+    }),
+    getServer: vi.fn().mockResolvedValue(null),
   }
 }
 
 function createMockAccessLogWriter(): AccessLogWriter {
   return {
     write: vi.fn().mockResolvedValue(undefined),
+  }
+}
+
+function createMockAccessLogReader(): AccessLogReader {
+  return {
+    read: vi.fn().mockResolvedValue({
+      logs: [],
+      total: 0,
+      limit: 50,
+      offset: 0,
+    }),
   }
 }
 
@@ -50,10 +77,11 @@ describe('createApp', () => {
       startedAt: new Date(),
       indexManager,
       hierarchyOptions: { dataDir: join(tempDir, 'data') },
-      serverOrigin: 'http://localhost:8080',
-      serverOwner: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: ownerWallet.address,
       gateway: createMockGateway(),
       accessLogWriter: createMockAccessLogWriter(),
+      accessLogReader: createMockAccessLogReader(),
     })
   }
 
@@ -106,5 +134,89 @@ describe('createApp', () => {
     const body = await res.json()
     expect(body.error.code).toBe(404)
     expect(body.error.errorCode).toBe('NOT_FOUND')
+  })
+
+  // --- Phase 3: Auth integration tests for owner-only routes ---
+
+  it('DELETE /v1/data/:scope without auth → 401 MISSING_AUTH', async () => {
+    const app = makeApp()
+    const res = await app.request('/v1/data/test.scope', { method: 'DELETE' })
+    expect(res.status).toBe(401)
+
+    const body = await res.json()
+    expect(body.error.errorCode).toBe('MISSING_AUTH')
+  })
+
+  it('DELETE /v1/data/:scope with non-owner auth → 401 NOT_OWNER', async () => {
+    const app = makeApp()
+    const auth = await buildWeb3SignedHeader({
+      wallet: nonOwnerWallet,
+      aud: SERVER_ORIGIN,
+      method: 'DELETE',
+      uri: '/v1/data/test.scope',
+    })
+    const res = await app.request('/v1/data/test.scope', {
+      method: 'DELETE',
+      headers: { authorization: auth },
+    })
+    expect(res.status).toBe(401)
+
+    const body = await res.json()
+    expect(body.error.errorCode).toBe('NOT_OWNER')
+  })
+
+  it('DELETE /v1/data/:scope with owner auth → 204', async () => {
+    const app = makeApp()
+    const auth = await buildWeb3SignedHeader({
+      wallet: ownerWallet,
+      aud: SERVER_ORIGIN,
+      method: 'DELETE',
+      uri: '/v1/data/test.scope',
+    })
+    const res = await app.request('/v1/data/test.scope', {
+      method: 'DELETE',
+      headers: { authorization: auth },
+    })
+    expect(res.status).toBe(204)
+  })
+
+  it('GET /v1/grants without auth → 401', async () => {
+    const app = makeApp()
+    const res = await app.request('/v1/grants')
+    expect(res.status).toBe(401)
+
+    const body = await res.json()
+    expect(body.error.errorCode).toBe('MISSING_AUTH')
+  })
+
+  it('GET /v1/access-logs without auth → 401', async () => {
+    const app = makeApp()
+    const res = await app.request('/v1/access-logs')
+    expect(res.status).toBe(401)
+
+    const body = await res.json()
+    expect(body.error.errorCode).toBe('MISSING_AUTH')
+  })
+
+  it('POST /v1/sync/trigger without auth → 401', async () => {
+    const app = makeApp()
+    const res = await app.request('/v1/sync/trigger', { method: 'POST' })
+    expect(res.status).toBe(401)
+
+    const body = await res.json()
+    expect(body.error.errorCode).toBe('MISSING_AUTH')
+  })
+
+  it('POST /v1/grants/verify without auth → 400 (public endpoint, no auth wall)', async () => {
+    const app = makeApp()
+    const res = await app.request('/v1/grants/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    // 400 means it reached the handler (no auth wall) — body validation fails
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toBe('INVALID_BODY')
   })
 })

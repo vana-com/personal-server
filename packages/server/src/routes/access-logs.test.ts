@@ -1,14 +1,42 @@
 import { describe, it, expect, vi } from 'vitest';
 import { pino } from 'pino';
 import type { AccessLogReader, AccessLogReadResult } from '@personal-server/core/logging/access-reader';
+import { createTestWallet, buildWeb3SignedHeader } from '@personal-server/core/test-utils';
 import { accessLogsRoutes } from './access-logs.js';
 
 const logger = pino({ level: 'silent' });
+const SERVER_ORIGIN = 'http://localhost:8080';
+const owner = createTestWallet(0);
 
 function createMockReader(result: AccessLogReadResult): AccessLogReader {
   return {
     read: vi.fn().mockResolvedValue(result),
   };
+}
+
+function createApp(reader: AccessLogReader) {
+  return accessLogsRoutes({
+    logger,
+    accessLogReader: reader,
+    serverOrigin: SERVER_ORIGIN,
+    serverOwner: owner.address,
+  });
+}
+
+async function getWithOwnerAuth(
+  app: ReturnType<typeof accessLogsRoutes>,
+  query = '',
+) {
+  const auth = await buildWeb3SignedHeader({
+    wallet: owner,
+    aud: SERVER_ORIGIN,
+    method: 'GET',
+    uri: '/',
+  });
+  return app.request(`/${query}`, {
+    method: 'GET',
+    headers: { authorization: auth },
+  });
 }
 
 describe('GET /', () => {
@@ -32,9 +60,9 @@ describe('GET /', () => {
     };
 
     const reader = createMockReader(mockResult);
-    const app = accessLogsRoutes({ logger, accessLogReader: reader });
+    const app = createApp(reader);
 
-    const res = await app.request('/', { method: 'GET' });
+    const res = await getWithOwnerAuth(app);
 
     expect(res.status).toBe(200);
     const json = await res.json();
@@ -54,9 +82,9 @@ describe('GET /', () => {
     };
 
     const reader = createMockReader(mockResult);
-    const app = accessLogsRoutes({ logger, accessLogReader: reader });
+    const app = createApp(reader);
 
-    const res = await app.request('/?limit=10&offset=5', { method: 'GET' });
+    const res = await getWithOwnerAuth(app, '?limit=10&offset=5');
 
     expect(res.status).toBe(200);
     const json = await res.json();
@@ -74,9 +102,9 @@ describe('GET /', () => {
     };
 
     const reader = createMockReader(mockResult);
-    const app = accessLogsRoutes({ logger, accessLogReader: reader });
+    const app = createApp(reader);
 
-    const res = await app.request('/', { method: 'GET' });
+    const res = await getWithOwnerAuth(app);
 
     expect(res.status).toBe(200);
     const json = await res.json();
@@ -93,9 +121,9 @@ describe('GET /', () => {
     };
 
     const reader = createMockReader(mockResult);
-    const app = accessLogsRoutes({ logger, accessLogReader: reader });
+    const app = createApp(reader);
 
-    const res = await app.request('/?limit=abc', { method: 'GET' });
+    const res = await getWithOwnerAuth(app, '?limit=abc');
 
     expect(res.status).toBe(200);
     expect(reader.read).toHaveBeenCalledWith({ limit: 50, offset: 0 });

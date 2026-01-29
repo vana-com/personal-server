@@ -618,7 +618,7 @@ Layer 5 (final):
 ### Layer 4: Integration
 
 #### Task 4.1: Update app.ts + bootstrap.ts + config schema
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/app.ts` (modify), `packages/server/src/bootstrap.ts` (modify), `packages/server/src/app.test.ts` (modify), `packages/server/src/bootstrap.test.ts` (modify), `packages/core/src/schemas/server-config.ts` (modify)
 - **Deps:** All previous tasks
 - **Spec:**

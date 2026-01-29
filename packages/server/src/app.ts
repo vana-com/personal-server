@@ -4,8 +4,12 @@ import type { IndexManager } from '@personal-server/core/storage/index'
 import type { HierarchyManagerOptions } from '@personal-server/core/storage/hierarchy'
 import type { GatewayClient } from '@personal-server/core/gateway'
 import type { AccessLogWriter } from '@personal-server/core/logging/access-log'
+import type { AccessLogReader } from '@personal-server/core/logging/access-reader'
 import { healthRoute } from './routes/health.js'
 import { dataRoutes } from './routes/data.js'
+import { grantsRoutes } from './routes/grants.js'
+import { accessLogsRoutes } from './routes/access-logs.js'
+import { syncRoutes } from './routes/sync.js'
 import type { Logger } from 'pino'
 
 export interface AppDeps {
@@ -18,6 +22,7 @@ export interface AppDeps {
   serverOwner: `0x${string}`
   gateway: GatewayClient
   accessLogWriter: AccessLogWriter
+  accessLogReader: AccessLogReader
 }
 
 export function createApp(deps: AppDeps): Hono {
@@ -26,7 +31,7 @@ export function createApp(deps: AppDeps): Hono {
   // Mount health route
   app.route('/', healthRoute({ version: deps.version, startedAt: deps.startedAt }))
 
-  // Mount data routes (ingest + read)
+  // Mount data routes (ingest + read + delete)
   app.route(
     '/v1/data',
     dataRoutes({
@@ -37,6 +42,38 @@ export function createApp(deps: AppDeps): Hono {
       serverOwner: deps.serverOwner,
       gateway: deps.gateway,
       accessLogWriter: deps.accessLogWriter,
+    }),
+  )
+
+  // Mount grants routes (POST /verify is public, GET / needs owner auth)
+  app.route(
+    '/v1/grants',
+    grantsRoutes({
+      logger: deps.logger,
+      gateway: deps.gateway,
+      serverOwner: deps.serverOwner,
+      serverOrigin: deps.serverOrigin,
+    }),
+  )
+
+  // Mount access-logs routes (all owner auth)
+  app.route(
+    '/v1/access-logs',
+    accessLogsRoutes({
+      logger: deps.logger,
+      accessLogReader: deps.accessLogReader,
+      serverOrigin: deps.serverOrigin,
+      serverOwner: deps.serverOwner,
+    }),
+  )
+
+  // Mount sync routes (all owner auth)
+  app.route(
+    '/v1/sync',
+    syncRoutes({
+      logger: deps.logger,
+      serverOrigin: deps.serverOrigin,
+      serverOwner: deps.serverOwner,
     }),
   )
 

@@ -774,16 +774,31 @@ describe('DELETE /v1/data/:scope', () => {
   let indexManager: IndexManager
   let cleanup: () => void
 
+  const ownerWallet = createTestWallet(2)
+
   function createApp(overrides: Partial<DataRouteDeps> = {}) {
     return dataRoutes({
       indexManager,
       hierarchyOptions,
       logger,
       serverOrigin: SERVER_ORIGIN,
-      serverOwner: '0xOwnerAddress' as `0x${string}`,
+      serverOwner: ownerWallet.address,
       gateway: createMockGateway(),
       accessLogWriter: createMockAccessLogWriter(),
       ...overrides,
+    })
+  }
+
+  async function deleteWithAuth(app: ReturnType<typeof dataRoutes>, scope: string) {
+    const auth = await buildWeb3SignedHeader({
+      wallet: ownerWallet,
+      aud: SERVER_ORIGIN,
+      method: 'DELETE',
+      uri: `/${scope}`,
+    })
+    return app.request(`/${scope}`, {
+      method: 'DELETE',
+      headers: { authorization: auth },
     })
   }
 
@@ -828,8 +843,8 @@ describe('DELETE /v1/data/:scope', () => {
     // Verify data exists
     expect(indexManager.countByScope('instagram.profile')).toBe(2)
 
-    // DELETE
-    const res = await app.request('/instagram.profile', { method: 'DELETE' })
+    // DELETE with owner auth
+    const res = await deleteWithAuth(app, 'instagram.profile')
     expect(res.status).toBe(204)
 
     // Index should be empty
@@ -843,14 +858,23 @@ describe('DELETE /v1/data/:scope', () => {
   it('returns 204 for nonexistent scope (idempotent)', async () => {
     const app = createApp()
 
-    const res = await app.request('/instagram.profile', { method: 'DELETE' })
+    const res = await deleteWithAuth(app, 'instagram.profile')
     expect(res.status).toBe(204)
   })
 
   it('returns 400 for invalid scope', async () => {
     const app = createApp()
 
-    const res = await app.request('/bad', { method: 'DELETE' })
+    const auth = await buildWeb3SignedHeader({
+      wallet: ownerWallet,
+      aud: SERVER_ORIGIN,
+      method: 'DELETE',
+      uri: '/bad',
+    })
+    const res = await app.request('/bad', {
+      method: 'DELETE',
+      headers: { authorization: auth },
+    })
     expect(res.status).toBe(400)
 
     const json = await res.json()
@@ -858,7 +882,9 @@ describe('DELETE /v1/data/:scope', () => {
   })
 
   it('after DELETE, GET same scope returns 404', async () => {
-    const grant = makeGrant()
+    const grant = makeGrant({
+      user: ownerWallet.address,
+    })
     const gateway = createMockGateway({
       getGrant: vi.fn().mockResolvedValue(grant),
     })
@@ -867,8 +893,8 @@ describe('DELETE /v1/data/:scope', () => {
     // Ingest data
     await ingestData('instagram.profile', { username: 'test' }, app)
 
-    // DELETE
-    const deleteRes = await app.request('/instagram.profile', { method: 'DELETE' })
+    // DELETE with owner auth
+    const deleteRes = await deleteWithAuth(app, 'instagram.profile')
     expect(deleteRes.status).toBe(204)
 
     // GET should be 404
@@ -892,7 +918,7 @@ describe('DELETE /v1/data/:scope', () => {
     // Ingest, delete, re-ingest
     await ingestData('instagram.profile', { version: 1 }, app)
 
-    const deleteRes = await app.request('/instagram.profile', { method: 'DELETE' })
+    const deleteRes = await deleteWithAuth(app, 'instagram.profile')
     expect(deleteRes.status).toBe(204)
 
     const res = await app.request('/instagram.profile', {

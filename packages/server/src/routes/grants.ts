@@ -8,11 +8,14 @@ import type { Logger } from 'pino';
 import { verifyTypedData } from 'viem';
 import type { GatewayClient } from '@personal-server/core/gateway';
 import { GRANT_DOMAIN, GRANT_TYPES } from '@personal-server/core/grants';
+import { createWeb3AuthMiddleware } from '../middleware/web3-auth.js';
+import { createOwnerCheckMiddleware } from '../middleware/owner-check.js';
 
 export interface GrantsRouteDeps {
   logger: Logger;
   gateway: GatewayClient;
   serverOwner: `0x${string}`;
+  serverOrigin: string;
 }
 
 interface VerifyRequestBody {
@@ -51,8 +54,11 @@ function isValidVerifyBody(body: unknown): body is VerifyRequestBody {
 export function grantsRoutes(deps: GrantsRouteDeps): Hono {
   const app = new Hono();
 
-  // GET / — list all grants for the server owner (owner auth wired in Task 4.1)
-  app.get('/', async (c) => {
+  const web3Auth = createWeb3AuthMiddleware(deps.serverOrigin);
+  const ownerCheck = createOwnerCheckMiddleware(deps.serverOwner);
+
+  // GET / — list all grants for the server owner (owner auth required)
+  app.get('/', web3Auth, ownerCheck, async (c) => {
     const grants = await deps.gateway.listGrantsByUser(deps.serverOwner);
     return c.json({ grants });
   });

@@ -17,6 +17,7 @@ import { createWeb3AuthMiddleware } from '../middleware/web3-auth.js'
 import { createBuilderCheckMiddleware } from '../middleware/builder-check.js'
 import { createGrantCheckMiddleware } from '../middleware/grant-check.js'
 import { createAccessLogMiddleware } from '../middleware/access-log.js'
+import { createOwnerCheckMiddleware } from '../middleware/owner-check.js'
 
 export interface DataRouteDeps {
   indexManager: IndexManager
@@ -225,8 +226,11 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
     return c.json({ scope, collectedAt, status: 'stored' as const }, 201)
   })
 
-  // DELETE /v1/data/:scope — delete all versions for a scope (owner auth wired in Task 4.1)
-  app.delete('/:scope', async (c) => {
+  // Owner-check middleware (web3-auth + owner-check)
+  const ownerCheck = createOwnerCheckMiddleware(deps.serverOwner)
+
+  // DELETE /v1/data/:scope — delete all versions for a scope (owner auth required)
+  app.delete('/:scope', web3Auth, ownerCheck, async (c) => {
     // 1. Validate scope
     const scopeParam = c.req.param('scope')
     const scopeResult = ScopeSchema.safeParse(scopeParam)

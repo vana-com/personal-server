@@ -175,4 +175,13 @@ describe('createServer', () => {
     })
     expect(config.server.origin).toBe('https://my-server.example.com')
   })
+
+  it('ServerContext has accessLogReader property', () => {
+    const config = makeDefaultConfig()
+    const ctx = createServer(config, { configDir: tempDir })
+
+    expect(ctx).toHaveProperty('accessLogReader')
+    expect(typeof ctx.accessLogReader.read).toBe('function')
+    ctx.cleanup()
+  })
 })
