@@ -170,7 +170,7 @@ Layer 4 (final):
 ### Layer 1: Paths + Index Schema
 
 #### Task 1.1: Hierarchy paths + timestamp utilities
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/storage/hierarchy/paths.ts`, `packages/core/src/storage/hierarchy/paths.test.ts`
 - **Deps:** 0.2
 - **Spec:**
