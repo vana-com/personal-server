@@ -448,7 +448,7 @@ Layer 5 (final):
 ---
 
 #### Task 1.3: GatewayClient stub
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/gateway/client.ts`, `packages/core/src/gateway/client.test.ts`
 - **Deps:** 0.1, 0.3
 - **Spec:**
