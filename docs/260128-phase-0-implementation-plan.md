@@ -108,7 +108,7 @@ Layer 5 (final):
 - **Done when:** References all 3 packages, `strict: true`, `composite: true`, `ES2022` + `Node16`
 
 #### Task 0.3: Git config files
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `.gitignore`, `.nvmrc`
 - **Deps:** none
 - **`.gitignore`:** `node_modules/`, `dist/`, `*.tsbuildinfo`, `.DS_Store`, `coverage/`, `.env`, `*.log`
