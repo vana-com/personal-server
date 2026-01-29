@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import type { IndexEntry, IndexListOptions } from './types.js'
+import type { IndexEntry, IndexListOptions, ScopeSummary } from './types.js'
 
 export interface IndexManager {
   insert(entry: Omit<IndexEntry, 'id' | 'createdAt'>): IndexEntry
@@ -8,6 +8,13 @@ export interface IndexManager {
   findLatestByScope(scope: string): IndexEntry | undefined
   countByScope(scope: string): number
   deleteByPath(path: string): boolean
+  listDistinctScopes(options?: {
+    scopePrefix?: string
+    limit?: number
+    offset?: number
+  }): { scopes: ScopeSummary[]; total: number }
+  findClosestByScope(scope: string, at: string): IndexEntry | undefined
+  findByFileId(fileId: string): IndexEntry | undefined
   close(): void
 }
 
@@ -59,6 +66,14 @@ export function createIndexManager(db: Database.Database): IndexManager {
 
   const deleteByPathStmt = db.prepare<{ path: string }>(
     'DELETE FROM data_files WHERE path = @path',
+  )
+
+  const findClosestByScopeStmt = db.prepare<{ scope: string; at: string }>(
+    'SELECT * FROM data_files WHERE scope = @scope AND collected_at <= @at ORDER BY collected_at DESC LIMIT 1',
+  )
+
+  const findByFileIdStmt = db.prepare<{ file_id: string }>(
+    'SELECT * FROM data_files WHERE file_id = @file_id',
   )
 
   return {
@@ -119,6 +134,56 @@ export function createIndexManager(db: Database.Database): IndexManager {
     deleteByPath(path) {
       const result = deleteByPathStmt.run({ path })
       return result.changes > 0
+    },
+
+    listDistinctScopes(options) {
+      const hasPrefix = options?.scopePrefix !== undefined && options.scopePrefix !== ''
+      const prefix = hasPrefix ? options!.scopePrefix! + '%' : '%'
+
+      const countRow = db
+        .prepare(
+          'SELECT COUNT(DISTINCT scope) AS cnt FROM data_files WHERE scope LIKE @prefix',
+        )
+        .get({ prefix }) as { cnt: number }
+      const total = countRow.cnt
+
+      let sql =
+        'SELECT scope, MAX(collected_at) AS latest_collected_at, COUNT(*) AS version_count FROM data_files WHERE scope LIKE @prefix GROUP BY scope ORDER BY scope ASC'
+      const params: Record<string, unknown> = { prefix }
+
+      if (options?.limit !== undefined) {
+        sql += ' LIMIT @limit'
+        params.limit = options.limit
+      }
+      if (options?.offset !== undefined) {
+        sql += ' OFFSET @offset'
+        params.offset = options.offset
+      }
+
+      const rows = db.prepare(sql).all(params) as Array<{
+        scope: string
+        latest_collected_at: string
+        version_count: number
+      }>
+
+      return {
+        scopes: rows.map((r) => ({
+          scope: r.scope,
+          latestCollectedAt: r.latest_collected_at,
+          versionCount: r.version_count,
+        })),
+        total,
+      }
+    },
+
+    findClosestByScope(scope, at) {
+      const row = findClosestByScopeStmt.get({ scope, at }) as RawRow | undefined
+      return row ? rowToEntry(row) : undefined
+    },
+
+    findByFileId(fileId) {
+      const row = findByFileIdStmt.get({ file_id: fileId }) as RawRow | undefined
+      return row ? rowToEntry(row) : undefined
     },
 
     close() {

@@ -13,3 +13,9 @@ export interface IndexListOptions {
   limit?: number
   offset?: number
 }
+
+export interface ScopeSummary {
+  scope: string
+  latestCollectedAt: string
+  versionCount: number
+}

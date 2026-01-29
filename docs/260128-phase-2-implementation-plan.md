@@ -238,7 +238,7 @@ Layer 5 (final):
 ---
 
 #### Task 0.5: IndexManager — add listDistinctScopes + findClosestByScope + findByFileId
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/storage/index/manager.ts` (modify), `packages/core/src/storage/index/manager.test.ts` (modify), `packages/core/src/storage/index/types.ts` (modify)
 - **Deps:** Phase 1 complete
 - **Spec:**
