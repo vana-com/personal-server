@@ -1,0 +1,31 @@
+{
+  "name": "@personal-server/core",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "./config": {
+      "types": "./dist/config/index.d.ts",
+      "import": "./dist/config/index.js"
+    },
+    "./logger": {
+      "types": "./dist/logger/index.d.ts",
+      "import": "./dist/logger/index.js"
+    },
+    "./errors": {
+      "types": "./dist/errors/catalog.d.ts",
+      "import": "./dist/errors/catalog.js"
+    },
+    "./schemas": {
+      "types": "./dist/schemas/server-config.d.ts",
+      "import": "./dist/schemas/server-config.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build"
+  },
+  "dependencies": {
+    "pino": "^9.0.0",
+    "pino-pretty": "^13.0.0",
+    "zod": "^3.24.0"
+  }
+}

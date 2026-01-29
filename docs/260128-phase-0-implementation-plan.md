@@ -139,7 +139,7 @@ Layer 5 (final):
 ### Layer 1: Package Scaffolds
 
 #### Task 1.1: Core package scaffold
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/package.json`, `packages/core/tsconfig.json`
 - **Deps:** 0.1, 0.2
 - **package.json:** name `@personal-server/core`, `"type": "module"`, exports map for `./config`, `./logger`, `./errors`, `./schemas` subpaths. Deps: `pino ^9`, `pino-pretty ^13`, `zod ^3.24`
