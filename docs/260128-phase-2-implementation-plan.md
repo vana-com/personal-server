@@ -341,7 +341,7 @@ Layer 5 (final):
 ### Layer 1: Auth + Grant + Gateway
 
 #### Task 1.1: Web3Signed parse + verify
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/auth/web3-signed.ts`, `packages/core/src/auth/web3-signed.test.ts`
 - **Deps:** 0.1, 0.6
 - **Spec:**
