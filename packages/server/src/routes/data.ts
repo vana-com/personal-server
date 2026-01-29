@@ -39,6 +39,26 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
   })
   const accessLog = createAccessLogMiddleware(deps.accessLogWriter)
 
+  // GET /v1/data — list distinct scopes (requires auth + builder, no grant)
+  app.get('/', web3Auth, builderCheck, async (c) => {
+    const scopePrefix = c.req.query('scopePrefix')
+    const limit = c.req.query('limit') ? parseInt(c.req.query('limit')!, 10) : 20
+    const offset = c.req.query('offset') ? parseInt(c.req.query('offset')!, 10) : 0
+
+    const result = deps.indexManager.listDistinctScopes({
+      scopePrefix: scopePrefix || undefined,
+      limit,
+      offset,
+    })
+
+    return c.json({
+      scopes: result.scopes,
+      total: result.total,
+      limit,
+      offset,
+    })
+  })
+
   // GET /v1/data/:scope — read a data file (requires auth + grant)
   app.get('/:scope', web3Auth, builderCheck, grantCheck, accessLog, async (c) => {
     // 1. Validate scope

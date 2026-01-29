@@ -213,6 +213,138 @@ describe('POST /v1/data/:scope', () => {
   })
 })
 
+describe('GET /v1/data (list scopes)', () => {
+  let dataDir: string
+  let hierarchyOptions: HierarchyManagerOptions
+  let indexManager: IndexManager
+  let cleanup: () => void
+
+  function createApp(overrides: Partial<DataRouteDeps> = {}) {
+    return dataRoutes({
+      indexManager,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: '0xOwnerAddress' as `0x${string}`,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      ...overrides,
+    })
+  }
+
+  async function ingestData(scope: string, data: Record<string, unknown>, app: ReturnType<typeof dataRoutes>) {
+    const res = await app.request(`/${scope}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    return res.json()
+  }
+
+  async function getListWithAuth(
+    app: ReturnType<typeof dataRoutes>,
+    query = '',
+  ) {
+    const uri = '/'
+    const header = await buildWeb3SignedHeader({
+      wallet,
+      aud: SERVER_ORIGIN,
+      method: 'GET',
+      uri,
+    })
+    const url = query ? `/${query}` : '/'
+    return app.request(url, {
+      headers: { Authorization: header },
+    })
+  }
+
+  beforeEach(async () => {
+    dataDir = await mkdtemp(join(tmpdir(), 'data-route-list-test-'))
+    hierarchyOptions = { dataDir }
+
+    const db = initializeDatabase(':memory:')
+    indexManager = createIndexManager(db)
+
+    cleanup = () => {
+      indexManager.close()
+    }
+  })
+
+  afterEach(async () => {
+    cleanup()
+    await rm(dataDir, { recursive: true, force: true })
+  })
+
+  it('returns 200 with scopes array for valid auth', async () => {
+    const app = createApp()
+    await ingestData('instagram.profile', { username: 'test' }, app)
+    await ingestData('twitter.posts', { count: 10 }, app)
+
+    const res = await getListWithAuth(app)
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.scopes).toHaveLength(2)
+    expect(json.scopes.map((s: { scope: string }) => s.scope)).toEqual(['instagram.profile', 'twitter.posts'])
+    expect(json.total).toBe(2)
+  })
+
+  it('filters by scopePrefix query param', async () => {
+    const app = createApp()
+    await ingestData('instagram.profile', { username: 'test' }, app)
+    await ingestData('instagram.likes', { count: 5 }, app)
+    await ingestData('twitter.posts', { count: 10 }, app)
+
+    const res = await getListWithAuth(app, '?scopePrefix=instagram')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.scopes).toHaveLength(2)
+    expect(json.scopes.map((s: { scope: string }) => s.scope)).toEqual(['instagram.likes', 'instagram.profile'])
+    expect(json.total).toBe(2)
+  })
+
+  it('supports limit and offset pagination', async () => {
+    const app = createApp()
+    await ingestData('a.scope1', { a: 1 }, app)
+    await ingestData('b.scope2', { b: 2 }, app)
+    await ingestData('c.scope3', { c: 3 }, app)
+
+    const res = await getListWithAuth(app, '?limit=1&offset=1')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.scopes).toHaveLength(1)
+    expect(json.scopes[0].scope).toBe('b.scope2')
+    expect(json.total).toBe(3)
+    expect(json.limit).toBe(1)
+    expect(json.offset).toBe(1)
+  })
+
+  it('returns 401 without authorization header', async () => {
+    const app = createApp()
+
+    const res = await app.request('/')
+
+    expect(res.status).toBe(401)
+    const json = await res.json()
+    expect(json.error.errorCode).toBe('MISSING_AUTH')
+  })
+
+  it('returns 401 for unregistered builder', async () => {
+    const gateway = createMockGateway({
+      isRegisteredBuilder: vi.fn().mockResolvedValue(false),
+    })
+    const app = createApp({ gateway })
+
+    const res = await getListWithAuth(app)
+
+    expect(res.status).toBe(401)
+    const json = await res.json()
+    expect(json.error.errorCode).toBe('UNREGISTERED_BUILDER')
+  })
+})
+
 describe('GET /v1/data/:scope', () => {
   let dataDir: string
   let hierarchyOptions: HierarchyManagerOptions
