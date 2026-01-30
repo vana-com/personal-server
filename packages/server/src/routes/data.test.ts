@@ -13,7 +13,7 @@ import {
   buildDataFilePath,
   buildScopeDir,
 } from "@personal-server/core/storage/hierarchy";
-import type { GatewayClient } from "@personal-server/core/gateway";
+import type { GatewayClient, Builder } from "@personal-server/core/gateway";
 import type { GatewayGrantResponse } from "@personal-server/core/grants";
 import type { AccessLogWriter } from "@personal-server/core/logging/access-log";
 import {
@@ -26,18 +26,30 @@ import type { DataRouteDeps } from "./data.js";
 const SERVER_ORIGIN = "http://localhost:8080";
 const wallet = createTestWallet(0);
 
+const BUILDER_ID = "0xbuilder1";
+
 function createMockGateway(
   overrides: Partial<GatewayClient> = {},
 ): GatewayClient {
   return {
     isRegisteredBuilder: vi.fn().mockResolvedValue(true),
-    getBuilder: vi.fn().mockResolvedValue(null),
+    getBuilder: vi.fn().mockResolvedValue({
+      id: BUILDER_ID,
+      ownerAddress: "0xOwner",
+      granteeAddress: wallet.address,
+      publicKey: "0x04key",
+      appUrl: "https://app.example.com",
+      addedAt: "2026-01-21T10:00:00.000Z",
+    } satisfies Builder),
     getGrant: vi.fn().mockResolvedValue(null),
     listGrantsByUser: vi.fn().mockResolvedValue([]),
     getSchemaForScope: vi.fn().mockResolvedValue({
-      schemaId: "schema-1",
+      id: "0xschema1",
+      ownerAddress: "0xOwner",
+      name: "instagram.profile",
+      definitionUrl: "https://ipfs.io/ipfs/QmTestSchema",
       scope: "instagram.profile",
-      url: "https://ipfs.io/ipfs/QmTestSchema",
+      addedAt: "2026-01-21T10:00:00.000Z",
     }),
     getServer: vi.fn().mockResolvedValue(null),
     ...overrides,
@@ -48,12 +60,20 @@ function makeGrant(
   overrides: Partial<GatewayGrantResponse> = {},
 ): GatewayGrantResponse {
   return {
-    grantId: "grant-123",
-    user: "0xOwnerAddress",
-    builder: wallet.address,
-    scopes: ["instagram.*"],
-    expiresAt: Math.floor(Date.now() / 1000) + 3600,
-    revoked: false,
+    id: "grant-123",
+    grantorAddress: "0xOwnerAddress",
+    granteeId: BUILDER_ID,
+    grant: JSON.stringify({
+      user: "0xOwnerAddress",
+      builder: wallet.address,
+      scopes: ["instagram.*"],
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    }),
+    fileIds: [],
+    status: "confirmed",
+    addedAt: "2026-01-21T10:00:00.000Z",
+    revokedAt: null,
+    revocationSignature: null,
     ...overrides,
   };
 }
@@ -299,7 +319,7 @@ describe("POST /v1/data/:scope", () => {
     const gateway = createMockGateway();
     const schema = await gateway.getSchemaForScope("instagram.profile");
     expect(schema).toBeDefined();
-    expect(schema!.url).toBe("https://ipfs.io/ipfs/QmTestSchema");
+    expect(schema!.definitionUrl).toBe("https://ipfs.io/ipfs/QmTestSchema");
   });
 
   it("creates two separate versions for same scope", async () => {
@@ -768,7 +788,10 @@ describe("GET /v1/data/:scope", () => {
 
   it("returns 403 GRANT_EXPIRED for expired grant", async () => {
     const grant = makeGrant({
-      expiresAt: Math.floor(Date.now() / 1000) - 3600,
+      grant: JSON.stringify({
+        scopes: ["instagram.*"],
+        expiresAt: Math.floor(Date.now() / 1000) - 3600,
+      }),
     });
     const gateway = createMockGateway({
       getGrant: vi.fn().mockResolvedValue(grant),
@@ -783,7 +806,12 @@ describe("GET /v1/data/:scope", () => {
   });
 
   it("returns 403 SCOPE_MISMATCH when grant does not cover scope", async () => {
-    const grant = makeGrant({ scopes: ["twitter.*"] });
+    const grant = makeGrant({
+      grant: JSON.stringify({
+        scopes: ["twitter.*"],
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      }),
+    });
     const gateway = createMockGateway({
       getGrant: vi.fn().mockResolvedValue(grant),
     });
@@ -948,7 +976,7 @@ describe("DELETE /v1/data/:scope", () => {
 
   it("after DELETE, GET same scope returns 404", async () => {
     const grant = makeGrant({
-      user: ownerWallet.address,
+      grantorAddress: ownerWallet.address,
     });
     const gateway = createMockGateway({
       getGrant: vi.fn().mockResolvedValue(grant),

@@ -31,7 +31,7 @@ export function createAccessLogMiddleware(
     try {
       await writer.write({
         logId: randomUUID(),
-        grantId: grant.grantId,
+        grantId: grant.id,
         builder: auth.signer,
         action: "read",
         scope,

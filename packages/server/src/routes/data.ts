@@ -221,7 +221,7 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
           400,
         );
       }
-      schemaUrl = schema.url;
+      schemaUrl = schema.definitionUrl;
     } catch (err) {
       deps.logger.error({ err, scope }, "Gateway schema lookup failed");
       return c.json(

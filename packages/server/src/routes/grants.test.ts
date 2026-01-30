@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { pino } from "pino";
-import type { GatewayClient } from "@personal-server/core/gateway";
+import type { GatewayClient, Builder } from "@personal-server/core/gateway";
+import type { GrantListItem } from "@personal-server/core/gateway";
 import {
   GRANT_DOMAIN,
   GRANT_TYPES,
@@ -23,7 +24,14 @@ const builder = createTestWallet(1);
 function createMockGateway(): GatewayClient {
   return {
     isRegisteredBuilder: vi.fn().mockResolvedValue(true),
-    getBuilder: vi.fn().mockResolvedValue(null),
+    getBuilder: vi.fn().mockResolvedValue({
+      id: "0xbuilder1",
+      ownerAddress: "0xOwner",
+      granteeAddress: builder.address,
+      publicKey: "0x04key",
+      appUrl: "https://app.example.com",
+      addedAt: "2026-01-21T10:00:00.000Z",
+    } satisfies Builder),
     getGrant: vi.fn().mockResolvedValue(null),
     listGrantsByUser: vi.fn().mockResolvedValue([]),
     getSchemaForScope: vi.fn().mockResolvedValue(null),
@@ -102,20 +110,34 @@ describe("GET /", () => {
 
   it("returns grants from gateway", async () => {
     const mockGateway = createMockGateway();
-    const grants = [
+    const grants: GrantListItem[] = [
       {
-        grantId: "grant-1",
-        builder: builder.address,
-        scopes: ["instagram.*"],
-        expiresAt: futureExpiry,
-        createdAt: "2025-01-01T00:00:00Z",
+        id: "0xgrant1",
+        grantorAddress: owner.address,
+        granteeId: "0xbuilder1",
+        grant: JSON.stringify({
+          scopes: ["instagram.*"],
+          expiresAt: futureExpiry,
+        }),
+        fileIds: [],
+        status: "confirmed",
+        addedAt: "2025-01-01T00:00:00Z",
+        revokedAt: null,
+        revocationSignature: null,
       },
       {
-        grantId: "grant-2",
-        builder: builder.address,
-        scopes: ["twitter.*"],
-        expiresAt: futureExpiry,
-        createdAt: "2025-01-02T00:00:00Z",
+        id: "0xgrant2",
+        grantorAddress: owner.address,
+        granteeId: "0xbuilder1",
+        grant: JSON.stringify({
+          scopes: ["twitter.*"],
+          expiresAt: futureExpiry,
+        }),
+        fileIds: [],
+        status: "confirmed",
+        addedAt: "2025-01-02T00:00:00Z",
+        revokedAt: null,
+        revocationSignature: null,
       },
     ];
     vi.mocked(mockGateway.listGrantsByUser).mockResolvedValue(grants);

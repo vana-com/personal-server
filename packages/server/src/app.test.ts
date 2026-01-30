@@ -29,9 +29,12 @@ function createMockGateway(): GatewayClient {
     getGrant: vi.fn().mockResolvedValue(null),
     listGrantsByUser: vi.fn().mockResolvedValue([]),
     getSchemaForScope: vi.fn().mockResolvedValue({
-      schemaId: "schema-1",
+      id: "0xschema1",
+      ownerAddress: "0xOwner",
+      name: "test.scope",
+      definitionUrl: "https://ipfs.io/ipfs/QmTestSchema",
       scope: "test.scope",
-      url: "https://ipfs.io/ipfs/QmTestSchema",
+      addedAt: "2026-01-21T10:00:00.000Z",
     }),
     getServer: vi.fn().mockResolvedValue(null),
   };

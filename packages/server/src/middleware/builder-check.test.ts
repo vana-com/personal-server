@@ -18,6 +18,9 @@ function createMockGateway(
     isRegisteredBuilder: vi.fn().mockResolvedValue(true),
     getBuilder: vi.fn().mockResolvedValue(null),
     getGrant: vi.fn().mockResolvedValue(null),
+    listGrantsByUser: vi.fn().mockResolvedValue([]),
+    getSchemaForScope: vi.fn().mockResolvedValue(null),
+    getServer: vi.fn().mockResolvedValue(null),
     ...overrides,
   };
 }

@@ -12,6 +12,29 @@ import {
 } from "@personal-server/core/errors";
 
 /**
+ * Parse the opaque `grant` string from the gateway response.
+ * The grant field is a JSON-serialized EIP-712 grant payload containing
+ * { user, builder, scopes, expiresAt, nonce }.
+ */
+function parseGrantPayload(grantString: string): {
+  scopes: string[];
+  expiresAt: number;
+} {
+  try {
+    const parsed = JSON.parse(grantString) as {
+      scopes?: string[];
+      expiresAt?: number;
+    };
+    return {
+      scopes: Array.isArray(parsed.scopes) ? parsed.scopes : [],
+      expiresAt: typeof parsed.expiresAt === "number" ? parsed.expiresAt : 0,
+    };
+  } catch {
+    return { scopes: [], expiresAt: 0 };
+  }
+}
+
+/**
  * Enforces grant for data reads. Must run AFTER web3-auth middleware.
  * Fetches grant from Gateway, checks revocation/expiry/scope/grantee.
  * Sets c.set('grant', grantResponse).
@@ -40,33 +63,39 @@ export function createGrantCheckMiddleware(params: {
         throw new GrantRequiredError({ reason: "Grant not found", grantId });
       }
 
-      // 3. Check revocation
-      if (grant.revoked) {
-        throw new GrantRevokedError({ grantId });
+      // 3. Check revocation — gateway uses revokedAt (null = not revoked)
+      if (grant.revokedAt !== null) {
+        throw new GrantRevokedError({ grantId: grant.id });
       }
 
-      // 4. Check expiry (expiresAt > 0 && expiresAt < now means expired)
-      if (grant.expiresAt > 0) {
+      // 4. Parse the opaque grant string to extract scopes and expiresAt
+      const grantPayload = parseGrantPayload(grant.grant);
+
+      // 5. Check expiry (expiresAt > 0 && expiresAt < now means expired)
+      if (grantPayload.expiresAt > 0) {
         const now = Math.floor(Date.now() / 1000);
-        if (grant.expiresAt < now) {
-          throw new GrantExpiredError({ expiresAt: grant.expiresAt });
+        if (grantPayload.expiresAt < now) {
+          throw new GrantExpiredError({ expiresAt: grantPayload.expiresAt });
         }
       }
 
-      // 5. Check scope coverage — extract scope from route param
+      // 6. Check scope coverage — extract scope from route param
       const scope = c.req.param("scope");
-      if (scope && !scopeCoveredByGrant(scope, grant.scopes)) {
+      if (scope && !scopeCoveredByGrant(scope, grantPayload.scopes)) {
         throw new ScopeMismatchError({
           requestedScope: scope,
-          grantedScopes: grant.scopes,
+          grantedScopes: grantPayload.scopes,
         });
       }
 
-      // 6. Check grantee — signer must be the grant's builder
-      if (auth.signer.toLowerCase() !== grant.builder.toLowerCase()) {
+      // 7. Check grantee — signer must be the grant's builder.
+      //    Gateway returns granteeId (bytes32 builderId), not an address.
+      //    Look up builder by signer address, then compare builder.id === grant.granteeId.
+      const builder = await gateway.getBuilder(auth.signer);
+      if (!builder || builder.id !== grant.granteeId) {
         throw new InvalidSignatureError({
           reason: "Request signer is not the grant builder",
-          expected: grant.builder,
+          expected: grant.granteeId,
           actual: auth.signer,
         });
       }
