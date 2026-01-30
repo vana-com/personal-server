@@ -1,35 +1,68 @@
 /**
  * Gateway client for communicating with the Vana Gateway API.
  * Provides builder registration checks and grant lookups.
+ *
+ * All Gateway GET endpoints return responses wrapped in:
+ *   { data: T, proof: GatewayProof }
+ * This client unwraps the envelope and returns just the data.
  */
 
 import type { GatewayGrantResponse } from "../grants/types.js";
 
+/** Gateway response envelope wrapping all GET responses */
+export interface GatewayEnvelope<T> {
+  data: T;
+  proof: GatewayProof;
+}
+
+export interface GatewayProof {
+  signature: string;
+  timestamp: string;
+  gatewayAddress: string;
+  requestHash: string;
+  responseHash: string;
+  userSignature: string;
+  status: string;
+  chainBlockHeight: number;
+}
+
 export interface Builder {
-  address: string;
-  name: string;
-  registered: boolean;
+  id: string;
+  ownerAddress: string;
+  granteeAddress: string;
+  publicKey: string;
+  appUrl: string;
+  addedAt: string;
 }
 
 export interface Schema {
-  schemaId: string;
+  id: string;
+  ownerAddress: string;
+  name: string;
+  definitionUrl: string;
   scope: string;
-  url: string;
+  addedAt: string;
 }
 
 export interface ServerInfo {
-  address: string;
-  endpoint: string;
-  registered: boolean;
-  trusted: boolean;
+  id: string;
+  ownerAddress: string;
+  serverAddress: string;
+  publicKey: string;
+  serverUrl: string;
+  addedAt: string;
 }
 
 export interface GrantListItem {
-  grantId: string;
-  builder: string;
-  scopes: string[];
-  expiresAt: number;
-  createdAt: string;
+  id: string;
+  grantorAddress: string;
+  granteeId: string;
+  grant: string;
+  fileIds: string[];
+  status: "pending" | "confirmed";
+  addedAt: string;
+  revokedAt: string | null;
+  revocationSignature: string | null;
 }
 
 export interface GatewayClient {
@@ -44,10 +77,17 @@ export interface GatewayClient {
 export function createGatewayClient(baseUrl: string): GatewayClient {
   const base = baseUrl.replace(/\/+$/, "");
 
+  async function unwrapEnvelope<T>(res: Response): Promise<T> {
+    const envelope = (await res.json()) as GatewayEnvelope<T>;
+    return envelope.data;
+  }
+
   return {
     async isRegisteredBuilder(address: string): Promise<boolean> {
       const builder = await this.getBuilder(address);
-      return builder !== null && builder.registered;
+      // Gateway returns 200 with builder data if registered, 404 if not.
+      // Existence IS registration — no separate `registered` field.
+      return builder !== null;
     },
 
     async getBuilder(address: string): Promise<Builder | null> {
@@ -56,7 +96,7 @@ export function createGatewayClient(baseUrl: string): GatewayClient {
       if (!res.ok) {
         throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
       }
-      return (await res.json()) as Builder;
+      return unwrapEnvelope<Builder>(res);
     },
 
     async getGrant(grantId: string): Promise<GatewayGrantResponse | null> {
@@ -65,7 +105,7 @@ export function createGatewayClient(baseUrl: string): GatewayClient {
       if (!res.ok) {
         throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
       }
-      return (await res.json()) as GatewayGrantResponse;
+      return unwrapEnvelope<GatewayGrantResponse>(res);
     },
 
     async listGrantsByUser(userAddress: string): Promise<GrantListItem[]> {
@@ -74,7 +114,7 @@ export function createGatewayClient(baseUrl: string): GatewayClient {
       if (!res.ok) {
         throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
       }
-      return (await res.json()) as GrantListItem[];
+      return unwrapEnvelope<GrantListItem[]>(res);
     },
 
     async getSchemaForScope(scope: string): Promise<Schema | null> {
@@ -83,7 +123,7 @@ export function createGatewayClient(baseUrl: string): GatewayClient {
       if (!res.ok) {
         throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
       }
-      return (await res.json()) as Schema;
+      return unwrapEnvelope<Schema>(res);
     },
 
     async getServer(address: string): Promise<ServerInfo | null> {
@@ -92,7 +132,7 @@ export function createGatewayClient(baseUrl: string): GatewayClient {
       if (!res.ok) {
         throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
       }
-      return (await res.json()) as ServerInfo;
+      return unwrapEnvelope<ServerInfo>(res);
     },
   };
 }

@@ -39,12 +39,18 @@ function createApp(
   };
 
   const grant: GatewayGrantResponse = {
-    grantId: "grant-123",
-    user: "0xOwnerAddress",
-    builder: "0xBuilderAddress",
-    scopes: ["instagram.*"],
-    expiresAt: Math.floor(Date.now() / 1000) + 3600,
-    revoked: false,
+    id: "grant-123",
+    grantorAddress: "0xOwnerAddress",
+    granteeId: "0xbuilder1",
+    grant: JSON.stringify({
+      scopes: ["instagram.*"],
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    }),
+    fileIds: [],
+    status: "confirmed",
+    addedAt: "2026-01-21T10:00:00.000Z",
+    revokedAt: null,
+    revocationSignature: null,
   };
 
   // Simulate upstream middleware setting context
