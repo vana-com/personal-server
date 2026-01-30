@@ -1,6 +1,17 @@
 {
   "name": "@personal-server/core",
   "version": "0.0.1",
+  "description": "Protocol logic for the Vana Personal Server — auth, grants, scopes, storage, keys",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vana-com/personal-server-ts.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/vana-com/personal-server-ts#readme",
+  "bugs": {
+    "url": "https://github.com/vana-com/personal-server-ts/issues"
+  },
   "type": "module",
   "exports": {
     "./config": {

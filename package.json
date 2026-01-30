@@ -1,6 +1,16 @@
 {
   "name": "personal-server-ts",
   "private": true,
+  "description": "TypeScript implementation of the Vana Data Portability Protocol's Personal Server",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vana-com/personal-server-ts.git"
+  },
+  "homepage": "https://github.com/vana-com/personal-server-ts#readme",
+  "bugs": {
+    "url": "https://github.com/vana-com/personal-server-ts/issues"
+  },
   "type": "module",
   "workspaces": [
     "packages/*"
