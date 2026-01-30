@@ -41,7 +41,7 @@
     "@semantic-release/release-notes-generator": "^14.1.0",
     "@types/node": "^25.1.0",
     "conventional-changelog-conventionalcommits": "^9.1.0",
-    "esbuild": "^0.24.0",
+    "esbuild": "^0.25.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
