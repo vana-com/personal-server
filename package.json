@@ -9,6 +9,7 @@
     "clean": "tsc --build --clean",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "vitest run --config tests/e2e/vitest.config.ts",
     "lint": "tsc --noEmit"
   },
   "engines": {

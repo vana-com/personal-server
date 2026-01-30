@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@personal-server/core/*": ["../../packages/core/src/*"],
+      "@personal-server/server/*": ["../../packages/server/src/*"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/server" }
+  ]
+}
