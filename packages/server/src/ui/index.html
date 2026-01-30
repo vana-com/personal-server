@@ -282,6 +282,17 @@
   <!-- Data Panel -->
   <div id="panel-data" class="panel">
     <div class="card">
+      <div class="card-title">Add Data</div>
+      <label style="display:block; margin-bottom:4px; font-size:11px; color:var(--text-dim);">Scope</label>
+      <input id="add-data-scope" type="text" value="test.example" style="margin-bottom:12px;">
+      <label style="display:block; margin-bottom:4px; font-size:11px; color:var(--text-dim);">JSON Data</label>
+      <textarea id="add-data-json" spellcheck="false" style="min-height:120px; margin-bottom:12px;" placeholder='{
+  "example_key": "example_value"
+}'></textarea>
+      <button class="btn" id="submit-data-btn">Submit</button>
+      <div id="add-data-msg" style="margin-top:12px;"></div>
+    </div>
+    <div class="card">
       <div class="card-title">Data Scopes</div>
       <div class="toolbar">
         <button class="btn" id="refresh-data-btn">Refresh</button>
@@ -569,6 +580,52 @@ async function loadScopes() {
 }
 
 el("refresh-data-btn").addEventListener("click", loadScopes);
+
+async function submitData() {
+  var msg = el("add-data-msg");
+  clearChildren(msg);
+
+  var scope = el("add-data-scope").value.trim();
+  if (!scope) {
+    showMsg(msg, "Scope is required.", "err");
+    return;
+  }
+
+  var raw = el("add-data-json").value.trim();
+  var parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch(e) {
+    showMsg(msg, "Invalid JSON: " + e.message, "err");
+    return;
+  }
+
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    showMsg(msg, "JSON must be a plain object (not array or null).", "err");
+    return;
+  }
+
+  try {
+    var result = await api("/v1/data/" + encodeURIComponent(scope), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parsed),
+    });
+    if (result.ok) {
+      var collectedAt = (result.data && result.data.collectedAt) || "unknown";
+      showMsg(msg, "Stored data for scope \"" + scope + "\" (collectedAt: " + collectedAt + ")", "ok");
+      loadScopes();
+    } else {
+      var errCode = (result.data && result.data.error && result.data.error.code) || "";
+      var errMsg = (result.data && result.data.error && result.data.error.message) || "Request failed (" + result.status + ")";
+      showMsg(msg, errCode ? errCode + ": " + errMsg : errMsg, "err");
+    }
+  } catch(e) {
+    showMsg(msg, "Error: " + e.message, "err");
+  }
+}
+
+el("submit-data-btn").addEventListener("click", submitData);
 
 async function viewScope(scope) {
   var detail = el("data-detail");

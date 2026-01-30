@@ -45,8 +45,14 @@ describe("parseScope", () => {
     expect(() => parseScope("Instagram.Profile")).toThrow(ZodError);
   });
 
-  it("rejects segment starting with digit", () => {
-    expect(() => parseScope("123.abc")).toThrow(ZodError);
+  it("accepts segment starting with digit", () => {
+    const result = parseScope("test.dpv1.260130");
+    expect(result).toEqual({
+      source: "test",
+      category: "dpv1",
+      subcategory: "260130",
+      raw: "test.dpv1.260130",
+    });
   });
 });
 

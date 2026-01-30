@@ -1,28 +1,28 @@
-# Vana Data Portability Protocol Specification
+# [CORE] Vana Data Portability Protocol Specification
 
 ## **Table of Contents**
 
-1.  [Introduction](#1-introduction)
-2.  [Terminology](#2-terminology)
-3.  [Protocol Model](#3-protocol-model)
-4.  [Protocol Components](#4-protocol-components)
-    - [4.1.6 Personal Server Implementation Targets](#416-personal-server-implementation-targets)
-    - [4.1.7 Data Sync Component](#417-data-sync-component)
-    - [4.1.8 Local Data Hierarchy](#418-local-data-hierarchy)
-    - [4.1.9 Builder Data Access Interface](#419-builder-data-access-interface)
-    - [4.1.10 MCP Server Integration](#4110-mcp-server-integration)
-    - [4.1.11 Internet Accessibility (Tunneling)](#4111-internet-accessibility-tunneling)
-    - [4.5 Session Relay Service](#45-session-relay-service)
-5.  [Data Formats](#5-data-formats)
-6.  [Protocol Operations](#6-protocol-operations)
-    - [6.6 Builder React Package (@vana/connect)](#66-builder-react-package-vana-connect)
-7.  [Security Considerations](#7-security-considerations)
-8.  [Error Handling](#8-error-handling)
-9.  [Extensibility](#9-extensibility)
-10. [Appendix A: Alignment Analysis](#appendix-a-alignment-analysis)
-11. [Appendix B: Complete Flow Scenarios](#appendix-b-complete-flow-scenarios)
-12. [Appendix C: SMTP Analogy Mapping](#appendix-c-smtp-analogy-mapping)
-13. [Appendix D: ODL Cloud Reference Architecture](#appendix-d-vana-cloud-reference-architecture)
+1.  [Introduction](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#1-introduction-ee225b16)
+2.  [Terminology](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#2-terminology-3f6af1fd)
+3.  [Protocol Model](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#3-protocol-model-648113d9)
+4.  [Protocol Components](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#4-protocol-components-2b65bc42)
+    - [4.1.6 Personal Server Implementation Targets](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#416-personal-server-implementation-targets-6cf06d45)
+    - [4.1.7 Data Sync Component](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#417-data-sync-component-5d7a3b44)
+    - [4.1.8 Local Data Hierarchy](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#418-local-data-hierarchy-6cd86d28)
+    - [4.1.9 Builder Data Access Interface](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#419-builder-data-access-interface-a763221e)
+    - [4.1.10 MCP Server Integration](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#4110-mcp-server-integration-68d6cf85)
+    - [4.1.11 Internet Accessibility (Tunneling)](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#4111-internet-accessibility-tunneling-bb515cd5)
+    - [4.5 Session Relay Service](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#45-session-relay-service-b64d444e)
+5.  [Data Formats](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#5-data-formats-f08cd950)
+6.  [Protocol Operations](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#6-protocol-operations-f73e200e)
+    - [6.6 Builder React Package (@vana/connect)](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#66-builder-react-package-vanaconnect-a4f1ad32)
+7.  [Security Considerations](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#7-security-considerations-d9e63b6d)
+8.  [Error Handling](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#8-error-handling-e4b1618c)
+9.  [Extensibility](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#9-extensibility-c39a0c74)
+10. [Appendix A: Alignment Analysis](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#appendix-a-alignment-analysis-5dd3be2e)
+11. [Appendix B: Complete Flow Scenarios](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#appendix-b-complete-flow-scenarios-c6b80296)
+12. [Appendix C: SMTP Analogy Mapping](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#appendix-c-smtp-analogy-mapping-a388f8c0)
+13. [Appendix D: ODL Cloud Reference Architecture](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#appendix-d-odl-cloud-reference-86d3d186)
 
 ---
 
@@ -81,13 +81,13 @@ This specification does NOT cover:
 
 **Passport (Client-side)** : A client-chosen UX layer that authenticates users and manages wallets on their behalf, abstracting wallet concepts from web2 users. Passport is NOT a protocol component; from the protocol POV, only wallet addresses matter. The Desktop App uses Privy for Passport today, but other clients may use different vendors.
 
-**Storage Backend** : A service that stores encrypted data blobs. Can be Vana Storage, IPFS, user's cloud (Google Drive, Dropbox), or local storage.
+**Storage Backend** : A service that stores encrypted data blobs. Can be Hosted Storage, IPFS, user's cloud (Google Drive, Dropbox), or local storage.
 
 ### **2.2 Protocol Objects**
 
-**Data File** : An encrypted blob containing user data for a specific scope. File contents are immutable after write; on-chain `fileId` linkage is tracked in the Personal Server's local index.
+**Data File** : An blob containing user data for a specific scope. File contents are immutable after write; on-chain `fileId` linkage is tracked in the Personal Server's local index.
 
-**DataRegistry File Record** : An on-chain registry entry (fileId, URL, schemaId, permissions) that points to an encrypted Data File in a storage backend. `schemaId` is REQUIRED for all file records. `fileId` is assigned when the record is written on-chain.
+**DataRegistry File Record** : An on-chain registry entry (fileId, URL, schemaId, permissions) that points to an encrypted Data File in a storage backend. `schemaId` is REQUIRED for all file records. `fileId` is deterministic and can be pre-computed before the file is written to the Gateway or onchain.
 
 **Grant** : A signed permission allowing a Builder to access specific data scopes.
 
@@ -139,13 +139,13 @@ This specification does NOT cover:
 │  │  - Serves builders + enforces grants                                │   │
 │  │  - Hosted (ODL Cloud) or self-hosted                                │   │
 │  │                                                                     │   │
-│  │  Storage Adapter: Vana Storage, IPFS, Google Drive, Dropbox         │   │
+│  │  Storage Adapter: ODL Hosted Storage, IPFS, Google Drive, Dropbox   │   │
 │  │  Compute: LLMs/agents, data transformations                         │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                            │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │  Storage Backends                                                   │   │
-│  │  - Vana Storage (default)                                           │   │
+│  │  - Hosted Storage (default)                                         │   │
 │  │  - IPFS                                                             │   │
 │  │  - Google Drive                                                     │   │
 │  │  - Dropbox                                                          │   │
@@ -223,7 +223,7 @@ Personal Server MUST be registered on-chain via `DataPortabilityServers` (see Se
 
 | **Option**                   | **URL Format**                       | **Operator**  | **Data Visibility**                   |
 | ---------------------------- | ------------------------------------ | ------------- | ------------------------------------- |
-| Vana-Hosted                  | `https://server.vana.com/u/{userId}` | Vana          | Unencrypted OK                        |
+| ODL-Hosted                   | `https://server.vana.com/u/{userId}` | ODL           | Unencrypted OK                        |
 | Self-Hosted                  | `https://server.alice.com`           | User          | Unencrypted OK (user's security zone) |
 | Desktop-Bundled              | Local server within Desktop App      | User's device | Unencrypted OK (user's security zone) |
 | Desktop-as-Server (tunneled) | `https://{userId}.server.vana.org`   | User's device | Unencrypted OK (user's security zone) |
@@ -268,7 +268,7 @@ The bundled Personal Server is still a Personal Server and MUST be registered on
 Users MAY configure both:
 
 - Desktop-Bundled for local compute and when app is open
-- Vana-Hosted as fallback when app is closed
+- ODL-Hosted as fallback when app is closed
 
 #### **4.1.5 Personal Server API**
 
@@ -317,6 +317,7 @@ GET /health
   4. Reject with `400 Bad Request` if validation fails.
   5. Generate `collectedAt` timestamp (current UTC time).
   6. Construct the full Data File envelope:
+
      ```json
      {
        "$schema": "<schema URL from registry>",
@@ -326,6 +327,7 @@ GET /health
        "data": <request body>
      }
      ```
+
   7. Store locally in `~/.vana/data/{scope}/{collectedAt}.json`.
   8. Return `201 Created` immediately with the response below.
   9. Async (background): encrypt the Data File, upload to the configured storage backend (if any), and register the file record in `DataRegistry` via DP RPC.
@@ -472,6 +474,7 @@ Sprites are NOT provisioned for all users automatically. They are provisioned on
 The Personal Server includes a Data Sync component that manages the flow of data between the storage backend and local storage. The storage backend is the source of truth for encrypted data; Personal Servers maintain local decrypted copies for compute and serving. Decryption requires the canonical scope, which is resolved from `schemaId` via the Gateway schema lookup.
 
 **DP RPC deployment constraint:** The DP RPC runs on Vercel Serverless and does not support streaming. Personal Servers MUST poll for new file records using a `lastProcessedTimestamp` cursor (not block-based backfill).
+
 The `lastProcessedTimestamp` is cached locally by the Personal Server and used when querying DP RPC; if the timestamp is not provided, DP RPC returns all file records for the user.
 
 **Storage Backend Selection:**
@@ -480,12 +483,12 @@ Users select ONE storage backend for all their data (per-user, not per-file). Se
 
 When a storage backend is selected or changed, the Personal Server bulk-uploads existing local data to the new backend and registers corresponding `DataRegistry` file records on-chain (triggered/configured by the Desktop App).
 
-| **Backend**            | **URL Format**                     | **Notes**                 |
-| ---------------------- | ---------------------------------- | ------------------------- |
-| Vana Storage (default) | `vana://storage/{userId}/{fileId}` | Managed by Vana, no setup |
-| Google Drive           | `gdrive://{fileId}`                | User authorizes via OAuth |
-| Dropbox                | `dropbox://{path}`                 | User authorizes via OAuth |
-| IPFS                   | `ipfs://{cid}`                     | Content-addressed         |
+| **Backend**              | **URL Format**                     | **Notes**                 |
+| ------------------------ | ---------------------------------- | ------------------------- |
+| Hosted Storage (default) | `vana://storage/{userId}/{fileId}` | Managed by ODL, no setup  |
+| Google Drive             | `gdrive://{fileId}`                | User authorizes via OAuth |
+| Dropbox                  | `dropbox://{path}`                 | User authorizes via OAuth |
+| IPFS                     | `ipfs://{cid}`                     | Content-addressed         |
 
 **Data Flow (Storage-First Model):**
 
@@ -608,7 +611,7 @@ Directory paths are derived from scope segments (dot-separated). For example, `i
 └── server.json                     # Server configuration (includes storage + OAuth + sync)
 ```
 
-**Server Configuration (`~/.vana/server.json`):**
+**Server Configuration (**`~/.vana/server.json`):
 
 Single config file for the Personal Server, including storage backend selection, OAuth tokens, and sync state.
 
@@ -874,11 +877,11 @@ When user HAS enabled ODL Cloud:
 
 Provides fast API access to protocol operations with eventual chain consistency.
 
-For now, all on-chain operations are submitted through the Gateway as a relayer; clients sign EIP-712 payloads and the Gateway validates the operations and returns immediately, without waiting for on-chain confirmation. Later, the Gateway broadcasts the operations on-chain asynchronously.
+For now, all on-chain operations are submitted through the Gateway as a relayer; clients sign EIP-712 payloads and the Gateway validates the operations and returns immediately, without waiting for on-chain confirmation. The Gateway broadcasts the operations on-chain asynchronously.
 
 #### **4.2.2 Design Rationale**
 
-Vana L1 is slow for real-time UX. The Gateway:
+Latency of submitting on-chain transactions to Vana L1 has high latency, so it's not suitable for providing real-time UX. Conversely, the Gateway:
 
 - Accepts signed operations immediately
 - Returns instant responses
@@ -888,6 +891,7 @@ Vana L1 is slow for real-time UX. The Gateway:
 #### **4.2.3 Trust Model**
 
 Phase 0: Use Gateway + signature verification
+
 Phase 1: Add on-chain anchoring, the operations can be verified on-chain after on-chain confirmation
 
 ```
@@ -910,11 +914,10 @@ Phase 1: Add on-chain anchoring, the operations can be verified on-chain after o
 
 ```
 # Personal Server Operations
-POST   /v1/servers                 Register/update Personal Server URL
+POST   /v1/servers.                Register/update Personal Server URL
 GET    /v1/servers/{address}       Get Personal Server info
 GET    /v1/servers/{address}/status
                                    Get confirmation status (pending/confirmed)
-
 # Grant Operations
 POST   /v1/grants                  Create grant
 DELETE /v1/grants/{grantId}        Revoke grant
@@ -923,7 +926,6 @@ GET    /v1/grants?user={address}   List grants for user
 GET    /v1/grants?builder={address}
                                    List grants for builder
 GET    /v1/grants/{grantId}/status Get confirmation status (pending/confirmed)
-
 # File Registry Operations
 POST   /v1/files                   Register file record (schemaId required)
 GET    /v1/files/{fileId}          Get file record
@@ -932,23 +934,18 @@ GET    /v1/files?user={address}&since={ISO8601}
                                    List files for user since timestamp
 GET    /v1/files/{fileId}/status
                                    Get confirmation status (pending/confirmed)
-
 # Schema Registry
 GET    /v1/schemas/{schemaId}      Get schema metadata (canonical scope + schema URL)
 GET    /v1/schemas?scope={scope}   Look up schemaId by canonical scope (reverse lookup)
 GET    /v1/schemas/{schemaId}/status
                                    Get confirmation status (pending/confirmed)
-
 # Builder Operations
-POST   /v1/builders                Register builder (public key + app URL)
+POST   /v1/builders.               Register builder (public key + app URL)
 GET    /v1/builders/{address}      Get builder info (public key + app URL)
 GET    /v1/builders/{address}/status
                                    Get confirmation status (pending/confirmed)
-
-
 # Sync Status
 GET    /v1/sync/status             Get chain sync status
-
 # Nonces
 GET    /v1/nonces?user={address}&operation={operation}
                                    Get the current and next nonce per user and operation
@@ -977,10 +974,10 @@ Content-Type: application/json
 }
 ```
 
-| Gateway API         | On-chain function                                                          | Contract                                                                    |
+| **Gateway API**     | **On-chain function**                                                      | **Contract**                                                                |
 | ------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | `POST /v1/files`    | `addFileWithSchema(string url, uint256 schemaId)`                          | `DataRegistry` (`0x8C8788f98385F6ba1adD4234e551ABba0f82Cb7C`)               |
-| `POST /v1/servers`  | `addServer(address serverAddress, string publicKey, string serverUrl)`     | `DataPortabilityServer` (`0x1483B1F634DBA75AeaE60da7f01A679aabd5ee2c`)      |
+| `POST /v1/servers`  | `addServer(address serverAddress, string ``publicKey``, string serverUrl)` | `DataPortabilityServer` (`0x1483B1F634DBA75AeaE60da7f01A679aabd5ee2c`)      |
 | `POST /v1/builders` | `registerGrantee(address owner, address granteeAddress, string publicKey)` | `DataPortabilityGrantees` (`0x8325C0A0948483EdA023A1A2Fd895e62C5131234`)    |
 | `POST /v1/grants`   | `addPermission(uint256 granteeId, string grant, uint256[] fileIds)`        | `DataPortabilityPermissions` (`0xD54523048AdD05b4d734aFaE7C68324Ebb7373eF`) |
 
@@ -988,19 +985,19 @@ Content-Type: application/json
 
 All responses include verification data:
 
-```json
+```
 {
   "data": {
     "serverUrl": "https://server.alice.com",
     "publicKey": "0x..."
   },
   "proof": {
-    "userSignature": "0x...", // User's EIP-712 signature
-    "gatewaySignature": "0x...", // Gateway attestation
+    "userSignature": "0x...",       // User's EIP-712 signature
+    "gatewaySignature": "0x...",    // Gateway attestation
     "timestamp": 1737500000,
-    "status": "pending", // Chain sync status, pending or confirmed
+    "status": "pending",            // Chain sync status, pending or confirmed
     "estimatedConfirmation": "30s", // Estimated on-chain confirmation time
-    "chainBlockHeight": null // Block where confirmed
+    "chainBlockHeight": null        // Block where confirmed
   }
 }
 ```
@@ -1047,7 +1044,6 @@ The Gateway returns the records in its off-chain DB if the chain sync status is 
 ```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
-
 contract DataPortabilityServers {
     struct ServerInfo {
         uint256 id;
@@ -1519,7 +1515,7 @@ const grantTypedData = {
 }
 ```
 
-### **5.5 Builder App Metadata (Web App Manifest + `vana` Block)**
+### **5.5 Builder App Metadata (Web App Manifest +** `vana` Block)
 
 Builders MUST publish an app manifest to provide human-readable consent UI metadata. The Builder's `appUrl` is stored on-chain (DataPortabilityGrantees) and is the canonical origin for discovering the manifest.
 
@@ -1530,7 +1526,7 @@ Builders MUST publish an app manifest to provide human-readable consent UI metad
 
 **Base Standard:** W3C Web App Manifest with a custom top-level `vana` block for protocol-specific metadata.
 
-**Required `vana` Fields (logical):**
+**Required** `vana` Fields (logical):
 
 - `vana.appUrl` (canonical app origin, must match on-chain `appUrl`)
 - `vana.privacyPolicyUrl`

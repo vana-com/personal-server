@@ -129,7 +129,7 @@ Layer 4 (final):
   4. `parseScope("a")` throws ZodError (1 segment)
   5. `parseScope("a.b.c.d")` throws ZodError (4 segments)
   6. `parseScope("Instagram.Profile")` throws ZodError (uppercase)
-  7. `parseScope("123.abc")` throws ZodError (starts with digit)
+  7. `parseScope("test.dpv1.260130")` succeeds (digit-leading segments allowed)
   8. `scopeToPathSegments("chatgpt.conversations.shared")` → `["chatgpt", "conversations", "shared"]`
 - **Verify:** `npx vitest run packages/core/src/scopes/`
 
