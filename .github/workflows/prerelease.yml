@@ -29,6 +29,6 @@ jobs:
           cd packages/cli
           npm version "$CANARY_VERSION" --no-git-tag-version
       - name: Publish canary
-        run: cd packages/cli && npm publish --tag canary
+        run: cd packages/cli && npm publish --tag canary --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
