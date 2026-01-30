@@ -20,7 +20,9 @@ describe("loadConfig", () => {
     });
 
     expect(config.server.port).toBe(8080);
-    expect(config.gatewayUrl).toBe("https://rpc.vana.org");
+    expect(config.gatewayUrl).toBe(
+      "https://data-gateway-env-dev-opendatalabs.vercel.app",
+    );
     expect(config.logging.level).toBe("info");
     expect(config.logging.pretty).toBe(false);
     expect(config.storage.backend).toBe("local");
@@ -64,7 +66,9 @@ describe("loadConfig", () => {
 
       expect(config.server.port).toBe(9090);
       // Defaults fill in the rest
-      expect(config.gatewayUrl).toBe("https://rpc.vana.org");
+      expect(config.gatewayUrl).toBe(
+        "https://data-gateway-env-dev-opendatalabs.vercel.app",
+      );
       expect(config.logging.level).toBe("info");
       expect(config.storage.backend).toBe("local");
     });

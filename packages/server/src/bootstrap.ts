@@ -15,6 +15,7 @@ import { createAccessLogReader } from "@personal-server/core/logging/access-read
 import type { AccessLogReader } from "@personal-server/core/logging/access-reader";
 import type { Hono } from "hono";
 import { createApp } from "./app.js";
+import { generateDevToken } from "./dev-token.js";
 
 export interface ServerContext {
   app: Hono;
@@ -24,6 +25,7 @@ export interface ServerContext {
   indexManager: IndexManager;
   gatewayClient: GatewayClient;
   accessLogReader: AccessLogReader;
+  devToken?: string;
   cleanup: () => void;
 }
 
@@ -41,6 +43,7 @@ export function createServer(
   const configDir = options?.configDir ?? DEFAULT_CONFIG_DIR;
   const dataDir = join(configDir, "data");
   const indexPath = join(configDir, "index.db");
+  const configPath = join(configDir, "server.json");
 
   const db = initializeDatabase(indexPath);
   const indexManager = createIndexManager(db);
@@ -57,6 +60,9 @@ export function createServer(
   const accessLogWriter = createAccessLogWriter(logsDir);
   const accessLogReader = createAccessLogReader(logsDir);
 
+  // Generate ephemeral dev token when devUi is enabled
+  const devToken = config.devUi.enabled ? generateDevToken() : undefined;
+
   const app = createApp({
     logger,
     version: "0.0.1",
@@ -68,6 +74,8 @@ export function createServer(
     gateway: gatewayClient,
     accessLogWriter,
     accessLogReader,
+    devToken,
+    configPath,
   });
 
   const cleanup = () => {
@@ -82,6 +90,7 @@ export function createServer(
     indexManager,
     gatewayClient,
     accessLogReader,
+    devToken,
     cleanup,
   };
 }

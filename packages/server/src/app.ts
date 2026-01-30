@@ -10,6 +10,8 @@ import { dataRoutes } from "./routes/data.js";
 import { grantsRoutes } from "./routes/grants.js";
 import { accessLogsRoutes } from "./routes/access-logs.js";
 import { syncRoutes } from "./routes/sync.js";
+import { uiConfigRoutes } from "./routes/ui-config.js";
+import { uiRoute } from "./routes/ui.js";
 import type { Logger } from "pino";
 
 export interface AppDeps {
@@ -23,6 +25,8 @@ export interface AppDeps {
   gateway: GatewayClient;
   accessLogWriter: AccessLogWriter;
   accessLogReader: AccessLogReader;
+  devToken?: string;
+  configPath?: string;
 }
 
 export function createApp(deps: AppDeps): Hono {
@@ -45,6 +49,7 @@ export function createApp(deps: AppDeps): Hono {
       serverOwner: deps.serverOwner,
       gateway: deps.gateway,
       accessLogWriter: deps.accessLogWriter,
+      devToken: deps.devToken,
     }),
   );
 
@@ -56,6 +61,7 @@ export function createApp(deps: AppDeps): Hono {
       gateway: deps.gateway,
       serverOwner: deps.serverOwner,
       serverOrigin: deps.serverOrigin,
+      devToken: deps.devToken,
     }),
   );
 
@@ -67,6 +73,7 @@ export function createApp(deps: AppDeps): Hono {
       accessLogReader: deps.accessLogReader,
       serverOrigin: deps.serverOrigin,
       serverOwner: deps.serverOwner,
+      devToken: deps.devToken,
     }),
   );
 
@@ -77,8 +84,24 @@ export function createApp(deps: AppDeps): Hono {
       logger: deps.logger,
       serverOrigin: deps.serverOrigin,
       serverOwner: deps.serverOwner,
+      devToken: deps.devToken,
     }),
   );
+
+  // Mount dev UI routes when dev token is available
+  if (deps.devToken) {
+    app.route("/ui", uiRoute({ devToken: deps.devToken }));
+
+    if (deps.configPath) {
+      app.route(
+        "/ui/api",
+        uiConfigRoutes({
+          devToken: deps.devToken,
+          configPath: deps.configPath,
+        }),
+      );
+    }
+  }
 
   // Global error handler
   app.onError((err, c) => {

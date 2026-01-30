@@ -14,12 +14,17 @@ export interface AccessLogsRouteDeps {
   accessLogReader: AccessLogReader;
   serverOrigin: string;
   serverOwner: `0x${string}`;
+  devToken?: string;
 }
 
 export function accessLogsRoutes(deps: AccessLogsRouteDeps): Hono {
   const app = new Hono();
 
-  const web3Auth = createWeb3AuthMiddleware(deps.serverOrigin);
+  const web3Auth = createWeb3AuthMiddleware({
+    serverOrigin: deps.serverOrigin,
+    devToken: deps.devToken,
+    serverOwner: deps.serverOwner,
+  });
   const ownerCheck = createOwnerCheckMiddleware(deps.serverOwner);
 
   // GET / — list access logs with pagination (owner auth required)

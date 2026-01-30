@@ -46,6 +46,11 @@ export function createGrantCheckMiddleware(params: {
   const { gateway } = params;
 
   return async (c, next) => {
+    if (c.get("devBypass")) {
+      await next();
+      return;
+    }
+
     const auth = c.get("auth") as VerifiedAuth;
 
     try {

@@ -6,12 +6,20 @@ const DRAIN_TIMEOUT_MS = 5_000;
 
 async function main(): Promise<void> {
   const config = await loadConfig();
-  const { app, logger } = createServer(config);
+  const { app, logger, devToken } = createServer(config);
 
   const server = serve(
     { fetch: app.fetch, port: config.server.port },
     (info) => {
       logger.info({ port: info.port, version: "0.0.1" }, "Server started");
+
+      if (devToken) {
+        logger.info(
+          { url: `http://localhost:${info.port}/ui` },
+          "Dev UI available",
+        );
+        logger.info({ devToken }, "Dev token (ephemeral)");
+      }
     },
   );
 

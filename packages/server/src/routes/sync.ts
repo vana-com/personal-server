@@ -12,12 +12,17 @@ export interface SyncRouteDeps {
   logger: Logger;
   serverOrigin: string;
   serverOwner: `0x${string}`;
+  devToken?: string;
 }
 
 export function syncRoutes(deps: SyncRouteDeps): Hono {
   const app = new Hono();
 
-  const web3Auth = createWeb3AuthMiddleware(deps.serverOrigin);
+  const web3Auth = createWeb3AuthMiddleware({
+    serverOrigin: deps.serverOrigin,
+    devToken: deps.devToken,
+    serverOwner: deps.serverOwner,
+  });
   const ownerCheck = createOwnerCheckMiddleware(deps.serverOwner);
 
   // POST /trigger — request a full sync (owner auth required)

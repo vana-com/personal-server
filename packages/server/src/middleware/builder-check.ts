@@ -11,6 +11,11 @@ export function createBuilderCheckMiddleware(
   gateway: GatewayClient,
 ): MiddlewareHandler {
   return async (c, next) => {
+    if (c.get("devBypass")) {
+      await next();
+      return;
+    }
+
     const auth = c.get("auth") as VerifiedAuth;
 
     try {

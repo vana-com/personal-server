@@ -11,6 +11,11 @@ export function createOwnerCheckMiddleware(
   serverOwner: `0x${string}`,
 ): MiddlewareHandler {
   return async (c, next) => {
+    if (c.get("devBypass")) {
+      await next();
+      return;
+    }
+
     const auth = c.get("auth") as VerifiedAuth | undefined;
 
     if (!auth) {

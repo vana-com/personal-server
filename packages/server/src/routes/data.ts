@@ -30,13 +30,18 @@ export interface DataRouteDeps {
   serverOwner: `0x${string}`;
   gateway: GatewayClient;
   accessLogWriter: AccessLogWriter;
+  devToken?: string;
 }
 
 export function dataRoutes(deps: DataRouteDeps): Hono {
   const app = new Hono();
 
   // Create middleware instances
-  const web3Auth = createWeb3AuthMiddleware(deps.serverOrigin);
+  const web3Auth = createWeb3AuthMiddleware({
+    serverOrigin: deps.serverOrigin,
+    devToken: deps.devToken,
+    serverOwner: deps.serverOwner,
+  });
   const builderCheck = createBuilderCheckMiddleware(deps.gateway);
   const grantCheck = createGrantCheckMiddleware({
     gateway: deps.gateway,

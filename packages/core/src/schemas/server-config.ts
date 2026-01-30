@@ -13,6 +13,10 @@ export const StorageBackend = z.enum([
   "dropbox",
 ]);
 
+export const DevUiConfigSchema = z.object({
+  enabled: z.boolean().default(true),
+});
+
 export const ServerConfigSchema = z.object({
   server: z
     .object({
@@ -21,13 +25,17 @@ export const ServerConfigSchema = z.object({
       origin: z.string().url().optional(),
     })
     .default({ port: 8080 }),
-  gatewayUrl: z.string().url().default("https://rpc.vana.org"),
+  gatewayUrl: z
+    .string()
+    .url()
+    .default("https://data-gateway-env-dev-opendatalabs.vercel.app"),
   logging: LoggingConfigSchema.default({ level: "info", pretty: false }),
   storage: z
     .object({
       backend: StorageBackend.default("local"),
     })
     .default({ backend: "local" }),
+  devUi: DevUiConfigSchema.default({ enabled: true }),
 });
 
 export type ServerConfig = z.infer<typeof ServerConfigSchema>;

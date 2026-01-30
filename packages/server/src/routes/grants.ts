@@ -16,6 +16,7 @@ export interface GrantsRouteDeps {
   gateway: GatewayClient;
   serverOwner: `0x${string}`;
   serverOrigin: string;
+  devToken?: string;
 }
 
 interface VerifyRequestBody {
@@ -61,7 +62,11 @@ function isValidVerifyBody(body: unknown): body is VerifyRequestBody {
 export function grantsRoutes(deps: GrantsRouteDeps): Hono {
   const app = new Hono();
 
-  const web3Auth = createWeb3AuthMiddleware(deps.serverOrigin);
+  const web3Auth = createWeb3AuthMiddleware({
+    serverOrigin: deps.serverOrigin,
+    devToken: deps.devToken,
+    serverOwner: deps.serverOwner,
+  });
   const ownerCheck = createOwnerCheckMiddleware(deps.serverOwner);
 
   // GET / — list all grants for the server owner (owner auth required)
