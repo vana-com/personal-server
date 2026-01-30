@@ -1,17 +1,20 @@
-import { describe, it, expect, vi } from 'vitest';
-import { pino } from 'pino';
-import type { GatewayClient } from '@personal-server/core/gateway';
+import { describe, it, expect, vi } from "vitest";
+import { pino } from "pino";
+import type { GatewayClient } from "@personal-server/core/gateway";
 import {
   GRANT_DOMAIN,
   GRANT_TYPES,
   grantToEip712Message,
-} from '@personal-server/core/grants';
-import type { GrantPayload } from '@personal-server/core/grants';
-import { createTestWallet, buildWeb3SignedHeader } from '@personal-server/core/test-utils';
-import { grantsRoutes } from './grants.js';
+} from "@personal-server/core/grants";
+import type { GrantPayload } from "@personal-server/core/grants";
+import {
+  createTestWallet,
+  buildWeb3SignedHeader,
+} from "@personal-server/core/test-utils";
+import { grantsRoutes } from "./grants.js";
 
-const logger = pino({ level: 'silent' });
-const SERVER_ORIGIN = 'http://localhost:8080';
+const logger = pino({ level: "silent" });
+const SERVER_ORIGIN = "http://localhost:8080";
 
 // Wallet 0 = owner/user (signs grants), Wallet 1 = builder
 const owner = createTestWallet(0);
@@ -34,7 +37,7 @@ function makePayload(overrides?: Partial<GrantPayload>): GrantPayload {
   return {
     user: owner.address,
     builder: builder.address,
-    scopes: ['instagram.*'],
+    scopes: ["instagram.*"],
     expiresAt: BigInt(futureExpiry),
     nonce: 1n,
     ...overrides,
@@ -43,17 +46,26 @@ function makePayload(overrides?: Partial<GrantPayload>): GrantPayload {
 
 async function signGrant(payload: GrantPayload): Promise<{
   grantId: string;
-  payload: { user: string; builder: string; scopes: string[]; expiresAt: number; nonce: number };
+  payload: {
+    user: string;
+    builder: string;
+    scopes: string[];
+    expiresAt: number;
+    nonce: number;
+  };
   signature: `0x${string}`;
 }> {
   const signature = await owner.signTypedData({
     domain: GRANT_DOMAIN as unknown as Record<string, unknown>,
-    types: GRANT_TYPES as unknown as Record<string, Array<{ name: string; type: string }>>,
-    primaryType: 'Grant',
+    types: GRANT_TYPES as unknown as Record<
+      string,
+      Array<{ name: string; type: string }>
+    >,
+    primaryType: "Grant",
     message: grantToEip712Message(payload) as Record<string, unknown>,
   });
   return {
-    grantId: 'test-grant-1',
+    grantId: "test-grant-1",
     payload: {
       user: payload.user,
       builder: payload.builder,
@@ -74,36 +86,36 @@ function createApp(overrides?: Partial<{ gateway: GatewayClient }>) {
   });
 }
 
-describe('GET /', () => {
+describe("GET /", () => {
   async function getWithOwnerAuth(app: ReturnType<typeof grantsRoutes>) {
     const auth = await buildWeb3SignedHeader({
       wallet: owner,
       aud: SERVER_ORIGIN,
-      method: 'GET',
-      uri: '/',
+      method: "GET",
+      uri: "/",
     });
-    return app.request('/', {
-      method: 'GET',
+    return app.request("/", {
+      method: "GET",
       headers: { authorization: auth },
     });
   }
 
-  it('returns grants from gateway', async () => {
+  it("returns grants from gateway", async () => {
     const mockGateway = createMockGateway();
     const grants = [
       {
-        grantId: 'grant-1',
+        grantId: "grant-1",
         builder: builder.address,
-        scopes: ['instagram.*'],
+        scopes: ["instagram.*"],
         expiresAt: futureExpiry,
-        createdAt: '2025-01-01T00:00:00Z',
+        createdAt: "2025-01-01T00:00:00Z",
       },
       {
-        grantId: 'grant-2',
+        grantId: "grant-2",
         builder: builder.address,
-        scopes: ['twitter.*'],
+        scopes: ["twitter.*"],
         expiresAt: futureExpiry,
-        createdAt: '2025-01-02T00:00:00Z',
+        createdAt: "2025-01-02T00:00:00Z",
       },
     ];
     vi.mocked(mockGateway.listGrantsByUser).mockResolvedValue(grants);
@@ -117,7 +129,7 @@ describe('GET /', () => {
     expect(mockGateway.listGrantsByUser).toHaveBeenCalledWith(owner.address);
   });
 
-  it('returns empty grants array when gateway has none', async () => {
+  it("returns empty grants array when gateway has none", async () => {
     const mockGateway = createMockGateway();
     vi.mocked(mockGateway.listGrantsByUser).mockResolvedValue([]);
 
@@ -129,9 +141,11 @@ describe('GET /', () => {
     expect(json.grants).toEqual([]);
   });
 
-  it('returns 500 on gateway error', async () => {
+  it("returns 500 on gateway error", async () => {
     const mockGateway = createMockGateway();
-    vi.mocked(mockGateway.listGrantsByUser).mockRejectedValue(new Error('Gateway down'));
+    vi.mocked(mockGateway.listGrantsByUser).mockRejectedValue(
+      new Error("Gateway down"),
+    );
 
     const app = createApp({ gateway: mockGateway });
     const res = await getWithOwnerAuth(app);
@@ -140,15 +154,15 @@ describe('GET /', () => {
   });
 });
 
-describe('POST /verify', () => {
-  it('valid grant + signature returns { valid: true, user, builder, scopes, expiresAt }', async () => {
+describe("POST /verify", () => {
+  it("valid grant + signature returns { valid: true, user, builder, scopes, expiresAt }", async () => {
     const app = createApp();
     const payload = makePayload();
     const body = await signGrant(payload);
 
-    const res = await app.request('/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await app.request("/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
@@ -157,21 +171,21 @@ describe('POST /verify', () => {
     expect(json.valid).toBe(true);
     expect(json.user).toBe(owner.address);
     expect(json.builder).toBe(builder.address);
-    expect(json.scopes).toEqual(['instagram.*']);
+    expect(json.scopes).toEqual(["instagram.*"]);
     expect(json.expiresAt).toBe(futureExpiry);
   });
 
-  it('tampered payload (signature mismatch) returns { valid: false }', async () => {
+  it("tampered payload (signature mismatch) returns { valid: false }", async () => {
     const app = createApp();
     const payload = makePayload();
     const body = await signGrant(payload);
 
     // Tamper with the scopes after signing
-    body.payload.scopes = ['*'];
+    body.payload.scopes = ["*"];
 
-    const res = await app.request('/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await app.request("/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
@@ -181,32 +195,32 @@ describe('POST /verify', () => {
     expect(json.error).toBeDefined();
   });
 
-  it('expired grant returns { valid: false }', async () => {
+  it("expired grant returns { valid: false }", async () => {
     const app = createApp();
     const pastExpiry = Math.floor(Date.now() / 1000) - 3600;
     const payload = makePayload({ expiresAt: BigInt(pastExpiry) });
     const body = await signGrant(payload);
 
-    const res = await app.request('/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await app.request("/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.valid).toBe(false);
-    expect(json.error).toContain('expired');
+    expect(json.error).toContain("expired");
   });
 
-  it('expiresAt: 0 (no expiry) returns { valid: true }', async () => {
+  it("expiresAt: 0 (no expiry) returns { valid: true }", async () => {
     const app = createApp();
     const payload = makePayload({ expiresAt: 0n });
     const body = await signGrant(payload);
 
-    const res = await app.request('/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await app.request("/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
@@ -216,31 +230,31 @@ describe('POST /verify', () => {
     expect(json.expiresAt).toBe(0);
   });
 
-  it('missing required fields returns 400', async () => {
+  it("missing required fields returns 400", async () => {
     const app = createApp();
 
-    const res = await app.request('/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grantId: 'test' }),
+    const res = await app.request("/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ grantId: "test" }),
     });
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toBe('INVALID_BODY');
+    expect(json.error).toBe("INVALID_BODY");
   });
 
-  it('invalid JSON body returns 400', async () => {
+  it("invalid JSON body returns 400", async () => {
     const app = createApp();
 
-    const res = await app.request('/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: 'not json',
+    const res = await app.request("/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "not json",
     });
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toBe('INVALID_BODY');
+    expect(json.error).toBe("INVALID_BODY");
   });
 });

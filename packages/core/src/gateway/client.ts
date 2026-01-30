@@ -3,7 +3,7 @@
  * Provides builder registration checks and grant lookups.
  */
 
-import type { GatewayGrantResponse } from '../grants/types.js';
+import type { GatewayGrantResponse } from "../grants/types.js";
 
 export interface Builder {
   address: string;
@@ -42,7 +42,7 @@ export interface GatewayClient {
 }
 
 export function createGatewayClient(baseUrl: string): GatewayClient {
-  const base = baseUrl.replace(/\/+$/, '');
+  const base = baseUrl.replace(/\/+$/, "");
 
   return {
     async isRegisteredBuilder(address: string): Promise<boolean> {

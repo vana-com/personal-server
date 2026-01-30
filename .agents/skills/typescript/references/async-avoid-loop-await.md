@@ -13,16 +13,16 @@ Using `await` inside a loop creates N sequential operations. Collect promises an
 
 ```typescript
 async function enrichUsers(userIds: string[]): Promise<EnrichedUser[]> {
-  const enrichedUsers: EnrichedUser[] = []
+  const enrichedUsers: EnrichedUser[] = [];
 
   for (const userId of userIds) {
-    const user = await fetchUser(userId)  // Waits for each request
-    const profile = await fetchProfile(userId)
-    enrichedUsers.push({ ...user, profile })
+    const user = await fetchUser(userId); // Waits for each request
+    const profile = await fetchProfile(userId);
+    enrichedUsers.push({ ...user, profile });
   }
   // 10 users × 2 requests × 100ms = 2000ms
 
-  return enrichedUsers
+  return enrichedUsers;
 }
 ```
 
@@ -35,13 +35,13 @@ async function enrichUsers(userIds: string[]): Promise<EnrichedUser[]> {
       const [user, profile] = await Promise.all([
         fetchUser(userId),
         fetchProfile(userId),
-      ])
-      return { ...user, profile }
-    })
-  )
+      ]);
+      return { ...user, profile };
+    }),
+  );
   // 10 users processed in parallel = 100ms total
 
-  return enrichedUsers
+  return enrichedUsers;
 }
 ```
 
@@ -49,28 +49,29 @@ async function enrichUsers(userIds: string[]): Promise<EnrichedUser[]> {
 
 ```typescript
 async function enrichUsers(userIds: string[]): Promise<EnrichedUser[]> {
-  const BATCH_SIZE = 5
-  const results: EnrichedUser[] = []
+  const BATCH_SIZE = 5;
+  const results: EnrichedUser[] = [];
 
   for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
-    const batch = userIds.slice(i, i + BATCH_SIZE)
+    const batch = userIds.slice(i, i + BATCH_SIZE);
     const batchResults = await Promise.all(
       batch.map(async (userId) => {
         const [user, profile] = await Promise.all([
           fetchUser(userId),
           fetchProfile(userId),
-        ])
-        return { ...user, profile }
-      })
-    )
-    results.push(...batchResults)
+        ]);
+        return { ...user, profile };
+      }),
+    );
+    results.push(...batchResults);
   }
 
-  return results
+  return results;
 }
 ```
 
 **When sequential loop await is acceptable:**
+
 - Each iteration depends on the previous result
 - API strictly requires sequential calls
 - Processing order affects correctness

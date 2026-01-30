@@ -1,6 +1,7 @@
 # Phase 4: Sync Engine + Storage Backend — Atomic Implementation Plan
 
 ## Goal
+
 Deliver the sync engine: OpenPGP password-based encryption/decryption (vana-sdk format compatible), Vana Storage adapter (placeholder REST API), cursor-based upload/download workers, background sync manager, and real sync route implementations. After Phase 4, the server can encrypt data files with per-scope HKDF-derived keys (used as OpenPGP passwords), upload to Vana Storage, register files on-chain via Gateway, download and decrypt files from other Personal Server instances, and resume from crash via `lastProcessedTimestamp` cursor.
 
 **Prerequisite:** Phase 3 complete (all tasks marked `[x]` in `docs/260128-phase-3-implementation-plan.md`)
@@ -60,58 +61,60 @@ Layer 5 (final):
 ### Layer 0: Foundation (all parallel)
 
 #### Task 0.1: Sync types
+
 - **Status:** `[ ]`
 - **Files:** `packages/core/src/sync/types.ts` (new), `packages/core/src/sync/index.ts` (new)
 - **Deps:** Phase 3 complete
 - **Spec:**
 
   `types.ts`:
+
   ```typescript
   /** On-chain file record returned by Gateway DP RPC */
   export interface FileRecord {
-    fileId: string
-    owner: string
-    url: string              // e.g. "vana://storage/{userId}/{fileId}"
-    schemaId: string
-    createdAt: string        // ISO 8601
+    fileId: string;
+    owner: string;
+    url: string; // e.g. "vana://storage/{userId}/{fileId}"
+    schemaId: string;
+    createdAt: string; // ISO 8601
   }
 
   /** Result from Gateway listFilesSince */
   export interface FileListResult {
-    files: FileRecord[]
-    cursor: string | null    // next lastProcessedTimestamp, null if caught up
+    files: FileRecord[];
+    cursor: string | null; // next lastProcessedTimestamp, null if caught up
   }
 
   /** Parameters for registering a file on-chain via Gateway */
   export interface RegisterFileParams {
-    url: string
-    schemaId: string
-    owner: string
+    url: string;
+    schemaId: string;
+    owner: string;
   }
 
   /** Response from Gateway registerFile */
   export interface FileRegistration {
-    fileId: string
-    status: 'pending' | 'confirmed'
+    fileId: string;
+    status: "pending" | "confirmed";
   }
 
   // NOTE: No EncryptedBlob interface — OpenPGP handles its own framing.
 
   /** Sync engine status for GET /v1/sync/status */
   export interface SyncStatus {
-    enabled: boolean
-    running: boolean
-    lastSync: string | null          // ISO 8601
-    lastProcessedTimestamp: string | null
-    pendingFiles: number
-    errors: SyncError[]
+    enabled: boolean;
+    running: boolean;
+    lastSync: string | null; // ISO 8601
+    lastProcessedTimestamp: string | null;
+    pendingFiles: number;
+    errors: SyncError[];
   }
 
   export interface SyncError {
-    fileId: string | null
-    scope: string | null
-    message: string
-    timestamp: string
+    fileId: string | null;
+    scope: string | null;
+    message: string;
+    timestamp: string;
   }
   ```
 
@@ -123,16 +126,18 @@ Layer 5 (final):
 ---
 
 #### Task 0.2: Config schema — add sync + saveConfig
+
 - **Status:** `[ ]`
 - **Files:** `packages/core/src/schemas/server-config.ts` (modify), `packages/core/src/config/loader.ts` (modify), `packages/core/src/config/index.ts` (modify), `packages/core/src/schemas/server-config.test.ts` (new)
 - **Deps:** Phase 3 complete
 - **Spec:**
 
   Update `ServerConfigSchema` in `server-config.ts`:
+
   ```typescript
   export const VanaStorageConfigSchema = z.object({
-    apiUrl: z.string().url().default('https://storage.vana.org'),
-  })
+    apiUrl: z.string().url().default("https://storage.vana.org"),
+  });
 
   export const ServerConfigSchema = z.object({
     server: z
@@ -142,11 +147,11 @@ Layer 5 (final):
         origin: z.string().url().optional(),
       })
       .default({}),
-    gatewayUrl: z.string().url().default('https://rpc.vana.org'),
+    gatewayUrl: z.string().url().default("https://rpc.vana.org"),
     logging: LoggingConfigSchema.default({}),
     storage: z
       .object({
-        backend: StorageBackend.default('local'),
+        backend: StorageBackend.default("local"),
         config: z
           .object({
             vana: VanaStorageConfigSchema.optional(),
@@ -160,21 +165,22 @@ Layer 5 (final):
         lastProcessedTimestamp: z.string().datetime().nullable().default(null),
       })
       .default({}),
-  })
+  });
   ```
 
   Add `saveConfig` to `loader.ts`:
+
   ```typescript
-  import { writeFile, mkdir } from 'node:fs/promises'
-  import { dirname } from 'node:path'
+  import { writeFile, mkdir } from "node:fs/promises";
+  import { dirname } from "node:path";
 
   export async function saveConfig(
     config: ServerConfig,
     options?: { configPath?: string },
   ): Promise<void> {
-    const configPath = options?.configPath ?? DEFAULT_CONFIG_PATH
-    await mkdir(dirname(configPath), { recursive: true })
-    await writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8')
+    const configPath = options?.configPath ?? DEFAULT_CONFIG_PATH;
+    await mkdir(dirname(configPath), { recursive: true });
+    await writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
   }
   ```
 
@@ -192,19 +198,22 @@ Layer 5 (final):
 ---
 
 #### Task 0.3: OpenPGP password-based encryption/decryption (vana-sdk format)
+
 - **Status:** `[ ]`
 - **Files:** `packages/core/src/storage/encryption/encrypt.ts` (new), `packages/core/src/storage/encryption/decrypt.ts` (new), `packages/core/src/storage/encryption/index.ts` (new), `packages/core/src/storage/encryption/encrypt.test.ts` (new), `packages/core/package.json` (modify — add `openpgp` dependency)
 - **Deps:** Phase 3 (keys/derive.ts provides `deriveScopeKey`)
 - **Spec:**
 
   Add to `packages/core/package.json` dependencies:
+
   ```json
   "openpgp": "^6.1.0"
   ```
 
   `encrypt.ts`:
+
   ```typescript
-  import * as openpgp from 'openpgp'
+  import * as openpgp from "openpgp";
 
   /**
    * Encrypt plaintext using OpenPGP password-based encryption.
@@ -218,19 +227,20 @@ Layer 5 (final):
     plaintext: Uint8Array,
     password: string,
   ): Promise<Uint8Array> {
-    const message = await openpgp.createMessage({ binary: plaintext })
+    const message = await openpgp.createMessage({ binary: plaintext });
     const encrypted = await openpgp.encrypt({
       message,
       passwords: [password],
-      format: 'binary',
-    })
-    return encrypted as Uint8Array
+      format: "binary",
+    });
+    return encrypted as Uint8Array;
   }
   ```
 
   `decrypt.ts`:
+
   ```typescript
-  import * as openpgp from 'openpgp'
+  import * as openpgp from "openpgp";
 
   /**
    * Decrypt an OpenPGP password-encrypted binary.
@@ -244,13 +254,13 @@ Layer 5 (final):
     encrypted: Uint8Array,
     password: string,
   ): Promise<Uint8Array> {
-    const message = await openpgp.readMessage({ binaryMessage: encrypted })
+    const message = await openpgp.readMessage({ binaryMessage: encrypted });
     const { data } = await openpgp.decrypt({
       message,
       passwords: [password],
-      format: 'binary',
-    })
-    return data as Uint8Array
+      format: "binary",
+    });
+    return data as Uint8Array;
   }
   ```
 
@@ -271,12 +281,14 @@ Layer 5 (final):
 ---
 
 #### Task 0.4: StorageAdapter interface
+
 - **Status:** `[ ]`
 - **Files:** `packages/core/src/storage/adapters/interface.ts` (new), `packages/core/src/storage/adapters/index.ts` (new)
 - **Deps:** Phase 3 complete
 - **Spec:**
 
   `interface.ts`:
+
   ```typescript
   /**
    * Abstract storage backend adapter.
@@ -290,7 +302,7 @@ Layer 5 (final):
      * @param data - encrypted binary data
      * @returns URL where the blob is accessible
      */
-    upload(key: string, data: Uint8Array): Promise<string>
+    upload(key: string, data: Uint8Array): Promise<string>;
 
     /**
      * Download an encrypted blob from the storage backend.
@@ -298,21 +310,21 @@ Layer 5 (final):
      * @returns encrypted binary data
      * @throws if blob not found
      */
-    download(url: string): Promise<Uint8Array>
+    download(url: string): Promise<Uint8Array>;
 
     /**
      * Delete an encrypted blob from the storage backend.
      * @param url - storage URL
      * @returns true if deleted, false if not found
      */
-    delete(url: string): Promise<boolean>
+    delete(url: string): Promise<boolean>;
 
     /**
      * Check if a blob exists in the storage backend.
      * @param url - storage URL
      * @returns true if blob exists
      */
-    exists(url: string): Promise<boolean>
+    exists(url: string): Promise<boolean>;
   }
   ```
 
@@ -324,17 +336,25 @@ Layer 5 (final):
 ---
 
 #### Task 0.5: GatewayClient — add registerFile, getFile, listFilesSince, getSchema
+
 - **Status:** `[ ]`
 - **Files:** `packages/core/src/gateway/client.ts` (modify), `packages/core/src/gateway/client.test.ts` (modify)
 - **Deps:** 0.1 (uses `FileRecord`, `FileListResult`, `RegisterFileParams`, `FileRegistration` types)
 - **Spec:**
 
   Add types import:
+
   ```typescript
-  import type { FileRecord, FileListResult, RegisterFileParams, FileRegistration } from '../sync/types.js'
+  import type {
+    FileRecord,
+    FileListResult,
+    RegisterFileParams,
+    FileRegistration,
+  } from "../sync/types.js";
   ```
 
   Add to `GatewayClient` interface:
+
   ```typescript
   /**
    * Register a file record on-chain via DP RPC.
@@ -383,17 +403,18 @@ Layer 5 (final):
 ### Layer 1: Implementations
 
 #### Task 1.1: Vana Storage adapter (placeholder REST)
+
 - **Status:** `[ ]`
 - **Files:** `packages/core/src/storage/adapters/vana.ts` (new), `packages/core/src/storage/adapters/vana.test.ts` (new)
 - **Deps:** 0.4
 - **Spec:**
 
   ```typescript
-  import type { StorageAdapter } from './interface.js'
+  import type { StorageAdapter } from "./interface.js";
 
   export interface VanaStorageOptions {
-    apiUrl: string    // e.g. "https://storage.vana.org"
-    userId: string    // owner address
+    apiUrl: string; // e.g. "https://storage.vana.org"
+    userId: string; // owner address
   }
 
   /**
@@ -401,59 +422,67 @@ Layer 5 (final):
    * Uses simple REST: PUT/GET/DELETE/HEAD against {apiUrl}/v1/blobs/{key}
    * Real API will be swapped in when Vana Storage is available.
    */
-  export function createVanaStorageAdapter(options: VanaStorageOptions): StorageAdapter {
-    const base = options.apiUrl.replace(/\/+$/, '')
+  export function createVanaStorageAdapter(
+    options: VanaStorageOptions,
+  ): StorageAdapter {
+    const base = options.apiUrl.replace(/\/+$/, "");
 
     function blobUrl(key: string): string {
-      return `${base}/v1/blobs/${encodeURIComponent(key)}`
+      return `${base}/v1/blobs/${encodeURIComponent(key)}`;
     }
 
     return {
       async upload(key, data) {
-        const url = blobUrl(key)
+        const url = blobUrl(key);
         const res = await fetch(url, {
-          method: 'PUT',
+          method: "PUT",
           body: data,
-          headers: { 'Content-Type': 'application/octet-stream' },
-        })
+          headers: { "Content-Type": "application/octet-stream" },
+        });
         if (!res.ok) {
-          throw new Error(`Vana Storage upload failed: ${res.status} ${res.statusText}`)
+          throw new Error(
+            `Vana Storage upload failed: ${res.status} ${res.statusText}`,
+          );
         }
-        return `vana://storage/${options.userId}/${key}`
+        return `vana://storage/${options.userId}/${key}`;
       },
 
       async download(storageUrl) {
         // Parse vana:// URL to extract key, then fetch from REST API
-        const key = storageUrl.replace(`vana://storage/${options.userId}/`, '')
-        const url = blobUrl(key)
-        const res = await fetch(url)
+        const key = storageUrl.replace(`vana://storage/${options.userId}/`, "");
+        const url = blobUrl(key);
+        const res = await fetch(url);
         if (res.status === 404) {
-          throw new Error(`Blob not found: ${storageUrl}`)
+          throw new Error(`Blob not found: ${storageUrl}`);
         }
         if (!res.ok) {
-          throw new Error(`Vana Storage download failed: ${res.status} ${res.statusText}`)
+          throw new Error(
+            `Vana Storage download failed: ${res.status} ${res.statusText}`,
+          );
         }
-        return new Uint8Array(await res.arrayBuffer())
+        return new Uint8Array(await res.arrayBuffer());
       },
 
       async delete(storageUrl) {
-        const key = storageUrl.replace(`vana://storage/${options.userId}/`, '')
-        const url = blobUrl(key)
-        const res = await fetch(url, { method: 'DELETE' })
-        if (res.status === 404) return false
+        const key = storageUrl.replace(`vana://storage/${options.userId}/`, "");
+        const url = blobUrl(key);
+        const res = await fetch(url, { method: "DELETE" });
+        if (res.status === 404) return false;
         if (!res.ok) {
-          throw new Error(`Vana Storage delete failed: ${res.status} ${res.statusText}`)
+          throw new Error(
+            `Vana Storage delete failed: ${res.status} ${res.statusText}`,
+          );
         }
-        return true
+        return true;
       },
 
       async exists(storageUrl) {
-        const key = storageUrl.replace(`vana://storage/${options.userId}/`, '')
-        const url = blobUrl(key)
-        const res = await fetch(url, { method: 'HEAD' })
-        return res.ok
+        const key = storageUrl.replace(`vana://storage/${options.userId}/`, "");
+        const url = blobUrl(key);
+        const res = await fetch(url, { method: "HEAD" });
+        return res.ok;
       },
-    }
+    };
   }
   ```
 
@@ -470,12 +499,14 @@ Layer 5 (final):
 ---
 
 #### Task 1.2: IndexManager — add findUnsynced + updateFileId
+
 - **Status:** `[ ]`
 - **Files:** `packages/core/src/storage/index/manager.ts` (modify), `packages/core/src/storage/index/manager.test.ts` (modify)
 - **Deps:** Phase 3 IndexManager
 - **Spec:**
 
   Add to `IndexManager` interface:
+
   ```typescript
   /**
    * Find all index entries where fileId is null (not yet synced to storage backend).
@@ -492,6 +523,7 @@ Layer 5 (final):
   ```
 
   Implementation:
+
   ```typescript
   const findUnsyncedStmt = db.prepare(
     'SELECT * FROM data_files WHERE file_id IS NULL ORDER BY created_at ASC',
@@ -529,20 +561,25 @@ Layer 5 (final):
 ---
 
 #### Task 1.3: Sync cursor
+
 - **Status:** `[ ]`
 - **Files:** `packages/core/src/sync/cursor.ts` (new), `packages/core/src/sync/cursor.test.ts` (new)
 - **Deps:** 0.2 (saveConfig, loadConfig, sync.lastProcessedTimestamp)
 - **Spec:**
 
   ```typescript
-  import { loadConfig, saveConfig, type LoadConfigOptions } from '../config/index.js'
+  import {
+    loadConfig,
+    saveConfig,
+    type LoadConfigOptions,
+  } from "../config/index.js";
 
   export interface SyncCursor {
     /** Read the lastProcessedTimestamp from server.json */
-    read(): Promise<string | null>
+    read(): Promise<string | null>;
 
     /** Write the lastProcessedTimestamp to server.json */
-    write(timestamp: string): Promise<void>
+    write(timestamp: string): Promise<void>;
   }
 
   /**
@@ -552,16 +589,16 @@ Layer 5 (final):
   export function createSyncCursor(configPath: string): SyncCursor {
     return {
       async read() {
-        const config = await loadConfig({ configPath })
-        return config.sync.lastProcessedTimestamp
+        const config = await loadConfig({ configPath });
+        return config.sync.lastProcessedTimestamp;
       },
 
       async write(timestamp) {
-        const config = await loadConfig({ configPath })
-        config.sync.lastProcessedTimestamp = timestamp
-        await saveConfig(config, { configPath })
+        const config = await loadConfig({ configPath });
+        config.sync.lastProcessedTimestamp = timestamp;
+        await saveConfig(config, { configPath });
       },
-    }
+    };
   }
   ```
 
@@ -577,36 +614,37 @@ Layer 5 (final):
 ### Layer 2: Workers
 
 #### Task 2.1: Upload worker
+
 - **Status:** `[ ]`
 - **Files:** `packages/core/src/sync/workers/upload.ts` (new), `packages/core/src/sync/workers/upload.test.ts` (new)
 - **Deps:** 0.3, 0.5, 1.1, 1.2
 - **Spec:**
 
   ```typescript
-  import type { IndexManager } from '../../storage/index/manager.js'
-  import type { HierarchyManagerOptions } from '../../storage/hierarchy/index.js'
-  import type { StorageAdapter } from '../../storage/adapters/interface.js'
-  import type { GatewayClient, Schema } from '../../gateway/client.js'
-  import type { Logger } from 'pino'
-  import { readDataFile } from '../../storage/hierarchy/index.js'
-  import { deriveScopeKey } from '../../keys/derive.js'
-  import { encryptWithPassword } from '../../storage/encryption/index.js'
-  import type { IndexEntry } from '../../storage/index/types.js'
+  import type { IndexManager } from "../../storage/index/manager.js";
+  import type { HierarchyManagerOptions } from "../../storage/hierarchy/index.js";
+  import type { StorageAdapter } from "../../storage/adapters/interface.js";
+  import type { GatewayClient, Schema } from "../../gateway/client.js";
+  import type { Logger } from "pino";
+  import { readDataFile } from "../../storage/hierarchy/index.js";
+  import { deriveScopeKey } from "../../keys/derive.js";
+  import { encryptWithPassword } from "../../storage/encryption/index.js";
+  import type { IndexEntry } from "../../storage/index/types.js";
 
   export interface UploadWorkerDeps {
-    indexManager: IndexManager
-    hierarchyOptions: HierarchyManagerOptions
-    storageAdapter: StorageAdapter
-    gateway: GatewayClient
-    masterKey: Uint8Array
-    serverOwner: string
-    logger: Logger
+    indexManager: IndexManager;
+    hierarchyOptions: HierarchyManagerOptions;
+    storageAdapter: StorageAdapter;
+    gateway: GatewayClient;
+    masterKey: Uint8Array;
+    serverOwner: string;
+    logger: Logger;
   }
 
   export interface UploadResult {
-    path: string
-    fileId: string
-    url: string
+    path: string;
+    fileId: string;
+    url: string;
   }
 
   /**
@@ -622,7 +660,7 @@ Layer 5 (final):
   export async function uploadOne(
     deps: UploadWorkerDeps,
     entry: IndexEntry,
-  ): Promise<UploadResult>
+  ): Promise<UploadResult>;
 
   /**
    * Process all unsynced entries (fileId === null).
@@ -632,7 +670,7 @@ Layer 5 (final):
   export async function uploadAll(
     deps: UploadWorkerDeps,
     options?: { batchSize?: number },
-  ): Promise<UploadResult[]>
+  ): Promise<UploadResult[]>;
   ```
 
   `uploadOne` implementation flow:
@@ -666,39 +704,40 @@ Layer 5 (final):
 ---
 
 #### Task 2.2: Download worker
+
 - **Status:** `[ ]`
 - **Files:** `packages/core/src/sync/workers/download.ts` (new), `packages/core/src/sync/workers/download.test.ts` (new)
 - **Deps:** 0.3, 0.5, 1.1, 1.2, 1.3
 - **Spec:**
 
   ```typescript
-  import type { IndexManager } from '../../storage/index/manager.js'
-  import type { HierarchyManagerOptions } from '../../storage/hierarchy/index.js'
-  import type { StorageAdapter } from '../../storage/adapters/interface.js'
-  import type { GatewayClient } from '../../gateway/client.js'
-  import type { SyncCursor } from '../cursor.js'
-  import type { FileRecord } from '../types.js'
-  import type { Logger } from 'pino'
-  import { writeDataFile } from '../../storage/hierarchy/index.js'
-  import { deriveScopeKey } from '../../keys/derive.js'
-  import { decryptWithPassword } from '../../storage/encryption/index.js'
-  import { DataFileEnvelopeSchema } from '../../schemas/data-file.js'
+  import type { IndexManager } from "../../storage/index/manager.js";
+  import type { HierarchyManagerOptions } from "../../storage/hierarchy/index.js";
+  import type { StorageAdapter } from "../../storage/adapters/interface.js";
+  import type { GatewayClient } from "../../gateway/client.js";
+  import type { SyncCursor } from "../cursor.js";
+  import type { FileRecord } from "../types.js";
+  import type { Logger } from "pino";
+  import { writeDataFile } from "../../storage/hierarchy/index.js";
+  import { deriveScopeKey } from "../../keys/derive.js";
+  import { decryptWithPassword } from "../../storage/encryption/index.js";
+  import { DataFileEnvelopeSchema } from "../../schemas/data-file.js";
 
   export interface DownloadWorkerDeps {
-    indexManager: IndexManager
-    hierarchyOptions: HierarchyManagerOptions
-    storageAdapter: StorageAdapter
-    gateway: GatewayClient
-    cursor: SyncCursor
-    masterKey: Uint8Array
-    logger: Logger
+    indexManager: IndexManager;
+    hierarchyOptions: HierarchyManagerOptions;
+    storageAdapter: StorageAdapter;
+    gateway: GatewayClient;
+    cursor: SyncCursor;
+    masterKey: Uint8Array;
+    logger: Logger;
   }
 
   export interface DownloadResult {
-    fileId: string
-    scope: string
-    collectedAt: string
-    path: string
+    fileId: string;
+    scope: string;
+    collectedAt: string;
+    path: string;
   }
 
   /**
@@ -715,7 +754,7 @@ Layer 5 (final):
   export async function downloadOne(
     deps: DownloadWorkerDeps,
     record: FileRecord,
-  ): Promise<DownloadResult | null>
+  ): Promise<DownloadResult | null>;
 
   /**
    * Poll Gateway for new file records since lastProcessedTimestamp,
@@ -723,7 +762,7 @@ Layer 5 (final):
    */
   export async function downloadAll(
     deps: DownloadWorkerDeps,
-  ): Promise<DownloadResult[]>
+  ): Promise<DownloadResult[]>;
   ```
 
   `downloadOne` implementation flow:
@@ -762,52 +801,53 @@ Layer 5 (final):
 ### Layer 3: Engine + Routes
 
 #### Task 3.1: SyncManager (background loop, upload queue, crash recovery)
+
 - **Status:** `[ ]`
 - **Files:** `packages/core/src/sync/engine/sync-manager.ts` (new), `packages/core/src/sync/engine/sync-manager.test.ts` (new)
 - **Deps:** 2.1, 2.2, 1.3
 - **Spec:**
 
   ```typescript
-  import type { UploadWorkerDeps } from '../workers/upload.js'
-  import type { DownloadWorkerDeps } from '../workers/download.js'
-  import type { SyncCursor } from '../cursor.js'
-  import type { SyncStatus, SyncError } from '../types.js'
-  import type { Logger } from 'pino'
-  import { uploadAll } from '../workers/upload.js'
-  import { downloadAll } from '../workers/download.js'
+  import type { UploadWorkerDeps } from "../workers/upload.js";
+  import type { DownloadWorkerDeps } from "../workers/download.js";
+  import type { SyncCursor } from "../cursor.js";
+  import type { SyncStatus, SyncError } from "../types.js";
+  import type { Logger } from "pino";
+  import { uploadAll } from "../workers/upload.js";
+  import { downloadAll } from "../workers/download.js";
 
   export interface SyncManagerOptions {
     /** Polling interval in milliseconds (default: 60_000 = 1 minute) */
-    pollInterval?: number
+    pollInterval?: number;
     /** Max upload batch size per cycle (default: 50) */
-    uploadBatchSize?: number
+    uploadBatchSize?: number;
   }
 
   export interface SyncManager {
     /** Start the background sync loop */
-    start(): void
+    start(): void;
 
     /** Stop the background sync loop gracefully */
-    stop(): Promise<void>
+    stop(): Promise<void>;
 
     /** Trigger an immediate sync cycle (skips wait) */
-    trigger(): Promise<void>
+    trigger(): Promise<void>;
 
     /** Get current sync status */
-    getStatus(): SyncStatus
+    getStatus(): SyncStatus;
 
     /** Queue a single entry for upload (called when new data is ingested) */
-    notifyNewData(): void
+    notifyNewData(): void;
 
     /** Whether the sync manager is currently running */
-    readonly running: boolean
+    readonly running: boolean;
   }
 
   export function createSyncManager(
     uploadDeps: UploadWorkerDeps,
     downloadDeps: DownloadWorkerDeps,
     options?: SyncManagerOptions,
-  ): SyncManager
+  ): SyncManager;
   ```
 
   Implementation:
@@ -834,39 +874,46 @@ Layer 5 (final):
 ---
 
 #### Task 3.2: Replace sync stub routes with real implementations
+
 - **Status:** `[ ]`
 - **Files:** `packages/server/src/routes/sync.ts` (modify), `packages/server/src/routes/sync.test.ts` (modify)
 - **Deps:** 3.1
 - **Spec:**
 
   Update `SyncRouteDeps`:
+
   ```typescript
-  import type { SyncManager } from '@personal-server/core/sync'
+  import type { SyncManager } from "@personal-server/core/sync";
 
   export interface SyncRouteDeps {
-    logger: Logger
-    serverOrigin: string
-    serverOwner: `0x${string}`
-    syncManager: SyncManager | null  // null when sync disabled
+    logger: Logger;
+    serverOrigin: string;
+    serverOwner: `0x${string}`;
+    syncManager: SyncManager | null; // null when sync disabled
   }
   ```
 
   Replace stub handlers:
 
   `POST /trigger`:
+
   ```typescript
-  app.post('/trigger', web3Auth, ownerCheck, async (c) => {
+  app.post("/trigger", web3Auth, ownerCheck, async (c) => {
     if (!deps.syncManager) {
-      return c.json({ status: 'disabled', message: 'Sync is not enabled' }, 200)
+      return c.json(
+        { status: "disabled", message: "Sync is not enabled" },
+        200,
+      );
     }
-    await deps.syncManager.trigger()
-    return c.json({ status: 'started', message: 'Sync triggered' }, 202)
-  })
+    await deps.syncManager.trigger();
+    return c.json({ status: "started", message: "Sync triggered" }, 202);
+  });
   ```
 
   `GET /status`:
+
   ```typescript
-  app.get('/status', web3Auth, ownerCheck, async (c) => {
+  app.get("/status", web3Auth, ownerCheck, async (c) => {
     if (!deps.syncManager) {
       return c.json({
         enabled: false,
@@ -875,25 +922,29 @@ Layer 5 (final):
         lastProcessedTimestamp: null,
         pendingFiles: 0,
         errors: [],
-      })
+      });
     }
-    return c.json(deps.syncManager.getStatus())
-  })
+    return c.json(deps.syncManager.getStatus());
+  });
   ```
 
   `POST /file/:fileId`:
+
   ```typescript
-  app.post('/file/:fileId', web3Auth, ownerCheck, async (c) => {
-    const fileId = c.req.param('fileId')
+  app.post("/file/:fileId", web3Auth, ownerCheck, async (c) => {
+    const fileId = c.req.param("fileId");
     if (!deps.syncManager) {
-      return c.json({ fileId, status: 'disabled', message: 'Sync is not enabled' }, 200)
+      return c.json(
+        { fileId, status: "disabled", message: "Sync is not enabled" },
+        200,
+      );
     }
     // Trigger a full sync (individual file sync is handled by the download worker
     // when it encounters the fileId from Gateway)
-    deps.logger.info({ fileId }, 'File sync requested, triggering full sync')
-    await deps.syncManager.trigger()
-    return c.json({ fileId, status: 'started' }, 202)
-  })
+    deps.logger.info({ fileId }, "File sync requested, triggering full sync");
+    await deps.syncManager.trigger();
+    return c.json({ fileId, status: "started" }, 202);
+  });
   ```
 
 - **Tests (6 cases):**
@@ -910,30 +961,33 @@ Layer 5 (final):
 ### Layer 4: Integration
 
 #### Task 4.1: POST /v1/data/:scope triggers async upload
+
 - **Status:** `[ ]`
 - **Files:** `packages/server/src/routes/data.ts` (modify), `packages/server/src/routes/data.test.ts` (modify)
 - **Deps:** 3.1
 - **Spec:**
 
   Update `DataRouteDeps`:
+
   ```typescript
   export interface DataRouteDeps {
     // ... existing fields ...
-    syncManager: SyncManager | null  // null when sync disabled
+    syncManager: SyncManager | null; // null when sync disabled
   }
   ```
 
   Modify POST `/:scope` handler — after successful insert into index:
+
   ```typescript
   // 8. Notify sync manager of new data (if enabled)
-  let status: 'stored' | 'syncing' = 'stored'
+  let status: "stored" | "syncing" = "stored";
   if (deps.syncManager) {
-    deps.syncManager.notifyNewData()
-    status = 'syncing'
+    deps.syncManager.notifyNewData();
+    status = "syncing";
   }
 
   // 9. Return 201
-  return c.json({ scope, collectedAt, status }, 201)
+  return c.json({ scope, collectedAt, status }, 201);
   ```
 
   When sync is disabled (`syncManager === null`), behavior is unchanged: returns `status: "stored"`.
@@ -948,12 +1002,14 @@ Layer 5 (final):
 ---
 
 #### Task 4.2: Wire sync into bootstrap.ts, app.ts, ServerContext, package.json exports
+
 - **Status:** `[ ]`
 - **Files:** `packages/server/src/bootstrap.ts` (modify), `packages/server/src/app.ts` (modify), `packages/server/src/bootstrap.test.ts` (modify), `packages/server/src/app.test.ts` (modify), `packages/core/package.json` (modify)
 - **Deps:** 3.1, 3.2, 4.1
 - **Spec:**
 
   **core/package.json** — add `openpgp` dependency and new export subpaths:
+
   ```json
   "dependencies": {
     "openpgp": "^6.1.0"
@@ -961,6 +1017,7 @@ Layer 5 (final):
   ```
 
   Export subpaths:
+
   ```json
   "./sync": {
     "types": "./dist/sync/index.d.ts",
@@ -977,31 +1034,37 @@ Layer 5 (final):
   ```
 
   **bootstrap.ts** additions:
+
   ```typescript
-  import { deriveMasterKey } from '@personal-server/core/keys'
-  import { createSyncCursor } from '@personal-server/core/sync'
-  import { createSyncManager, type SyncManager } from '@personal-server/core/sync'
-  import { createVanaStorageAdapter } from '@personal-server/core/storage/adapters'
+  import { deriveMasterKey } from "@personal-server/core/keys";
+  import { createSyncCursor } from "@personal-server/core/sync";
+  import {
+    createSyncManager,
+    type SyncManager,
+  } from "@personal-server/core/sync";
+  import { createVanaStorageAdapter } from "@personal-server/core/storage/adapters";
 
   export interface ServerContext {
     // ... existing fields ...
-    syncManager: SyncManager | null   // NEW: null when sync disabled
+    syncManager: SyncManager | null; // NEW: null when sync disabled
   }
 
   // In createServer():
-  let syncManager: SyncManager | null = null
+  let syncManager: SyncManager | null = null;
 
-  const masterKeySig = process.env.VANA_MASTER_KEY_SIGNATURE
+  const masterKeySig = process.env.VANA_MASTER_KEY_SIGNATURE;
   if (config.sync.enabled && masterKeySig) {
-    const masterKey = deriveMasterKey(masterKeySig as `0x${string}`)
+    const masterKey = deriveMasterKey(masterKeySig as `0x${string}`);
 
-    const vanaConfig = config.storage.config.vana ?? { apiUrl: 'https://storage.vana.org' }
+    const vanaConfig = config.storage.config.vana ?? {
+      apiUrl: "https://storage.vana.org",
+    };
     const storageAdapter = createVanaStorageAdapter({
       apiUrl: vanaConfig.apiUrl,
       userId: serverOwner,
-    })
+    });
 
-    const cursor = createSyncCursor(join(configDir, 'server.json'))
+    const cursor = createSyncCursor(join(configDir, "server.json"));
 
     const uploadDeps = {
       indexManager,
@@ -1011,7 +1074,7 @@ Layer 5 (final):
       masterKey,
       serverOwner,
       logger,
-    }
+    };
 
     const downloadDeps = {
       indexManager,
@@ -1021,28 +1084,41 @@ Layer 5 (final):
       cursor,
       masterKey,
       logger,
-    }
+    };
 
-    syncManager = createSyncManager(uploadDeps, downloadDeps)
-    syncManager.start()
-    logger.info('Sync engine started')
+    syncManager = createSyncManager(uploadDeps, downloadDeps);
+    syncManager.start();
+    logger.info("Sync engine started");
   } else {
-    logger.info('Sync disabled (sync.enabled=false or VANA_MASTER_KEY_SIGNATURE not set)')
+    logger.info(
+      "Sync disabled (sync.enabled=false or VANA_MASTER_KEY_SIGNATURE not set)",
+    );
   }
 
   // Update cleanup:
   const cleanup = () => {
     if (syncManager) {
-      syncManager.stop()
+      syncManager.stop();
     }
-    indexManager.close()
-  }
+    indexManager.close();
+  };
 
   // Return syncManager in context
-  return { app, logger, config, startedAt, indexManager, gatewayClient, accessLogReader, syncManager, cleanup }
+  return {
+    app,
+    logger,
+    config,
+    startedAt,
+    indexManager,
+    gatewayClient,
+    accessLogReader,
+    syncManager,
+    cleanup,
+  };
   ```
 
   **app.ts** additions:
+
   ```typescript
   import type { SyncManager } from '@personal-server/core/sync'
 
@@ -1070,6 +1146,7 @@ Layer 5 (final):
 ### Layer 5: Final Verification
 
 #### Task 5.1: Install, build, test
+
 - **Status:** `[ ]`
 - **Deps:** all previous
 - **Steps:**
@@ -1094,43 +1171,43 @@ Layer 5 (final):
 
 ## File Inventory (30 file operations)
 
-| Task | File | New/Modified |
-|------|------|-------------|
-| 0.1 | `packages/core/src/sync/types.ts` | New |
-| 0.1 | `packages/core/src/sync/index.ts` | New |
-| 0.2 | `packages/core/src/schemas/server-config.ts` | Modified |
-| 0.2 | `packages/core/src/schemas/server-config.test.ts` | New |
-| 0.2 | `packages/core/src/config/loader.ts` | Modified |
-| 0.2 | `packages/core/src/config/index.ts` | Modified |
-| 0.3 | `packages/core/src/storage/encryption/encrypt.ts` | New |
-| 0.3 | `packages/core/src/storage/encryption/decrypt.ts` | New |
-| 0.3 | `packages/core/src/storage/encryption/index.ts` | New |
-| 0.3 | `packages/core/src/storage/encryption/encrypt.test.ts` | New |
-| 0.4 | `packages/core/src/storage/adapters/interface.ts` | New |
-| 0.4 | `packages/core/src/storage/adapters/index.ts` | New |
-| 0.5 | `packages/core/src/gateway/client.ts` | Modified |
-| 0.5 | `packages/core/src/gateway/client.test.ts` | Modified |
-| 1.1 | `packages/core/src/storage/adapters/vana.ts` | New |
-| 1.1 | `packages/core/src/storage/adapters/vana.test.ts` | New |
-| 1.2 | `packages/core/src/storage/index/manager.ts` | Modified |
-| 1.2 | `packages/core/src/storage/index/manager.test.ts` | Modified |
-| 1.3 | `packages/core/src/sync/cursor.ts` | New |
-| 1.3 | `packages/core/src/sync/cursor.test.ts` | New |
-| 2.1 | `packages/core/src/sync/workers/upload.ts` | New |
-| 2.1 | `packages/core/src/sync/workers/upload.test.ts` | New |
-| 2.2 | `packages/core/src/sync/workers/download.ts` | New |
-| 2.2 | `packages/core/src/sync/workers/download.test.ts` | New |
-| 3.1 | `packages/core/src/sync/engine/sync-manager.ts` | New |
-| 3.1 | `packages/core/src/sync/engine/sync-manager.test.ts` | New |
-| 3.2 | `packages/server/src/routes/sync.ts` | Modified |
-| 3.2 | `packages/server/src/routes/sync.test.ts` | Modified |
-| 4.1 | `packages/server/src/routes/data.ts` | Modified |
-| 4.1 | `packages/server/src/routes/data.test.ts` | Modified |
-| 4.2 | `packages/server/src/bootstrap.ts` | Modified |
-| 4.2 | `packages/server/src/bootstrap.test.ts` | Modified |
-| 4.2 | `packages/server/src/app.ts` | Modified |
-| 4.2 | `packages/server/src/app.test.ts` | Modified |
-| 4.2 | `packages/core/package.json` | Modified |
+| Task | File                                                   | New/Modified |
+| ---- | ------------------------------------------------------ | ------------ |
+| 0.1  | `packages/core/src/sync/types.ts`                      | New          |
+| 0.1  | `packages/core/src/sync/index.ts`                      | New          |
+| 0.2  | `packages/core/src/schemas/server-config.ts`           | Modified     |
+| 0.2  | `packages/core/src/schemas/server-config.test.ts`      | New          |
+| 0.2  | `packages/core/src/config/loader.ts`                   | Modified     |
+| 0.2  | `packages/core/src/config/index.ts`                    | Modified     |
+| 0.3  | `packages/core/src/storage/encryption/encrypt.ts`      | New          |
+| 0.3  | `packages/core/src/storage/encryption/decrypt.ts`      | New          |
+| 0.3  | `packages/core/src/storage/encryption/index.ts`        | New          |
+| 0.3  | `packages/core/src/storage/encryption/encrypt.test.ts` | New          |
+| 0.4  | `packages/core/src/storage/adapters/interface.ts`      | New          |
+| 0.4  | `packages/core/src/storage/adapters/index.ts`          | New          |
+| 0.5  | `packages/core/src/gateway/client.ts`                  | Modified     |
+| 0.5  | `packages/core/src/gateway/client.test.ts`             | Modified     |
+| 1.1  | `packages/core/src/storage/adapters/vana.ts`           | New          |
+| 1.1  | `packages/core/src/storage/adapters/vana.test.ts`      | New          |
+| 1.2  | `packages/core/src/storage/index/manager.ts`           | Modified     |
+| 1.2  | `packages/core/src/storage/index/manager.test.ts`      | Modified     |
+| 1.3  | `packages/core/src/sync/cursor.ts`                     | New          |
+| 1.3  | `packages/core/src/sync/cursor.test.ts`                | New          |
+| 2.1  | `packages/core/src/sync/workers/upload.ts`             | New          |
+| 2.1  | `packages/core/src/sync/workers/upload.test.ts`        | New          |
+| 2.2  | `packages/core/src/sync/workers/download.ts`           | New          |
+| 2.2  | `packages/core/src/sync/workers/download.test.ts`      | New          |
+| 3.1  | `packages/core/src/sync/engine/sync-manager.ts`        | New          |
+| 3.1  | `packages/core/src/sync/engine/sync-manager.test.ts`   | New          |
+| 3.2  | `packages/server/src/routes/sync.ts`                   | Modified     |
+| 3.2  | `packages/server/src/routes/sync.test.ts`              | Modified     |
+| 4.1  | `packages/server/src/routes/data.ts`                   | Modified     |
+| 4.1  | `packages/server/src/routes/data.test.ts`              | Modified     |
+| 4.2  | `packages/server/src/bootstrap.ts`                     | Modified     |
+| 4.2  | `packages/server/src/bootstrap.test.ts`                | Modified     |
+| 4.2  | `packages/server/src/app.ts`                           | Modified     |
+| 4.2  | `packages/server/src/app.test.ts`                      | Modified     |
+| 4.2  | `packages/core/package.json`                           | Modified     |
 
 **Unique files: 16 new, 14 modified = 30 distinct files**
 
@@ -1138,15 +1215,15 @@ Layer 5 (final):
 
 ## Agent Parallelism Strategy
 
-| Batch | Tasks | Agents | Notes |
-|-------|-------|--------|-------|
-| 1 | 0.1, 0.2, 0.3, 0.4, 0.5 | 5 parallel | All independent foundation work |
-| 2 | 1.1, 1.2, 1.3 | 3 parallel | Each extends a different Layer 0 module |
-| 3 | 2.1, 2.2 | 2 parallel | Upload/download workers are independent |
-| 4 | 3.1 | 1 | SyncManager depends on both workers |
-| 5 | 3.2, 4.1 | 2 parallel | Route changes are independent of each other |
-| 6 | 4.2 | 1 | Integration wiring (touches shared files) |
-| 7 | 5.1 | 1 | Verification only |
+| Batch | Tasks                   | Agents     | Notes                                       |
+| ----- | ----------------------- | ---------- | ------------------------------------------- |
+| 1     | 0.1, 0.2, 0.3, 0.4, 0.5 | 5 parallel | All independent foundation work             |
+| 2     | 1.1, 1.2, 1.3           | 3 parallel | Each extends a different Layer 0 module     |
+| 3     | 2.1, 2.2                | 2 parallel | Upload/download workers are independent     |
+| 4     | 3.1                     | 1          | SyncManager depends on both workers         |
+| 5     | 3.2, 4.1                | 2 parallel | Route changes are independent of each other |
+| 6     | 4.2                     | 1          | Integration wiring (touches shared files)   |
+| 7     | 5.1                     | 1          | Verification only                           |
 
 ---
 

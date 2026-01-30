@@ -1,1 +1,5 @@
-export { createTestWallet, buildWeb3SignedHeader, type TestWallet } from './wallet.js';
+export {
+  createTestWallet,
+  buildWeb3SignedHeader,
+  type TestWallet,
+} from "./wallet.js";

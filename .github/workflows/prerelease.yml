@@ -1,0 +1,34 @@
+name: Prerelease
+
+on:
+  push:
+    branches:
+      - develop
+      - "feat/*"
+
+jobs:
+  publish-prerelease:
+    name: Publish Canary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - name: Set canary version
+        run: |
+          BASE_VERSION=$(node -p "require('./packages/cli/package.json').version")
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          CANARY_VERSION="${BASE_VERSION}-canary.${SHORT_SHA}"
+          echo "CANARY_VERSION=${CANARY_VERSION}" >> "$GITHUB_ENV"
+          cd packages/cli
+          npm version "$CANARY_VERSION" --no-git-tag-version
+      - name: Publish canary
+        run: cd packages/cli && npm publish --tag canary
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,62 +1,65 @@
-import { join } from 'node:path'
-import type { ServerConfig } from '@personal-server/core/schemas'
-import { DEFAULT_CONFIG_DIR } from '@personal-server/core/config'
-import { createLogger, type Logger } from '@personal-server/core/logger'
+import { join } from "node:path";
+import type { ServerConfig } from "@personal-server/core/schemas";
+import { DEFAULT_CONFIG_DIR } from "@personal-server/core/config";
+import { createLogger, type Logger } from "@personal-server/core/logger";
 import {
   initializeDatabase,
   createIndexManager,
   type IndexManager,
-} from '@personal-server/core/storage/index'
-import type { HierarchyManagerOptions } from '@personal-server/core/storage/hierarchy'
-import { createGatewayClient } from '@personal-server/core/gateway'
-import type { GatewayClient } from '@personal-server/core/gateway'
-import { createAccessLogWriter } from '@personal-server/core/logging/access-log'
-import { createAccessLogReader } from '@personal-server/core/logging/access-reader'
-import type { AccessLogReader } from '@personal-server/core/logging/access-reader'
-import type { Hono } from 'hono'
-import { createApp } from './app.js'
+} from "@personal-server/core/storage/index";
+import type { HierarchyManagerOptions } from "@personal-server/core/storage/hierarchy";
+import { createGatewayClient } from "@personal-server/core/gateway";
+import type { GatewayClient } from "@personal-server/core/gateway";
+import { createAccessLogWriter } from "@personal-server/core/logging/access-log";
+import { createAccessLogReader } from "@personal-server/core/logging/access-reader";
+import type { AccessLogReader } from "@personal-server/core/logging/access-reader";
+import type { Hono } from "hono";
+import { createApp } from "./app.js";
 
 export interface ServerContext {
-  app: Hono
-  logger: Logger
-  config: ServerConfig
-  startedAt: Date
-  indexManager: IndexManager
-  gatewayClient: GatewayClient
-  accessLogReader: AccessLogReader
-  cleanup: () => void
+  app: Hono;
+  logger: Logger;
+  config: ServerConfig;
+  startedAt: Date;
+  indexManager: IndexManager;
+  gatewayClient: GatewayClient;
+  accessLogReader: AccessLogReader;
+  cleanup: () => void;
 }
 
 export interface CreateServerOptions {
-  configDir?: string
+  configDir?: string;
 }
 
-export function createServer(config: ServerConfig, options?: CreateServerOptions): ServerContext {
-  const logger = createLogger(config.logging)
-  const startedAt = new Date()
+export function createServer(
+  config: ServerConfig,
+  options?: CreateServerOptions,
+): ServerContext {
+  const logger = createLogger(config.logging);
+  const startedAt = new Date();
 
-  const configDir = options?.configDir ?? DEFAULT_CONFIG_DIR
-  const dataDir = join(configDir, 'data')
-  const indexPath = join(configDir, 'index.db')
+  const configDir = options?.configDir ?? DEFAULT_CONFIG_DIR;
+  const dataDir = join(configDir, "data");
+  const indexPath = join(configDir, "index.db");
 
-  const db = initializeDatabase(indexPath)
-  const indexManager = createIndexManager(db)
-  const hierarchyOptions: HierarchyManagerOptions = { dataDir }
+  const db = initializeDatabase(indexPath);
+  const indexManager = createIndexManager(db);
+  const hierarchyOptions: HierarchyManagerOptions = { dataDir };
 
-  const gatewayClient = createGatewayClient(config.gatewayUrl)
+  const gatewayClient = createGatewayClient(config.gatewayUrl);
 
-  const serverPort = config.server.port
-  const serverOrigin = config.server.origin ?? `http://localhost:${serverPort}`
-  const serverOwner = (config.server.address
-    ?? '0x0000000000000000000000000000000000000000') as `0x${string}`
+  const serverPort = config.server.port;
+  const serverOrigin = config.server.origin ?? `http://localhost:${serverPort}`;
+  const serverOwner = (config.server.address ??
+    "0x0000000000000000000000000000000000000000") as `0x${string}`;
 
-  const logsDir = join(configDir, 'logs')
-  const accessLogWriter = createAccessLogWriter(logsDir)
-  const accessLogReader = createAccessLogReader(logsDir)
+  const logsDir = join(configDir, "logs");
+  const accessLogWriter = createAccessLogWriter(logsDir);
+  const accessLogReader = createAccessLogReader(logsDir);
 
   const app = createApp({
     logger,
-    version: '0.0.1',
+    version: "0.0.1",
     startedAt,
     indexManager,
     hierarchyOptions,
@@ -65,11 +68,20 @@ export function createServer(config: ServerConfig, options?: CreateServerOptions
     gateway: gatewayClient,
     accessLogWriter,
     accessLogReader,
-  })
+  });
 
   const cleanup = () => {
-    indexManager.close()
-  }
+    indexManager.close();
+  };
 
-  return { app, logger, config, startedAt, indexManager, gatewayClient, accessLogReader, cleanup }
+  return {
+    app,
+    logger,
+    config,
+    startedAt,
+    indexManager,
+    gatewayClient,
+    accessLogReader,
+    cleanup,
+  };
 }

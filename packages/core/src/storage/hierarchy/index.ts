@@ -4,7 +4,7 @@ export {
   buildDataFilePath,
   buildScopeDir,
   generateCollectedAt,
-} from './paths.js'
+} from "./paths.js";
 
 export {
   writeDataFile,
@@ -12,6 +12,6 @@ export {
   listVersions,
   deleteDataFile,
   deleteAllForScope,
-} from './manager.js'
+} from "./manager.js";
 
-export type { HierarchyManagerOptions, WriteResult } from './manager.js'
+export type { HierarchyManagerOptions, WriteResult } from "./manager.js";

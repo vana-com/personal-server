@@ -23,13 +23,13 @@ The `isolatedModules` flag ensures each file can be transpiled independently, en
 ```typescript
 // constants.ts
 export const enum Status {
-  Active = 'active',
-  Inactive = 'inactive'
+  Active = "active",
+  Inactive = "inactive",
 }
 
 // user.ts
-import { Status } from './constants'
-const status = Status.Active  // Requires reading constants.ts to inline
+import { Status } from "./constants";
+const status = Status.Active; // Requires reading constants.ts to inline
 ```
 
 **Correct (single-file transpilable):**
@@ -47,14 +47,15 @@ const status = Status.Active  // Requires reading constants.ts to inline
 
 ```typescript
 // constants.ts
-export enum Status {  // Regular enum, not const enum
-  Active = 'active',
-  Inactive = 'inactive'
+export enum Status {
+  // Regular enum, not const enum
+  Active = "active",
+  Inactive = "inactive",
 }
 
 // user.ts
-import { Status } from './constants'
-const status = Status.Active  // Reference preserved, no cross-file read
+import { Status } from "./constants";
+const status = Status.Active; // Reference preserved, no cross-file read
 ```
 
 **Build pipeline integration:**
@@ -65,11 +66,12 @@ export default {
   esbuild: {
     // esbuild transpiles files in parallel
     // TypeScript only runs type-checking
-  }
-}
+  },
+};
 ```
 
 **Code patterns blocked by isolatedModules:**
+
 - `const enum` (use regular `enum` instead)
 - `export =` / `import =` syntax
 - Re-exporting types without `type` keyword

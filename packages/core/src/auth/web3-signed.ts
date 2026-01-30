@@ -6,12 +6,12 @@
  * Signature is EIP-191 over the base64url-encoded payload string.
  */
 
-import { recoverMessageAddress } from 'viem';
+import { recoverMessageAddress } from "viem";
 import {
   MissingAuthError,
   InvalidSignatureError,
   ExpiredTokenError,
-} from '../errors/catalog.js';
+} from "../errors/catalog.js";
 
 export interface Web3SignedPayload {
   aud: string;
@@ -28,15 +28,15 @@ export interface VerifiedAuth {
   payload: Web3SignedPayload;
 }
 
-const WEB3_SIGNED_PREFIX = 'Web3Signed ';
+const WEB3_SIGNED_PREFIX = "Web3Signed ";
 const CLOCK_SKEW_SECONDS = 300;
 
 /** Decode a base64url string (no padding) to UTF-8. */
 function base64urlDecode(input: string): string {
-  let base64 = input.replace(/-/g, '+').replace(/_/g, '/');
+  let base64 = input.replace(/-/g, "+").replace(/_/g, "/");
   const padLength = (4 - (base64.length % 4)) % 4;
-  base64 += '='.repeat(padLength);
-  return Buffer.from(base64, 'base64').toString('utf-8');
+  base64 += "=".repeat(padLength);
+  return Buffer.from(base64, "base64").toString("utf-8");
 }
 
 /**
@@ -54,20 +54,20 @@ export function parseWeb3SignedHeader(headerValue: string | undefined): {
   }
 
   if (!headerValue.startsWith(WEB3_SIGNED_PREFIX)) {
-    throw new InvalidSignatureError({ reason: 'Missing Web3Signed prefix' });
+    throw new InvalidSignatureError({ reason: "Missing Web3Signed prefix" });
   }
 
   const value = headerValue.slice(WEB3_SIGNED_PREFIX.length);
-  const dotIndex = value.indexOf('.');
+  const dotIndex = value.indexOf(".");
   if (dotIndex === -1 || dotIndex === 0 || dotIndex === value.length - 1) {
-    throw new InvalidSignatureError({ reason: 'Invalid header format' });
+    throw new InvalidSignatureError({ reason: "Invalid header format" });
   }
 
   const payloadBase64 = value.slice(0, dotIndex);
   const signatureStr = value.slice(dotIndex + 1);
 
-  if (!signatureStr.startsWith('0x')) {
-    throw new InvalidSignatureError({ reason: 'Invalid signature format' });
+  if (!signatureStr.startsWith("0x")) {
+    throw new InvalidSignatureError({ reason: "Invalid signature format" });
   }
 
   let payload: Web3SignedPayload;
@@ -75,7 +75,7 @@ export function parseWeb3SignedHeader(headerValue: string | undefined): {
     const decoded = base64urlDecode(payloadBase64);
     payload = JSON.parse(decoded) as Web3SignedPayload;
   } catch {
-    throw new InvalidSignatureError({ reason: 'Invalid payload encoding' });
+    throw new InvalidSignatureError({ reason: "Invalid payload encoding" });
   }
 
   return {
@@ -114,13 +114,13 @@ export async function verifyWeb3Signed(params: {
       signature,
     });
   } catch {
-    throw new InvalidSignatureError({ reason: 'Signature recovery failed' });
+    throw new InvalidSignatureError({ reason: "Signature recovery failed" });
   }
 
   // Verify claims
   if (payload.aud !== params.expectedOrigin) {
     throw new InvalidSignatureError({
-      reason: 'Audience mismatch',
+      reason: "Audience mismatch",
       expected: params.expectedOrigin,
       actual: payload.aud,
     });
@@ -128,7 +128,7 @@ export async function verifyWeb3Signed(params: {
 
   if (payload.method !== params.expectedMethod) {
     throw new InvalidSignatureError({
-      reason: 'Method mismatch',
+      reason: "Method mismatch",
       expected: params.expectedMethod,
       actual: payload.method,
     });
@@ -136,7 +136,7 @@ export async function verifyWeb3Signed(params: {
 
   if (payload.uri !== params.expectedPath) {
     throw new InvalidSignatureError({
-      reason: 'URI mismatch',
+      reason: "URI mismatch",
       expected: params.expectedPath,
       actual: payload.uri,
     });
@@ -146,11 +146,11 @@ export async function verifyWeb3Signed(params: {
   const now = params.now ?? Math.floor(Date.now() / 1000);
 
   if (payload.exp < now - CLOCK_SKEW_SECONDS) {
-    throw new ExpiredTokenError({ reason: 'Token expired' });
+    throw new ExpiredTokenError({ reason: "Token expired" });
   }
 
   if (payload.iat > now + CLOCK_SKEW_SECONDS) {
-    throw new ExpiredTokenError({ reason: 'Token issued in the future' });
+    throw new ExpiredTokenError({ reason: "Token issued in the future" });
   }
 
   return { signer, payload };

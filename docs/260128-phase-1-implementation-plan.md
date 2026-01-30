@@ -1,6 +1,7 @@
 # Phase 1: Local Data Store + Ingest — Atomic Implementation Plan
 
 ## Goal
+
 Deliver local data storage and ingest: filesystem hierarchy manager, SQLite registry index, and `POST /v1/data/{scope}` endpoint. Data is available to readers immediately after local write. No auth, no schema validation via Gateway, no encryption, no sync.
 
 **Prerequisite:** Phase 0 complete (all tasks marked `[x]` in `docs/260128-phase-0-implementation-plan.md`)
@@ -43,6 +44,7 @@ Layer 4 (final):
 ### Layer 0: Foundation (all parallel)
 
 #### Task 0.1: Update core package.json
+
 - **Status:** `[x]`
 - **Files:** `packages/core/package.json`
 - **Deps:** Phase 0 complete
@@ -79,36 +81,45 @@ Layer 4 (final):
 ---
 
 #### Task 0.2: Scope parsing + validation
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/scopes/parse.ts`, `packages/core/src/scopes/parse.test.ts`
 - **Deps:** Phase 0 complete
 - **Spec:**
 
   `parse.ts` — pure functions:
-  ```typescript
-  import { z } from 'zod'
 
-  const SEGMENT_RE = /^[a-z][a-z0-9_]*$/
+  ```typescript
+  import { z } from "zod";
+
+  const SEGMENT_RE = /^[a-z][a-z0-9_]*$/;
 
   export const ScopeSchema = z.string().refine(
     (s) => {
-      const parts = s.split('.')
-      return parts.length >= 2 && parts.length <= 3 && parts.every(p => SEGMENT_RE.test(p))
+      const parts = s.split(".");
+      return (
+        parts.length >= 2 &&
+        parts.length <= 3 &&
+        parts.every((p) => SEGMENT_RE.test(p))
+      );
     },
-    { message: 'Scope must be {source}.{category}[.{subcategory}] with lowercase alphanumeric segments' }
-  )
+    {
+      message:
+        "Scope must be {source}.{category}[.{subcategory}] with lowercase alphanumeric segments",
+    },
+  );
 
-  export type Scope = z.infer<typeof ScopeSchema>
+  export type Scope = z.infer<typeof ScopeSchema>;
 
   export interface ParsedScope {
-    source: string
-    category: string
-    subcategory?: string
-    raw: string
+    source: string;
+    category: string;
+    subcategory?: string;
+    raw: string;
   }
 
-  export function parseScope(scope: string): ParsedScope
-  export function scopeToPathSegments(scope: string): string[]
+  export function parseScope(scope: string): ParsedScope;
+  export function scopeToPathSegments(scope: string): string[];
   ```
 
 - **Tests (8 cases):**
@@ -125,36 +136,37 @@ Layer 4 (final):
 ---
 
 #### Task 0.3: Data file Zod schema
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/schemas/data-file.ts`, `packages/core/src/schemas/data-file.test.ts`
 - **Deps:** Phase 0 complete
 - **Spec:**
 
   ```typescript
-  import { z } from 'zod'
+  import { z } from "zod";
 
   export const DataFileEnvelopeSchema = z.object({
-    version: z.literal('1.0'),
+    version: z.literal("1.0"),
     scope: z.string(),
     collectedAt: z.string().datetime(),
     data: z.record(z.unknown()),
-  })
+  });
 
-  export type DataFileEnvelope = z.infer<typeof DataFileEnvelopeSchema>
+  export type DataFileEnvelope = z.infer<typeof DataFileEnvelopeSchema>;
 
   export function createDataFileEnvelope(
     scope: string,
     collectedAt: string,
     data: Record<string, unknown>,
-  ): DataFileEnvelope
+  ): DataFileEnvelope;
 
   export const IngestResponseSchema = z.object({
     scope: z.string(),
     collectedAt: z.string().datetime(),
-    status: z.enum(['stored', 'syncing']),
-  })
+    status: z.enum(["stored", "syncing"]),
+  });
 
-  export type IngestResponse = z.infer<typeof IngestResponseSchema>
+  export type IngestResponse = z.infer<typeof IngestResponseSchema>;
   ```
 
 - **Tests (5 cases):**
@@ -170,29 +182,34 @@ Layer 4 (final):
 ### Layer 1: Paths + Index Schema
 
 #### Task 1.1: Hierarchy paths + timestamp utilities
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/storage/hierarchy/paths.ts`, `packages/core/src/storage/hierarchy/paths.test.ts`
 - **Deps:** 0.2
 - **Spec:**
 
   ```typescript
-  import { join } from 'node:path'
-  import { scopeToPathSegments } from '../../scopes/parse.js'
+  import { join } from "node:path";
+  import { scopeToPathSegments } from "../../scopes/parse.js";
 
   /** "2026-01-21T10:00:00Z" → "2026-01-21T10-00-00Z" */
-  export function timestampToFilename(isoTimestamp: string): string
+  export function timestampToFilename(isoTimestamp: string): string;
 
   /** "2026-01-21T10-00-00Z" → "2026-01-21T10:00:00Z" */
-  export function filenameToTimestamp(filename: string): string
+  export function filenameToTimestamp(filename: string): string;
 
   /** Full file path: join(baseDir, ...scopeSegments, timestamp.json) */
-  export function buildDataFilePath(baseDir: string, scope: string, collectedAt: string): string
+  export function buildDataFilePath(
+    baseDir: string,
+    scope: string,
+    collectedAt: string,
+  ): string;
 
   /** Directory path for a scope */
-  export function buildScopeDir(baseDir: string, scope: string): string
+  export function buildScopeDir(baseDir: string, scope: string): string;
 
   /** Generate current UTC timestamp without milliseconds, ending in Z */
-  export function generateCollectedAt(): string
+  export function generateCollectedAt(): string;
   ```
 
 - **Tests (7 cases):**
@@ -208,36 +225,39 @@ Layer 4 (final):
 ---
 
 #### Task 1.2: SQLite index types + schema
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/storage/index/types.ts`, `packages/core/src/storage/index/schema.ts`, `packages/core/src/storage/index/schema.test.ts`
 - **Deps:** 0.1
 - **Spec:**
 
   `types.ts`:
+
   ```typescript
   export interface IndexEntry {
-    id: number
-    fileId: string | null   // null until synced on-chain (Phase 4)
-    path: string            // relative path from dataDir
-    scope: string
-    collectedAt: string     // ISO 8601
-    createdAt: string       // ISO 8601
-    sizeBytes: number
+    id: number;
+    fileId: string | null; // null until synced on-chain (Phase 4)
+    path: string; // relative path from dataDir
+    scope: string;
+    collectedAt: string; // ISO 8601
+    createdAt: string; // ISO 8601
+    sizeBytes: number;
   }
 
   export interface IndexListOptions {
-    scope?: string
-    limit?: number
-    offset?: number
+    scope?: string;
+    limit?: number;
+    offset?: number;
   }
   ```
 
   `schema.ts`:
+
   ```typescript
-  import Database from 'better-sqlite3'
+  import Database from "better-sqlite3";
 
   /** Open/create SQLite database, run CREATE TABLE IF NOT EXISTS, set WAL mode */
-  export function initializeDatabase(dbPath: string): Database.Database
+  export function initializeDatabase(dbPath: string): Database.Database;
   ```
 
   Table `data_files`: `id INTEGER PRIMARY KEY AUTOINCREMENT`, `file_id TEXT`, `path TEXT NOT NULL UNIQUE`, `scope TEXT NOT NULL`, `collected_at TEXT NOT NULL`, `created_at TEXT NOT NULL DEFAULT (strftime(...))`, `size_bytes INTEGER NOT NULL DEFAULT 0`.
@@ -256,33 +276,50 @@ Layer 4 (final):
 ### Layer 2: Managers
 
 #### Task 2.1: Hierarchy manager (atomic write/read/list/delete)
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/storage/hierarchy/manager.ts`, `packages/core/src/storage/hierarchy/manager.test.ts`, `packages/core/src/storage/hierarchy/index.ts`
 - **Deps:** 1.1, 0.3
 - **Spec:**
 
   ```typescript
-  import type { DataFileEnvelope } from '../../schemas/data-file.js'
+  import type { DataFileEnvelope } from "../../schemas/data-file.js";
 
-  export interface HierarchyManagerOptions { dataDir: string }
+  export interface HierarchyManagerOptions {
+    dataDir: string;
+  }
 
   export interface WriteResult {
-    path: string          // absolute path
-    relativePath: string  // relative from dataDir
-    sizeBytes: number
+    path: string; // absolute path
+    relativePath: string; // relative from dataDir
+    sizeBytes: number;
   }
 
   /** Atomic write: mkdir -p, write temp file, rename */
-  export async function writeDataFile(options: HierarchyManagerOptions, envelope: DataFileEnvelope): Promise<WriteResult>
+  export async function writeDataFile(
+    options: HierarchyManagerOptions,
+    envelope: DataFileEnvelope,
+  ): Promise<WriteResult>;
 
   /** Read and parse a data file */
-  export async function readDataFile(options: HierarchyManagerOptions, scope: string, collectedAt: string): Promise<DataFileEnvelope>
+  export async function readDataFile(
+    options: HierarchyManagerOptions,
+    scope: string,
+    collectedAt: string,
+  ): Promise<DataFileEnvelope>;
 
   /** List version filenames for a scope, newest first. Empty array if scope dir doesn't exist. */
-  export async function listVersions(options: HierarchyManagerOptions, scope: string): Promise<string[]>
+  export async function listVersions(
+    options: HierarchyManagerOptions,
+    scope: string,
+  ): Promise<string[]>;
 
   /** Delete a single data file */
-  export async function deleteDataFile(options: HierarchyManagerOptions, scope: string, collectedAt: string): Promise<void>
+  export async function deleteDataFile(
+    options: HierarchyManagerOptions,
+    scope: string,
+    collectedAt: string,
+  ): Promise<void>;
   ```
 
   `index.ts` — barrel re-exporting all public symbols from `paths.ts` and `manager.ts`.
@@ -303,26 +340,27 @@ Layer 4 (final):
 ---
 
 #### Task 2.2: Index manager (CRUD on SQLite)
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/storage/index/manager.ts`, `packages/core/src/storage/index/manager.test.ts`, `packages/core/src/storage/index/index.ts`
 - **Deps:** 1.2
 - **Spec:**
 
   ```typescript
-  import type Database from 'better-sqlite3'
-  import type { IndexEntry, IndexListOptions } from './types.js'
+  import type Database from "better-sqlite3";
+  import type { IndexEntry, IndexListOptions } from "./types.js";
 
   export interface IndexManager {
-    insert(entry: Omit<IndexEntry, 'id' | 'createdAt'>): IndexEntry
-    findByPath(path: string): IndexEntry | undefined
-    findByScope(options: IndexListOptions): IndexEntry[]
-    findLatestByScope(scope: string): IndexEntry | undefined
-    countByScope(scope: string): number
-    deleteByPath(path: string): boolean
-    close(): void
+    insert(entry: Omit<IndexEntry, "id" | "createdAt">): IndexEntry;
+    findByPath(path: string): IndexEntry | undefined;
+    findByScope(options: IndexListOptions): IndexEntry[];
+    findLatestByScope(scope: string): IndexEntry | undefined;
+    countByScope(scope: string): number;
+    deleteByPath(path: string): boolean;
+    close(): void;
   }
 
-  export function createIndexManager(db: Database.Database): IndexManager
+  export function createIndexManager(db: Database.Database): IndexManager;
   ```
 
   Uses prepared statements. `findByScope` orders by `collected_at DESC` with `LIMIT`/`OFFSET`.
@@ -347,17 +385,18 @@ Layer 4 (final):
 ### Layer 3: Route + Integration
 
 #### Task 3.1: Body size limit middleware
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/middleware/body-limit.ts`, `packages/server/src/middleware/body-limit.test.ts`
 - **Deps:** Phase 0 (Hono available)
 - **Spec:**
 
   ```typescript
-  import { bodyLimit } from 'hono/body-limit'
+  import { bodyLimit } from "hono/body-limit";
 
-  export function createBodyLimit(maxSize: number)  // returns Hono middleware
-  export const DATA_INGEST_MAX_SIZE = 50 * 1024 * 1024  // 50 MB
-  export const DEFAULT_MAX_SIZE = 1 * 1024 * 1024       // 1 MB
+  export function createBodyLimit(maxSize: number); // returns Hono middleware
+  export const DATA_INGEST_MAX_SIZE = 50 * 1024 * 1024; // 50 MB
+  export const DEFAULT_MAX_SIZE = 1 * 1024 * 1024; // 1 MB
   ```
 
   On exceeding limit: return 413 JSON `{ error: "CONTENT_TOO_LARGE", message: "..." }`.
@@ -373,24 +412,25 @@ Layer 4 (final):
 ---
 
 #### Task 3.2: POST /v1/data/{scope} route + tests
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/routes/data.ts`, `packages/server/src/routes/data.test.ts`
 - **Deps:** 2.1, 2.2, 0.3, 3.1
 - **Spec:**
 
   ```typescript
-  import { Hono } from 'hono'
-  import type { IndexManager } from '@personal-server/core/storage/index'
-  import type { HierarchyManagerOptions } from '@personal-server/core/storage/hierarchy'
-  import type { Logger } from 'pino'
+  import { Hono } from "hono";
+  import type { IndexManager } from "@personal-server/core/storage/index";
+  import type { HierarchyManagerOptions } from "@personal-server/core/storage/hierarchy";
+  import type { Logger } from "pino";
 
   export interface DataRouteDeps {
-    indexManager: IndexManager
-    hierarchyOptions: HierarchyManagerOptions
-    logger: Logger
+    indexManager: IndexManager;
+    hierarchyOptions: HierarchyManagerOptions;
+    logger: Logger;
   }
 
-  export function dataRoutes(deps: DataRouteDeps): Hono
+  export function dataRoutes(deps: DataRouteDeps): Hono;
   ```
 
   `POST /:scope` handler flow:
@@ -418,6 +458,7 @@ Layer 4 (final):
 ---
 
 #### Task 3.3: Update bootstrap.ts + app.ts
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/bootstrap.ts` (modify), `packages/server/src/app.ts` (modify)
 - **Deps:** 3.2
@@ -435,14 +476,15 @@ Layer 4 (final):
   - Mount `dataRoutes(deps)` at `/v1/data`
 
   Updated `ServerContext`:
+
   ```typescript
   export interface ServerContext {
-    app: Hono
-    logger: Logger
-    config: ServerConfig
-    startedAt: Date
-    indexManager: IndexManager
-    cleanup: () => void
+    app: Hono;
+    logger: Logger;
+    config: ServerConfig;
+    startedAt: Date;
+    indexManager: IndexManager;
+    cleanup: () => void;
   }
   ```
 
@@ -458,6 +500,7 @@ Layer 4 (final):
 ### Layer 4: Final Verification
 
 #### Task 4.1: Install, build, test
+
 - **Status:** `[x]`
 - **Deps:** all previous
 - **Steps:**
@@ -474,30 +517,30 @@ Layer 4 (final):
 
 ## File Inventory (21 file operations)
 
-| Task | File | New/Modified |
-|------|------|-------------|
-| 0.1 | `packages/core/package.json` | Modified |
-| 0.2 | `packages/core/src/scopes/parse.ts` | New |
-| 0.2 | `packages/core/src/scopes/parse.test.ts` | New |
-| 0.3 | `packages/core/src/schemas/data-file.ts` | New |
-| 0.3 | `packages/core/src/schemas/data-file.test.ts` | New |
-| 1.1 | `packages/core/src/storage/hierarchy/paths.ts` | New |
-| 1.1 | `packages/core/src/storage/hierarchy/paths.test.ts` | New |
-| 1.2 | `packages/core/src/storage/index/types.ts` | New |
-| 1.2 | `packages/core/src/storage/index/schema.ts` | New |
-| 1.2 | `packages/core/src/storage/index/schema.test.ts` | New |
-| 2.1 | `packages/core/src/storage/hierarchy/manager.ts` | New |
-| 2.1 | `packages/core/src/storage/hierarchy/manager.test.ts` | New |
-| 2.1 | `packages/core/src/storage/hierarchy/index.ts` | New |
-| 2.2 | `packages/core/src/storage/index/manager.ts` | New |
-| 2.2 | `packages/core/src/storage/index/manager.test.ts` | New |
-| 2.2 | `packages/core/src/storage/index/index.ts` | New |
-| 3.1 | `packages/server/src/middleware/body-limit.ts` | New |
-| 3.1 | `packages/server/src/middleware/body-limit.test.ts` | New |
-| 3.2 | `packages/server/src/routes/data.ts` | New |
-| 3.2 | `packages/server/src/routes/data.test.ts` | New |
-| 3.3 | `packages/server/src/bootstrap.ts` | Modified |
-| 3.3 | `packages/server/src/app.ts` | Modified |
+| Task | File                                                  | New/Modified |
+| ---- | ----------------------------------------------------- | ------------ |
+| 0.1  | `packages/core/package.json`                          | Modified     |
+| 0.2  | `packages/core/src/scopes/parse.ts`                   | New          |
+| 0.2  | `packages/core/src/scopes/parse.test.ts`              | New          |
+| 0.3  | `packages/core/src/schemas/data-file.ts`              | New          |
+| 0.3  | `packages/core/src/schemas/data-file.test.ts`         | New          |
+| 1.1  | `packages/core/src/storage/hierarchy/paths.ts`        | New          |
+| 1.1  | `packages/core/src/storage/hierarchy/paths.test.ts`   | New          |
+| 1.2  | `packages/core/src/storage/index/types.ts`            | New          |
+| 1.2  | `packages/core/src/storage/index/schema.ts`           | New          |
+| 1.2  | `packages/core/src/storage/index/schema.test.ts`      | New          |
+| 2.1  | `packages/core/src/storage/hierarchy/manager.ts`      | New          |
+| 2.1  | `packages/core/src/storage/hierarchy/manager.test.ts` | New          |
+| 2.1  | `packages/core/src/storage/hierarchy/index.ts`        | New          |
+| 2.2  | `packages/core/src/storage/index/manager.ts`          | New          |
+| 2.2  | `packages/core/src/storage/index/manager.test.ts`     | New          |
+| 2.2  | `packages/core/src/storage/index/index.ts`            | New          |
+| 3.1  | `packages/server/src/middleware/body-limit.ts`        | New          |
+| 3.1  | `packages/server/src/middleware/body-limit.test.ts`   | New          |
+| 3.2  | `packages/server/src/routes/data.ts`                  | New          |
+| 3.2  | `packages/server/src/routes/data.test.ts`             | New          |
+| 3.3  | `packages/server/src/bootstrap.ts`                    | Modified     |
+| 3.3  | `packages/server/src/app.ts`                          | Modified     |
 
 **Total: 18 new files, 3 modified files**
 
@@ -505,14 +548,14 @@ Layer 4 (final):
 
 ## Agent Parallelism Strategy
 
-| Batch | Tasks | Agents | Notes |
-|-------|-------|--------|-------|
-| 1 | 0.1, 0.2, 0.3 | 3 parallel | All independent |
-| 2 | 1.1, 1.2 | 2 parallel | 1.1 needs 0.2; 1.2 needs 0.1 |
-| 3 | 2.1, 2.2, 3.1 | 3 parallel | 2.1 needs 1.1+0.3; 2.2 needs 1.2; 3.1 is independent |
-| 4 | 3.2 | 1 | Needs 2.1+2.2+3.1 |
-| 5 | 3.3 | 1 | Modifies existing files, needs 3.2 |
-| 6 | 4.1 | 1 | Verification only |
+| Batch | Tasks         | Agents     | Notes                                                |
+| ----- | ------------- | ---------- | ---------------------------------------------------- |
+| 1     | 0.1, 0.2, 0.3 | 3 parallel | All independent                                      |
+| 2     | 1.1, 1.2      | 2 parallel | 1.1 needs 0.2; 1.2 needs 0.1                         |
+| 3     | 2.1, 2.2, 3.1 | 3 parallel | 2.1 needs 1.1+0.3; 2.2 needs 1.2; 3.1 is independent |
+| 4     | 3.2           | 1          | Needs 2.1+2.2+3.1                                    |
+| 5     | 3.3           | 1          | Modifies existing files, needs 3.2                   |
+| 6     | 4.1           | 1          | Verification only                                    |
 
 ---
 

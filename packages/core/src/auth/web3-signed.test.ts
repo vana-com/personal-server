@@ -1,41 +1,41 @@
-import { describe, it, expect } from 'vitest';
-import { parseWeb3SignedHeader, verifyWeb3Signed } from './web3-signed.js';
+import { describe, it, expect } from "vitest";
+import { parseWeb3SignedHeader, verifyWeb3Signed } from "./web3-signed.js";
 import {
   MissingAuthError,
   InvalidSignatureError,
   ExpiredTokenError,
-} from '../errors/catalog.js';
+} from "../errors/catalog.js";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from '../test-utils/wallet.js';
+} from "../test-utils/wallet.js";
 
-const AUD = 'http://localhost:8080';
-const METHOD = 'GET';
-const URI = '/v1/data/instagram.profile';
+const AUD = "http://localhost:8080";
+const METHOD = "GET";
+const URI = "/v1/data/instagram.profile";
 
-describe('parseWeb3SignedHeader', () => {
-  it('throws MissingAuthError for undefined', () => {
+describe("parseWeb3SignedHeader", () => {
+  it("throws MissingAuthError for undefined", () => {
     expect(() => parseWeb3SignedHeader(undefined)).toThrow(MissingAuthError);
   });
 
-  it('throws MissingAuthError for empty string', () => {
-    expect(() => parseWeb3SignedHeader('')).toThrow(MissingAuthError);
+  it("throws MissingAuthError for empty string", () => {
+    expect(() => parseWeb3SignedHeader("")).toThrow(MissingAuthError);
   });
 
-  it('throws InvalidSignatureError for non-Web3Signed prefix', () => {
-    expect(() => parseWeb3SignedHeader('Bearer xyz')).toThrow(
+  it("throws InvalidSignatureError for non-Web3Signed prefix", () => {
+    expect(() => parseWeb3SignedHeader("Bearer xyz")).toThrow(
       InvalidSignatureError,
     );
   });
 
-  it('throws InvalidSignatureError for missing dot separator', () => {
-    expect(() => parseWeb3SignedHeader('Web3Signed malformed')).toThrow(
+  it("throws InvalidSignatureError for missing dot separator", () => {
+    expect(() => parseWeb3SignedHeader("Web3Signed malformed")).toThrow(
       InvalidSignatureError,
     );
   });
 
-  it('parses a valid header correctly', async () => {
+  it("parses a valid header correctly", async () => {
     const wallet = createTestWallet(0);
     const header = await buildWeb3SignedHeader({
       wallet,
@@ -53,8 +53,8 @@ describe('parseWeb3SignedHeader', () => {
   });
 });
 
-describe('verifyWeb3Signed', () => {
-  it('returns correct signer for a valid header', async () => {
+describe("verifyWeb3Signed", () => {
+  it("returns correct signer for a valid header", async () => {
     const wallet = createTestWallet(0);
     const now = Math.floor(Date.now() / 1000);
     const header = await buildWeb3SignedHeader({
@@ -78,12 +78,12 @@ describe('verifyWeb3Signed', () => {
     expect(result.payload.aud).toBe(AUD);
   });
 
-  it('throws InvalidSignatureError on audience mismatch', async () => {
+  it("throws InvalidSignatureError on audience mismatch", async () => {
     const wallet = createTestWallet(0);
     const now = Math.floor(Date.now() / 1000);
     const header = await buildWeb3SignedHeader({
       wallet,
-      aud: 'http://wrong-origin.com',
+      aud: "http://wrong-origin.com",
       method: METHOD,
       uri: URI,
       iat: now,
@@ -101,13 +101,13 @@ describe('verifyWeb3Signed', () => {
     ).rejects.toThrow(InvalidSignatureError);
   });
 
-  it('throws InvalidSignatureError on method mismatch', async () => {
+  it("throws InvalidSignatureError on method mismatch", async () => {
     const wallet = createTestWallet(0);
     const now = Math.floor(Date.now() / 1000);
     const header = await buildWeb3SignedHeader({
       wallet,
       aud: AUD,
-      method: 'POST',
+      method: "POST",
       uri: URI,
       iat: now,
       exp: now + 300,
@@ -124,14 +124,14 @@ describe('verifyWeb3Signed', () => {
     ).rejects.toThrow(InvalidSignatureError);
   });
 
-  it('throws InvalidSignatureError on URI mismatch', async () => {
+  it("throws InvalidSignatureError on URI mismatch", async () => {
     const wallet = createTestWallet(0);
     const now = Math.floor(Date.now() / 1000);
     const header = await buildWeb3SignedHeader({
       wallet,
       aud: AUD,
       method: METHOD,
-      uri: '/v1/data/wrong.scope',
+      uri: "/v1/data/wrong.scope",
       iat: now,
       exp: now + 300,
     });
@@ -147,7 +147,7 @@ describe('verifyWeb3Signed', () => {
     ).rejects.toThrow(InvalidSignatureError);
   });
 
-  it('throws ExpiredTokenError for expired token', async () => {
+  it("throws ExpiredTokenError for expired token", async () => {
     const wallet = createTestWallet(0);
     const pastTime = Math.floor(Date.now() / 1000) - 1000;
     const header = await buildWeb3SignedHeader({
@@ -171,7 +171,7 @@ describe('verifyWeb3Signed', () => {
     ).rejects.toThrow(ExpiredTokenError);
   });
 
-  it('throws ExpiredTokenError for future iat beyond skew', async () => {
+  it("throws ExpiredTokenError for future iat beyond skew", async () => {
     const wallet = createTestWallet(0);
     const now = Math.floor(Date.now() / 1000);
     const futureIat = now + 600; // 10 minutes in the future, well beyond 300s skew
@@ -195,10 +195,10 @@ describe('verifyWeb3Signed', () => {
     ).rejects.toThrow(ExpiredTokenError);
   });
 
-  it('preserves grantId in the result payload', async () => {
+  it("preserves grantId in the result payload", async () => {
     const wallet = createTestWallet(0);
     const now = Math.floor(Date.now() / 1000);
-    const grantId = 'test-grant-123';
+    const grantId = "test-grant-123";
     const header = await buildWeb3SignedHeader({
       wallet,
       aud: AUD,

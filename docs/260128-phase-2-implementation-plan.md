@@ -1,6 +1,7 @@
 # Phase 2: Auth + Builder Read Path — Atomic Implementation Plan
 
 ## Goal
+
 Deliver authenticated builder access to user data: Web3Signed authorization parsing, builder verification via Gateway, grant enforcement (local checks + remote revocation), scope wildcard matching, three read endpoints (`GET /v1/data/{scope}`, `GET /v1/data`, `GET /v1/data/{scope}/versions`), and access logging (JSON lines, daily rotation).
 
 **Prerequisite:** Phase 1 complete (all tasks marked `[x]` in `docs/260128-phase-1-implementation-plan.md`)
@@ -52,6 +53,7 @@ Layer 5 (final):
 ### Layer 0: Foundation (all parallel)
 
 #### Task 0.1: Add viem dependency + new export subpaths
+
 - **Status:** `[x]`
 - **Files:** `packages/core/package.json`
 - **Deps:** Phase 1 complete
@@ -89,12 +91,14 @@ Layer 5 (final):
 ---
 
 #### Task 0.2: Scope wildcard matching + scopes barrel
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/scopes/match.ts`, `packages/core/src/scopes/match.test.ts`, `packages/core/src/scopes/index.ts` (new barrel)
 - **Deps:** Phase 1 complete
 - **Spec:**
 
   `match.ts`:
+
   ```typescript
   /**
    * Check if a requested concrete scope is covered by a single grant scope pattern.
@@ -103,18 +107,31 @@ Layer 5 (final):
    *   "instagram.*"      -> matches any scope starting with "instagram."
    *   "instagram.profile" -> exact match only
    */
-  export function scopeMatchesPattern(requestedScope: string, grantPattern: string): boolean
+  export function scopeMatchesPattern(
+    requestedScope: string,
+    grantPattern: string,
+  ): boolean;
 
   /**
    * Check if a requested scope is covered by ANY of the granted scope patterns.
    */
-  export function scopeCoveredByGrant(requestedScope: string, grantedScopes: string[]): boolean
+  export function scopeCoveredByGrant(
+    requestedScope: string,
+    grantedScopes: string[],
+  ): boolean;
   ```
 
   `index.ts` (barrel re-exporting from `parse.ts` + `match.ts`):
+
   ```typescript
-  export { ScopeSchema, parseScope, scopeToPathSegments, type Scope, type ParsedScope } from './parse.js'
-  export { scopeMatchesPattern, scopeCoveredByGrant } from './match.js'
+  export {
+    ScopeSchema,
+    parseScope,
+    scopeToPathSegments,
+    type Scope,
+    type ParsedScope,
+  } from "./parse.js";
+  export { scopeMatchesPattern, scopeCoveredByGrant } from "./match.js";
   ```
 
   Update `packages/core/package.json` `"./scopes"` export to point at `./dist/scopes/index.d.ts` / `./dist/scopes/index.js`.
@@ -135,60 +152,65 @@ Layer 5 (final):
 ---
 
 #### Task 0.3: Grant types + EIP-712 domain/types constants
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/grants/types.ts`, `packages/core/src/grants/eip712.ts`, `packages/core/src/grants/eip712.test.ts`
 - **Deps:** Phase 1 complete
 - **Spec:**
 
   `types.ts`:
+
   ```typescript
   export interface GrantPayload {
-    user: `0x${string}`
-    builder: `0x${string}`
-    scopes: string[]
-    expiresAt: bigint
-    nonce: bigint
+    user: `0x${string}`;
+    builder: `0x${string}`;
+    scopes: string[];
+    expiresAt: bigint;
+    nonce: bigint;
   }
 
   export interface GrantWithSignature {
-    grantId: string
-    payload: GrantPayload
-    signature: `0x${string}`
+    grantId: string;
+    payload: GrantPayload;
+    signature: `0x${string}`;
   }
 
   /** Gateway response for GET /v1/grants/{grantId} */
   export interface GatewayGrantResponse {
-    grantId: string
-    user: string
-    builder: string
-    scopes: string[]
-    expiresAt: number
-    revoked: boolean
+    grantId: string;
+    user: string;
+    builder: string;
+    scopes: string[];
+    expiresAt: number;
+    revoked: boolean;
   }
   ```
 
   `eip712.ts`:
+
   ```typescript
-  import type { TypedDataDomain } from 'viem'
+  import type { TypedDataDomain } from "viem";
 
   export const GRANT_DOMAIN: TypedDataDomain = {
-    name: 'Vana Data Portability',
-    version: '1',
+    name: "Vana Data Portability",
+    version: "1",
     chainId: 14800,
-    verifyingContract: '0x...' as `0x${string}`, // placeholder — fill from deployed contract
-  } as const
+    verifyingContract: "0x..." as `0x${string}`, // placeholder — fill from deployed contract
+  } as const;
 
   export const GRANT_TYPES = {
     Grant: [
-      { name: 'user', type: 'address' },
-      { name: 'builder', type: 'address' },
-      { name: 'scopes', type: 'string[]' },
-      { name: 'expiresAt', type: 'uint256' },
-      { name: 'nonce', type: 'uint256' },
+      { name: "user", type: "address" },
+      { name: "builder", type: "address" },
+      { name: "scopes", type: "string[]" },
+      { name: "expiresAt", type: "uint256" },
+      { name: "nonce", type: "uint256" },
     ],
-  } as const
+  } as const;
 
-  export function grantToEip712Message(payload: GrantPayload): Record<string, unknown>
+  export function grantToEip712Message(
+    payload: GrantPayload,
+  ): Record<string, unknown>;
   ```
 
 - **Tests (3 cases):**
@@ -200,6 +222,7 @@ Layer 5 (final):
 ---
 
 #### Task 0.4: Access log writer
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/logging/access-log.ts`, `packages/core/src/logging/access-log.test.ts`
 - **Deps:** Phase 1 complete
@@ -207,22 +230,22 @@ Layer 5 (final):
 
   ```typescript
   export interface AccessLogEntry {
-    logId: string            // crypto.randomUUID()
-    grantId: string
-    builder: string
-    action: 'read'
-    scope: string
-    timestamp: string        // ISO 8601
-    ipAddress: string
-    userAgent: string
+    logId: string; // crypto.randomUUID()
+    grantId: string;
+    builder: string;
+    action: "read";
+    scope: string;
+    timestamp: string; // ISO 8601
+    ipAddress: string;
+    userAgent: string;
   }
 
   export interface AccessLogWriter {
-    write(entry: AccessLogEntry): Promise<void>
+    write(entry: AccessLogEntry): Promise<void>;
   }
 
   /** Appends JSON line to {logsDir}/access-{YYYY-MM-DD}.log */
-  export function createAccessLogWriter(logsDir: string): AccessLogWriter
+  export function createAccessLogWriter(logsDir: string): AccessLogWriter;
   ```
 
   Implementation: `mkdir(logsDir, { recursive: true })`, then `appendFile(path, JSON.stringify(entry) + '\n')`.
@@ -238,12 +261,14 @@ Layer 5 (final):
 ---
 
 #### Task 0.5: IndexManager — add listDistinctScopes + findClosestByScope + findByFileId
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/storage/index/manager.ts` (modify), `packages/core/src/storage/index/manager.test.ts` (modify), `packages/core/src/storage/index/types.ts` (modify)
 - **Deps:** Phase 1 complete
 - **Spec:**
 
   Add to `IndexManager` interface:
+
   ```typescript
   listDistinctScopes(options?: {
     scopePrefix?: string
@@ -257,15 +282,17 @@ Layer 5 (final):
   ```
 
   Add to `types.ts`:
+
   ```typescript
   export interface ScopeSummary {
-    scope: string
-    latestCollectedAt: string
-    versionCount: number
+    scope: string;
+    latestCollectedAt: string;
+    versionCount: number;
   }
   ```
 
   SQL for `listDistinctScopes`:
+
   ```sql
   SELECT scope, MAX(collected_at) as latest_collected_at, COUNT(*) as version_count
   FROM data_files
@@ -275,6 +302,7 @@ Layer 5 (final):
   ```
 
   SQL for `findClosestByScope`:
+
   ```sql
   SELECT * FROM data_files WHERE scope = @scope AND collected_at <= @at
   ORDER BY collected_at DESC LIMIT 1
@@ -293,6 +321,7 @@ Layer 5 (final):
 ---
 
 #### Task 0.6: Test utilities — wallet fixtures
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/test-utils/wallet.ts`, `packages/core/src/test-utils/wallet.test.ts`, `packages/core/src/test-utils/index.ts`
 - **Deps:** 0.1 (needs viem)
@@ -300,31 +329,31 @@ Layer 5 (final):
 
   ```typescript
   export interface TestWallet {
-    address: `0x${string}`
-    privateKey: `0x${string}`
-    signMessage(message: string): Promise<`0x${string}`>
+    address: `0x${string}`;
+    privateKey: `0x${string}`;
+    signMessage(message: string): Promise<`0x${string}`>;
     signTypedData(params: {
-      domain: Record<string, unknown>
-      types: Record<string, Array<{ name: string; type: string }>>
-      primaryType: string
-      message: Record<string, unknown>
-    }): Promise<`0x${string}`>
+      domain: Record<string, unknown>;
+      types: Record<string, Array<{ name: string; type: string }>>;
+      primaryType: string;
+      message: Record<string, unknown>;
+    }): Promise<`0x${string}`>;
   }
 
   /** Deterministic test wallet from seed index */
-  export function createTestWallet(seed?: number): TestWallet
+  export function createTestWallet(seed?: number): TestWallet;
 
   /** Build a valid Web3Signed Authorization header value */
   export async function buildWeb3SignedHeader(params: {
-    wallet: TestWallet
-    aud: string
-    method: string
-    uri: string
-    bodyHash?: string
-    iat?: number
-    exp?: number
-    grantId?: string
-  }): Promise<string>
+    wallet: TestWallet;
+    aud: string;
+    method: string;
+    uri: string;
+    bodyHash?: string;
+    iat?: number;
+    exp?: number;
+    grantId?: string;
+  }): Promise<string>;
   ```
 
   Implementation uses viem's `privateKeyToAccount`. `buildWeb3SignedHeader` creates payload JSON with sorted keys, base64url encodes, signs via EIP-191, returns `"Web3Signed {base64url}.{signature}"`.
@@ -341,6 +370,7 @@ Layer 5 (final):
 ### Layer 1: Auth + Grant + Gateway
 
 #### Task 1.1: Web3Signed parse + verify
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/auth/web3-signed.ts`, `packages/core/src/auth/web3-signed.test.ts`
 - **Deps:** 0.1, 0.6
@@ -348,35 +378,35 @@ Layer 5 (final):
 
   ```typescript
   export interface Web3SignedPayload {
-    aud: string
-    method: string
-    uri: string
-    bodyHash: string
-    iat: number
-    exp: number
-    grantId?: string
+    aud: string;
+    method: string;
+    uri: string;
+    bodyHash: string;
+    iat: number;
+    exp: number;
+    grantId?: string;
   }
 
   export interface VerifiedAuth {
-    signer: `0x${string}`
-    payload: Web3SignedPayload
+    signer: `0x${string}`;
+    payload: Web3SignedPayload;
   }
 
   /** Parse "Web3Signed <base64url>.<signature>" header */
   export function parseWeb3SignedHeader(headerValue: string | undefined): {
-    payloadBase64: string
-    payload: Web3SignedPayload
-    signature: `0x${string}`
-  }
+    payloadBase64: string;
+    payload: Web3SignedPayload;
+    signature: `0x${string}`;
+  };
 
   /** Full verification: recover signer, check aud/method/uri/timing */
   export async function verifyWeb3Signed(params: {
-    headerValue: string | undefined
-    expectedOrigin: string
-    expectedMethod: string
-    expectedPath: string
-    now?: number
-  }): Promise<VerifiedAuth>
+    headerValue: string | undefined;
+    expectedOrigin: string;
+    expectedMethod: string;
+    expectedPath: string;
+    now?: number;
+  }): Promise<VerifiedAuth>;
   ```
 
   Verification steps:
@@ -404,6 +434,7 @@ Layer 5 (final):
 ---
 
 #### Task 1.2: Grant verification (local)
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/grants/verify.ts`, `packages/core/src/grants/verify.test.ts`, `packages/core/src/grants/index.ts`
 - **Deps:** 0.1, 0.2, 0.3
@@ -411,8 +442,8 @@ Layer 5 (final):
 
   ```typescript
   export interface GrantVerificationResult {
-    valid: true
-    grant: GrantPayload
+    valid: true;
+    grant: GrantPayload;
   }
 
   /**
@@ -423,12 +454,12 @@ Layer 5 (final):
    * 4. Check requestSigner === grant.builder
    */
   export async function verifyGrantLocal(params: {
-    grant: GrantWithSignature
-    expectedOwner: `0x${string}`
-    requestSigner: `0x${string}`
-    requestedScope: string
-    now?: number
-  }): Promise<GrantVerificationResult>
+    grant: GrantWithSignature;
+    expectedOwner: `0x${string}`;
+    requestSigner: `0x${string}`;
+    requestedScope: string;
+    now?: number;
+  }): Promise<GrantVerificationResult>;
   ```
 
   `index.ts` barrel re-exports types, eip712, verify.
@@ -448,6 +479,7 @@ Layer 5 (final):
 ---
 
 #### Task 1.3: GatewayClient stub
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/gateway/client.ts`, `packages/core/src/gateway/client.test.ts`
 - **Deps:** 0.1, 0.3
@@ -455,18 +487,18 @@ Layer 5 (final):
 
   ```typescript
   export interface Builder {
-    address: string
-    name: string
-    registered: boolean
+    address: string;
+    name: string;
+    registered: boolean;
   }
 
   export interface GatewayClient {
-    isRegisteredBuilder(address: string): Promise<boolean>
-    getBuilder(address: string): Promise<Builder | null>
-    getGrant(grantId: string): Promise<GatewayGrantResponse | null>
+    isRegisteredBuilder(address: string): Promise<boolean>;
+    getBuilder(address: string): Promise<Builder | null>;
+    getGrant(grantId: string): Promise<GatewayGrantResponse | null>;
   }
 
-  export function createGatewayClient(baseUrl: string): GatewayClient
+  export function createGatewayClient(baseUrl: string): GatewayClient;
   ```
 
   Uses `fetch()`. 200 = found, 404 = null, network error = throw.
@@ -485,6 +517,7 @@ Layer 5 (final):
 ### Layer 2: Server Middleware
 
 #### Task 2.1: Web3Auth middleware
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/middleware/web3-auth.ts`, `packages/server/src/middleware/web3-auth.test.ts`
 - **Deps:** 1.1
@@ -493,7 +526,9 @@ Layer 5 (final):
   ```typescript
   /** Parses + verifies Web3Signed Authorization header.
    *  Sets c.set('auth', VerifiedAuth) for downstream handlers. */
-  export function createWeb3AuthMiddleware(serverOrigin: string): MiddlewareHandler
+  export function createWeb3AuthMiddleware(
+    serverOrigin: string,
+  ): MiddlewareHandler;
   ```
 
 - **Tests (5 cases):**
@@ -507,6 +542,7 @@ Layer 5 (final):
 ---
 
 #### Task 2.2: Builder check middleware
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/middleware/builder-check.ts`, `packages/server/src/middleware/builder-check.test.ts`
 - **Deps:** 1.3
@@ -515,7 +551,9 @@ Layer 5 (final):
   ```typescript
   /** Verifies authenticated signer is a registered builder via Gateway.
    *  Must run AFTER web3-auth middleware. */
-  export function createBuilderCheckMiddleware(gateway: GatewayClient): MiddlewareHandler
+  export function createBuilderCheckMiddleware(
+    gateway: GatewayClient,
+  ): MiddlewareHandler;
   ```
 
 - **Tests (3 cases):**
@@ -527,6 +565,7 @@ Layer 5 (final):
 ---
 
 #### Task 2.3: Grant check middleware
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/middleware/grant-check.ts`, `packages/server/src/middleware/grant-check.test.ts`
 - **Deps:** 1.2, 1.3
@@ -537,9 +576,9 @@ Layer 5 (final):
    *  Fetches grant from Gateway, checks revocation/expiry/scope/grantee.
    *  Sets c.set('grant', grantResponse). */
   export function createGrantCheckMiddleware(params: {
-    gateway: GatewayClient
-    serverOwner: `0x${string}`
-  }): MiddlewareHandler
+    gateway: GatewayClient;
+    serverOwner: `0x${string}`;
+  }): MiddlewareHandler;
   ```
 
   Flow:
@@ -565,6 +604,7 @@ Layer 5 (final):
 ---
 
 #### Task 2.4: Access log middleware
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/middleware/access-log.ts`, `packages/server/src/middleware/access-log.test.ts`
 - **Deps:** 0.4
@@ -573,7 +613,9 @@ Layer 5 (final):
   ```typescript
   /** Logs builder data access AFTER successful response (2xx).
    *  Fire-and-forget: write failures don't affect response. */
-  export function createAccessLogMiddleware(writer: AccessLogWriter): MiddlewareHandler
+  export function createAccessLogMiddleware(
+    writer: AccessLogWriter,
+  ): MiddlewareHandler;
   ```
 
   Runs `await next()` first, then on 2xx writes entry with `crypto.randomUUID()`, reads auth/grant from context.
@@ -590,33 +632,43 @@ Layer 5 (final):
 ### Layer 3: Read Endpoints
 
 #### Task 3.1: GET /v1/data/:scope (read data file)
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/routes/data.ts` (modify), `packages/server/src/routes/data.test.ts` (modify)
 - **Deps:** 2.1-2.4, 0.5
 - **Spec:**
 
   Add GET handler to existing `dataRoutes`:
+
   ```typescript
-  app.get('/:scope', web3Auth, builderCheck, grantCheck, accessLog, async (c) => {
-    // 1. Validate scope
-    // 2. Check query: fileId or at or default (latest)
-    // 3. Lookup via indexManager.findByFileId / findClosestByScope / findLatestByScope
-    // 4. 404 if not found
-    // 5. readDataFile(hierarchyOptions, scope, entry.collectedAt)
-    // 6. Return 200 with envelope JSON
-  })
+  app.get(
+    "/:scope",
+    web3Auth,
+    builderCheck,
+    grantCheck,
+    accessLog,
+    async (c) => {
+      // 1. Validate scope
+      // 2. Check query: fileId or at or default (latest)
+      // 3. Lookup via indexManager.findByFileId / findClosestByScope / findLatestByScope
+      // 4. 404 if not found
+      // 5. readDataFile(hierarchyOptions, scope, entry.collectedAt)
+      // 6. Return 200 with envelope JSON
+    },
+  );
   ```
 
   Update `DataRouteDeps`:
+
   ```typescript
   export interface DataRouteDeps {
-    indexManager: IndexManager
-    hierarchyOptions: HierarchyManagerOptions
-    logger: Logger
-    serverOrigin: string
-    serverOwner: `0x${string}`
-    gateway: GatewayClient
-    accessLogWriter: AccessLogWriter
+    indexManager: IndexManager;
+    hierarchyOptions: HierarchyManagerOptions;
+    logger: Logger;
+    serverOrigin: string;
+    serverOwner: `0x${string}`;
+    gateway: GatewayClient;
+    accessLogWriter: AccessLogWriter;
   }
   ```
 
@@ -636,12 +688,14 @@ Layer 5 (final):
 ---
 
 #### Task 3.2: GET /v1/data (list scopes)
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/routes/data.ts` (modify), `packages/server/src/routes/data.test.ts` (modify)
 - **Deps:** 2.1, 2.2, 0.5
 - **Spec:**
 
   Builder auth required, NO grant required:
+
   ```typescript
   app.get('/', web3Auth, builderCheck, async (c) => {
     const { scopePrefix, limit, offset } = // parse query params
@@ -661,23 +715,30 @@ Layer 5 (final):
 ---
 
 #### Task 3.3: GET /v1/data/:scope/versions
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/routes/data.ts` (modify), `packages/server/src/routes/data.test.ts` (modify)
 - **Deps:** 2.1, 2.2, 0.5
 - **Spec:**
 
   Builder auth required, NO grant required:
+
   ```typescript
-  app.get('/:scope/versions', web3Auth, builderCheck, async (c) => {
+  app.get("/:scope/versions", web3Auth, builderCheck, async (c) => {
     // Validate scope, parse limit/offset
-    const entries = deps.indexManager.findByScope({ scope, limit, offset })
-    const total = deps.indexManager.countByScope(scope)
+    const entries = deps.indexManager.findByScope({ scope, limit, offset });
+    const total = deps.indexManager.countByScope(scope);
     return c.json({
       scope,
-      versions: entries.map(e => ({ fileId: e.fileId, collectedAt: e.collectedAt })),
-      total, limit, offset,
-    })
-  })
+      versions: entries.map((e) => ({
+        fileId: e.fileId,
+        collectedAt: e.collectedAt,
+      })),
+      total,
+      limit,
+      offset,
+    });
+  });
   ```
 
 - **Tests (5 new cases):**
@@ -693,19 +754,22 @@ Layer 5 (final):
 ### Layer 4: Integration
 
 #### Task 4.1: Update app.ts, bootstrap.ts, config schema
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/app.ts`, `packages/server/src/bootstrap.ts`, `packages/server/src/app.test.ts`, `packages/server/src/bootstrap.test.ts`, `packages/core/src/schemas/server-config.ts`
 - **Deps:** 3.1-3.3
 - **Spec:**
 
   **server-config.ts**: Add `server.origin` (optional URL string):
+
   ```typescript
   server: z.object({
     port: z.number().int().min(1).max(65535).default(8080),
     address: z.string().optional(),
     origin: z.string().url().optional(),
-  }).default({})
+  }).default({});
   ```
+
   Note: `server.address` already exists and serves as the owner wallet address.
 
   **bootstrap.ts**:
@@ -732,6 +796,7 @@ Layer 5 (final):
 ### Layer 5: Final Verification
 
 #### Task 5.1: Install, build, test
+
 - **Status:** `[x]`
 - **Deps:** all previous
 - **Steps:**
@@ -746,45 +811,45 @@ Layer 5 (final):
 
 ## File Inventory (31 file operations)
 
-| Task | File | New/Modified |
-|------|------|-------------|
-| 0.1 | `packages/core/package.json` | Modified |
-| 0.2 | `packages/core/src/scopes/match.ts` | New |
-| 0.2 | `packages/core/src/scopes/match.test.ts` | New |
-| 0.2 | `packages/core/src/scopes/index.ts` | New |
-| 0.3 | `packages/core/src/grants/types.ts` | New |
-| 0.3 | `packages/core/src/grants/eip712.ts` | New |
-| 0.3 | `packages/core/src/grants/eip712.test.ts` | New |
-| 0.4 | `packages/core/src/logging/access-log.ts` | New |
-| 0.4 | `packages/core/src/logging/access-log.test.ts` | New |
-| 0.5 | `packages/core/src/storage/index/types.ts` | Modified |
-| 0.5 | `packages/core/src/storage/index/manager.ts` | Modified |
-| 0.5 | `packages/core/src/storage/index/manager.test.ts` | Modified |
-| 0.6 | `packages/core/src/test-utils/wallet.ts` | New |
-| 0.6 | `packages/core/src/test-utils/wallet.test.ts` | New |
-| 0.6 | `packages/core/src/test-utils/index.ts` | New |
-| 1.1 | `packages/core/src/auth/web3-signed.ts` | New |
-| 1.1 | `packages/core/src/auth/web3-signed.test.ts` | New |
-| 1.2 | `packages/core/src/grants/verify.ts` | New |
-| 1.2 | `packages/core/src/grants/verify.test.ts` | New |
-| 1.2 | `packages/core/src/grants/index.ts` | New |
-| 1.3 | `packages/core/src/gateway/client.ts` | New |
-| 1.3 | `packages/core/src/gateway/client.test.ts` | New |
-| 2.1 | `packages/server/src/middleware/web3-auth.ts` | New |
-| 2.1 | `packages/server/src/middleware/web3-auth.test.ts` | New |
-| 2.2 | `packages/server/src/middleware/builder-check.ts` | New |
-| 2.2 | `packages/server/src/middleware/builder-check.test.ts` | New |
-| 2.3 | `packages/server/src/middleware/grant-check.ts` | New |
-| 2.3 | `packages/server/src/middleware/grant-check.test.ts` | New |
-| 2.4 | `packages/server/src/middleware/access-log.ts` | New |
-| 2.4 | `packages/server/src/middleware/access-log.test.ts` | New |
-| 3.1-3.3 | `packages/server/src/routes/data.ts` | Modified |
-| 3.1-3.3 | `packages/server/src/routes/data.test.ts` | Modified |
-| 4.1 | `packages/server/src/app.ts` | Modified |
-| 4.1 | `packages/server/src/app.test.ts` | Modified |
-| 4.1 | `packages/server/src/bootstrap.ts` | Modified |
-| 4.1 | `packages/server/src/bootstrap.test.ts` | Modified |
-| 4.1 | `packages/core/src/schemas/server-config.ts` | Modified |
+| Task    | File                                                   | New/Modified |
+| ------- | ------------------------------------------------------ | ------------ |
+| 0.1     | `packages/core/package.json`                           | Modified     |
+| 0.2     | `packages/core/src/scopes/match.ts`                    | New          |
+| 0.2     | `packages/core/src/scopes/match.test.ts`               | New          |
+| 0.2     | `packages/core/src/scopes/index.ts`                    | New          |
+| 0.3     | `packages/core/src/grants/types.ts`                    | New          |
+| 0.3     | `packages/core/src/grants/eip712.ts`                   | New          |
+| 0.3     | `packages/core/src/grants/eip712.test.ts`              | New          |
+| 0.4     | `packages/core/src/logging/access-log.ts`              | New          |
+| 0.4     | `packages/core/src/logging/access-log.test.ts`         | New          |
+| 0.5     | `packages/core/src/storage/index/types.ts`             | Modified     |
+| 0.5     | `packages/core/src/storage/index/manager.ts`           | Modified     |
+| 0.5     | `packages/core/src/storage/index/manager.test.ts`      | Modified     |
+| 0.6     | `packages/core/src/test-utils/wallet.ts`               | New          |
+| 0.6     | `packages/core/src/test-utils/wallet.test.ts`          | New          |
+| 0.6     | `packages/core/src/test-utils/index.ts`                | New          |
+| 1.1     | `packages/core/src/auth/web3-signed.ts`                | New          |
+| 1.1     | `packages/core/src/auth/web3-signed.test.ts`           | New          |
+| 1.2     | `packages/core/src/grants/verify.ts`                   | New          |
+| 1.2     | `packages/core/src/grants/verify.test.ts`              | New          |
+| 1.2     | `packages/core/src/grants/index.ts`                    | New          |
+| 1.3     | `packages/core/src/gateway/client.ts`                  | New          |
+| 1.3     | `packages/core/src/gateway/client.test.ts`             | New          |
+| 2.1     | `packages/server/src/middleware/web3-auth.ts`          | New          |
+| 2.1     | `packages/server/src/middleware/web3-auth.test.ts`     | New          |
+| 2.2     | `packages/server/src/middleware/builder-check.ts`      | New          |
+| 2.2     | `packages/server/src/middleware/builder-check.test.ts` | New          |
+| 2.3     | `packages/server/src/middleware/grant-check.ts`        | New          |
+| 2.3     | `packages/server/src/middleware/grant-check.test.ts`   | New          |
+| 2.4     | `packages/server/src/middleware/access-log.ts`         | New          |
+| 2.4     | `packages/server/src/middleware/access-log.test.ts`    | New          |
+| 3.1-3.3 | `packages/server/src/routes/data.ts`                   | Modified     |
+| 3.1-3.3 | `packages/server/src/routes/data.test.ts`              | Modified     |
+| 4.1     | `packages/server/src/app.ts`                           | Modified     |
+| 4.1     | `packages/server/src/app.test.ts`                      | Modified     |
+| 4.1     | `packages/server/src/bootstrap.ts`                     | Modified     |
+| 4.1     | `packages/server/src/bootstrap.test.ts`                | Modified     |
+| 4.1     | `packages/core/src/schemas/server-config.ts`           | Modified     |
 
 **Total: 22 new files, 9 modified files**
 
@@ -792,14 +857,14 @@ Layer 5 (final):
 
 ## Agent Parallelism Strategy
 
-| Batch | Tasks | Agents | Notes |
-|-------|-------|--------|-------|
-| 1 | 0.1, 0.2, 0.3, 0.4, 0.5 | 5 parallel | All independent; 0.6 waits for 0.1 |
-| 2 | 0.6, 1.1, 1.2, 1.3 | 4 parallel | 0.6 after 0.1; 1.x after various 0.x |
-| 3 | 2.1, 2.2, 2.3, 2.4 | 4 parallel | Each depends on different L1 tasks |
-| 4 | 3.1, 3.2, 3.3 | 3 parallel | All need L2 middleware |
-| 5 | 4.1 | 1 | Integration wiring |
-| 6 | 5.1 | 1 | Verification only |
+| Batch | Tasks                   | Agents     | Notes                                |
+| ----- | ----------------------- | ---------- | ------------------------------------ |
+| 1     | 0.1, 0.2, 0.3, 0.4, 0.5 | 5 parallel | All independent; 0.6 waits for 0.1   |
+| 2     | 0.6, 1.1, 1.2, 1.3      | 4 parallel | 0.6 after 0.1; 1.x after various 0.x |
+| 3     | 2.1, 2.2, 2.3, 2.4      | 4 parallel | Each depends on different L1 tasks   |
+| 4     | 3.1, 3.2, 3.3           | 3 parallel | All need L2 middleware               |
+| 5     | 4.1                     | 1          | Integration wiring                   |
+| 6     | 5.1                     | 1          | Verification only                    |
 
 ---
 

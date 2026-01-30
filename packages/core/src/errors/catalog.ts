@@ -29,31 +29,31 @@ export class ProtocolError extends Error {
 
 export class MissingAuthError extends ProtocolError {
   constructor(details?: Record<string, unknown>) {
-    super(401, 'MISSING_AUTH', 'Missing authentication', details);
+    super(401, "MISSING_AUTH", "Missing authentication", details);
   }
 }
 
 export class InvalidSignatureError extends ProtocolError {
   constructor(details?: Record<string, unknown>) {
-    super(401, 'INVALID_SIGNATURE', 'Invalid signature', details);
+    super(401, "INVALID_SIGNATURE", "Invalid signature", details);
   }
 }
 
 export class UnregisteredBuilderError extends ProtocolError {
   constructor(details?: Record<string, unknown>) {
-    super(401, 'UNREGISTERED_BUILDER', 'Unregistered builder', details);
+    super(401, "UNREGISTERED_BUILDER", "Unregistered builder", details);
   }
 }
 
 export class NotOwnerError extends ProtocolError {
   constructor(details?: Record<string, unknown>) {
-    super(401, 'NOT_OWNER', 'Not the owner', details);
+    super(401, "NOT_OWNER", "Not the owner", details);
   }
 }
 
 export class ExpiredTokenError extends ProtocolError {
   constructor(details?: Record<string, unknown>) {
-    super(401, 'EXPIRED_TOKEN', 'Token has expired', details);
+    super(401, "EXPIRED_TOKEN", "Token has expired", details);
   }
 }
 
@@ -61,25 +61,25 @@ export class ExpiredTokenError extends ProtocolError {
 
 export class GrantRequiredError extends ProtocolError {
   constructor(details?: Record<string, unknown>) {
-    super(403, 'GRANT_REQUIRED', 'Grant required', details);
+    super(403, "GRANT_REQUIRED", "Grant required", details);
   }
 }
 
 export class GrantExpiredError extends ProtocolError {
   constructor(details?: Record<string, unknown>) {
-    super(403, 'GRANT_EXPIRED', 'Grant has expired', details);
+    super(403, "GRANT_EXPIRED", "Grant has expired", details);
   }
 }
 
 export class GrantRevokedError extends ProtocolError {
   constructor(details?: Record<string, unknown>) {
-    super(403, 'GRANT_REVOKED', 'Grant has been revoked', details);
+    super(403, "GRANT_REVOKED", "Grant has been revoked", details);
   }
 }
 
 export class ScopeMismatchError extends ProtocolError {
   constructor(details?: Record<string, unknown>) {
-    super(403, 'SCOPE_MISMATCH', 'Scope not granted', details);
+    super(403, "SCOPE_MISMATCH", "Scope not granted", details);
   }
 }
 
@@ -87,6 +87,6 @@ export class ScopeMismatchError extends ProtocolError {
 
 export class ContentTooLargeError extends ProtocolError {
   constructor(details?: Record<string, unknown>) {
-    super(413, 'CONTENT_TOO_LARGE', 'Content too large', details);
+    super(413, "CONTENT_TOO_LARGE", "Content too large", details);
   }
 }

@@ -13,14 +13,14 @@ Inline conditional types are re-evaluated on every function call. Extracting the
 
 ```typescript
 function processResponse<T>(
-  response: T
+  response: T,
 ): T extends { data: infer D }
-   ? D extends Array<infer Item>
-     ? Item[]
-     : D
-   : never {
+  ? D extends Array<infer Item>
+    ? Item[]
+    : D
+  : never {
   // Compiler re-computes this complex conditional on every call
-  return response.data
+  return response.data;
 }
 
 function getResult<T>(value: T): T extends Promise<infer R> ? R : T {
@@ -35,14 +35,14 @@ type ExtractData<T> = T extends { data: infer D }
   ? D extends Array<infer Item>
     ? Item[]
     : D
-  : never
+  : never;
 
 function processResponse<T>(response: T): ExtractData<T> {
   // Compiler caches ExtractData<T> resolution
-  return response.data
+  return response.data;
 }
 
-type Awaited<T> = T extends Promise<infer R> ? R : T
+type Awaited<T> = T extends Promise<infer R> ? R : T;
 
 function getResult<T>(value: T): Awaited<T> {
   // Reuses cached Awaited<T> computation
@@ -50,6 +50,7 @@ function getResult<T>(value: T): Awaited<T> {
 ```
 
 **Benefits:**
+
 - Type alias acts as a cache boundary
 - Reduces duplicate computation across multiple call sites
 - Improves IDE responsiveness for autocomplete
