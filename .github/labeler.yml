@@ -1,0 +1,27 @@
+core:
+  - changed-files:
+      - any-glob-to-any-file: "packages/core/**"
+
+server:
+  - changed-files:
+      - any-glob-to-any-file: "packages/server/**"
+
+cli:
+  - changed-files:
+      - any-glob-to-any-file: "packages/cli/**"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "docs/**"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package-lock.json"
+          - "**/package.json"
