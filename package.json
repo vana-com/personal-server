@@ -16,8 +16,8 @@
     "packages/*"
   ],
   "scripts": {
-    "start": "npm run build && node packages/server/dist/index.js",
-    "dev": "tsc --build && tsx watch packages/server/src/index.ts",
+    "start": "npm run build && node --env-file-if-exists=.env packages/server/dist/index.js",
+    "dev": "tsc --build && tsx watch --env-file-if-exists=.env packages/server/src/index.ts",
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "test": "vitest run",
