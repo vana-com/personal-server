@@ -31,11 +31,32 @@ npm run build
 ## Run
 
 ```bash
-# Start the server (reads ~/.vana/server.json)
-npx tsx packages/server/src/index.ts
+npm start             # build + start server
+npm run dev           # run from source (no build step)
 ```
 
-The server starts on the port defined in `server.json` (default: 8080). Health check at `GET /health`.
+The server starts on the port defined in `~/.vana/server.json` (default: 8080). Health check at `GET /health`.
+
+## Configuration
+
+The server reads `~/.vana/server.json` on startup (created with defaults if missing).
+
+```json
+{
+  "server": {
+    "port": 8080
+  },
+  "logging": {
+    "level": "info",
+    "pretty": false
+  },
+  "storage": {
+    "backend": "local"
+  }
+}
+```
+
+Set `"pretty": true` for human-readable logs during development.
 
 ## Test
 

@@ -16,6 +16,8 @@
     "packages/*"
   ],
   "scripts": {
+    "start": "npm run build && node packages/server/dist/index.js",
+    "dev": "tsc --build && tsx watch packages/server/src/index.ts",
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "test": "vitest run",
@@ -58,6 +60,7 @@
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "semantic-release": "^25.0.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.54.0",
     "vitest": "^4.0.18"
