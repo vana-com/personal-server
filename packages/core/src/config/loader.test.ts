@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { access, mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { loadConfig } from "./loader.js";
 
@@ -90,6 +90,15 @@ describe("loadConfig", () => {
       await writeFile(configPath, "{ invalid json }}}");
 
       await expect(loadConfig({ configPath })).rejects.toThrow(SyntaxError);
+    });
+  });
+
+  it("does not write config file for custom configPath", async () => {
+    await withTempDir(async (dir) => {
+      const configPath = join(dir, "subdir", "server.json");
+      await loadConfig({ configPath });
+
+      await expect(access(configPath)).rejects.toThrow();
     });
   });
 

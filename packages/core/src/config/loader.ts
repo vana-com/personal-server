@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
 import {
   ServerConfigSchema,
   type ServerConfig,
@@ -15,6 +16,7 @@ export async function loadConfig(
   const configPath = options?.configPath ?? DEFAULT_CONFIG_PATH;
 
   let raw: unknown = {};
+  let fileMissing = false;
   try {
     const contents = await readFile(configPath, "utf-8");
     raw = JSON.parse(contents);
@@ -24,12 +26,19 @@ export async function loadConfig(
       "code" in err &&
       (err as NodeJS.ErrnoException).code === "ENOENT"
     ) {
-      // File doesn't exist — use defaults
+      fileMissing = true;
       raw = {};
     } else {
       throw err;
     }
   }
 
-  return ServerConfigSchema.parse(raw);
+  const config = ServerConfigSchema.parse(raw);
+
+  if (fileMissing && configPath === DEFAULT_CONFIG_PATH) {
+    await mkdir(dirname(configPath), { recursive: true });
+    await writeFile(configPath, JSON.stringify(config, null, 2) + "\n");
+  }
+
+  return config;
 }
