@@ -13,13 +13,13 @@ Barrel files (index.ts re-exports) defeat tree-shaking and force bundlers to loa
 
 ```typescript
 // utils/index.ts (barrel file)
-export * from './string'
-export * from './date'
-export * from './validation'
-export * from './crypto'  // Heavy, rarely used
+export * from "./string";
+export * from "./date";
+export * from "./validation";
+export * from "./crypto"; // Heavy, rarely used
 
 // consumer.ts
-import { formatDate } from '@/utils'
+import { formatDate } from "@/utils";
 // Loads ALL utils modules, including crypto
 // Bundle includes 50KB of unused code
 ```
@@ -28,7 +28,7 @@ import { formatDate } from '@/utils'
 
 ```typescript
 // consumer.ts
-import { formatDate } from '@/utils/date'
+import { formatDate } from "@/utils/date";
 // Loads only the date module
 // Bundle includes only what's used
 ```
@@ -37,11 +37,11 @@ import { formatDate } from '@/utils/date'
 
 ```typescript
 // Incorrect - loads all 1500+ icons
-import { Check, X } from 'lucide-react'
+import { Check, X } from "lucide-react";
 
 // Correct - loads only 2 icons
-import Check from 'lucide-react/dist/esm/icons/check'
-import X from 'lucide-react/dist/esm/icons/x'
+import Check from "lucide-react/dist/esm/icons/check";
+import X from "lucide-react/dist/esm/icons/x";
 ```
 
 **Alternative (configure bundler optimization):**
@@ -50,19 +50,20 @@ import X from 'lucide-react/dist/esm/icons/x'
 // next.config.js
 module.exports = {
   experimental: {
-    optimizePackageImports: ['lucide-react', '@mui/material', 'lodash']
-  }
-}
+    optimizePackageImports: ["lucide-react", "@mui/material", "lodash"],
+  },
+};
 
 // vite.config.ts
 export default {
   optimizeDeps: {
-    include: ['lucide-react']
-  }
-}
+    include: ["lucide-react"],
+  },
+};
 ```
 
 **When barrels are acceptable:**
+
 - Internal modules with few exports (< 10)
 - Package entry points for library consumers
 - When bundler is configured to optimize them

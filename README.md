@@ -6,11 +6,11 @@ TypeScript implementation of the Vana Data Portability Protocol's Personal Serve
 
 NPM workspaces monorepo with three packages:
 
-| Package | Purpose |
-|---------|---------|
-| `packages/core` | Protocol logic — auth, grants, scopes, storage, keys, gateway client |
-| `packages/server` | Hono HTTP server — routes, middleware, composition root |
-| `packages/cli` | CLI entry point (placeholder) |
+| Package           | Purpose                                                              |
+| ----------------- | -------------------------------------------------------------------- |
+| `packages/core`   | Protocol logic — auth, grants, scopes, storage, keys, gateway client |
+| `packages/server` | Hono HTTP server — routes, middleware, composition root              |
+| `packages/cli`    | CLI entry point (placeholder)                                        |
 
 Data lives in `~/.vana/` — decrypted files in `data/`, local file index at `index.db`, config in `server.json`.
 
@@ -45,20 +45,20 @@ Tests are co-located with source (`foo.ts` → `foo.test.ts`).
 
 All authenticated endpoints use `Authorization: Web3Signed <base64url(json)>.<signature>` — no sessions, no cookies.
 
-| Endpoint | Method | Auth | Purpose |
-|----------|--------|------|---------|
-| `/health` | GET | None | Health check |
-| `/v1/data/{scope}` | POST | Owner | Ingest data |
-| `/v1/data` | GET | Builder | List scopes |
-| `/v1/data/{scope}` | GET | Builder + Grant | Read data |
-| `/v1/data/{scope}/versions` | GET | Builder | List versions |
-| `/v1/data/{scope}` | DELETE | Owner | Delete data |
-| `/v1/grants` | GET | Owner | List grants |
-| `/v1/grants/verify` | POST | None | Verify grant signature |
-| `/v1/access-logs` | GET | Owner | Access history |
-| `/v1/sync/trigger` | POST | Owner | Force sync |
-| `/v1/sync/status` | GET | Owner | Sync status |
-| `/v1/sync/file/{fileId}` | POST | Owner | Sync specific file |
+| Endpoint                    | Method | Auth            | Purpose                |
+| --------------------------- | ------ | --------------- | ---------------------- |
+| `/health`                   | GET    | None            | Health check           |
+| `/v1/data/{scope}`          | POST   | Owner           | Ingest data            |
+| `/v1/data`                  | GET    | Builder         | List scopes            |
+| `/v1/data/{scope}`          | GET    | Builder + Grant | Read data              |
+| `/v1/data/{scope}/versions` | GET    | Builder         | List versions          |
+| `/v1/data/{scope}`          | DELETE | Owner           | Delete data            |
+| `/v1/grants`                | GET    | Owner           | List grants            |
+| `/v1/grants/verify`         | POST   | None            | Verify grant signature |
+| `/v1/access-logs`           | GET    | Owner           | Access history         |
+| `/v1/sync/trigger`          | POST   | Owner           | Force sync             |
+| `/v1/sync/status`           | GET    | Owner           | Sync status            |
+| `/v1/sync/file/{fileId}`    | POST   | Owner           | Sync specific file     |
 
 ## Docs
 

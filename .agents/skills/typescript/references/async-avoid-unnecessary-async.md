@@ -13,20 +13,20 @@ Every `async` function wraps its return in a Promise, and every `await` schedule
 
 ```typescript
 async function getUser(userId: string): Promise<User> {
-  return await userRepository.findById(userId)
+  return await userRepository.findById(userId);
   // Creates extra Promise + microtask for no benefit
 }
 
 async function getUserName(userId: string): Promise<string> {
-  const user = await getUser(userId)
-  return user.name
+  const user = await getUser(userId);
+  return user.name;
   // Another unnecessary async wrapper
 }
 
 // Chain of 3 async functions = 3 extra microtasks
 async function displayUserName(userId: string): Promise<void> {
-  const name = await getUserName(userId)
-  console.log(name)
+  const name = await getUserName(userId);
+  console.log(name);
 }
 ```
 
@@ -34,23 +34,24 @@ async function displayUserName(userId: string): Promise<void> {
 
 ```typescript
 function getUser(userId: string): Promise<User> {
-  return userRepository.findById(userId)
+  return userRepository.findById(userId);
   // Returns Promise directly, no wrapping
 }
 
 function getUserName(userId: string): Promise<string> {
-  return getUser(userId).then(user => user.name)
+  return getUser(userId).then((user) => user.name);
   // Single Promise chain
 }
 
 // Only use async where you need sequential await
 async function displayUserName(userId: string): Promise<void> {
-  const name = await getUserName(userId)
-  console.log(name)
+  const name = await getUserName(userId);
+  console.log(name);
 }
 ```
 
 **When async/await IS needed:**
+
 - Multiple sequential await statements
 - Try/catch around await
 - Conditional await logic

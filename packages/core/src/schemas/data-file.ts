@@ -1,14 +1,14 @@
-import { z } from 'zod'
+import { z } from "zod";
 
 export const DataFileEnvelopeSchema = z.object({
   $schema: z.string().url().optional(),
-  version: z.literal('1.0'),
+  version: z.literal("1.0"),
   scope: z.string(),
   collectedAt: z.string().datetime(),
   data: z.record(z.unknown()),
-})
+});
 
-export type DataFileEnvelope = z.infer<typeof DataFileEnvelopeSchema>
+export type DataFileEnvelope = z.infer<typeof DataFileEnvelopeSchema>;
 
 export function createDataFileEnvelope(
   scope: string,
@@ -18,17 +18,17 @@ export function createDataFileEnvelope(
 ): DataFileEnvelope {
   return {
     ...(schemaUrl !== undefined && { $schema: schemaUrl }),
-    version: '1.0',
+    version: "1.0",
     scope,
     collectedAt,
     data,
-  }
+  };
 }
 
 export const IngestResponseSchema = z.object({
   scope: z.string(),
   collectedAt: z.string().datetime(),
-  status: z.enum(['stored', 'syncing']),
-})
+  status: z.enum(["stored", "syncing"]),
+});
 
-export type IngestResponse = z.infer<typeof IngestResponseSchema>
+export type IngestResponse = z.infer<typeof IngestResponseSchema>;

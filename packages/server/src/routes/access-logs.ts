@@ -3,11 +3,11 @@
  * Owner auth is wired in Task 4.1.
  */
 
-import { Hono } from 'hono';
-import type { Logger } from 'pino';
-import type { AccessLogReader } from '@personal-server/core/logging/access-reader';
-import { createWeb3AuthMiddleware } from '../middleware/web3-auth.js';
-import { createOwnerCheckMiddleware } from '../middleware/owner-check.js';
+import { Hono } from "hono";
+import type { Logger } from "pino";
+import type { AccessLogReader } from "@personal-server/core/logging/access-reader";
+import { createWeb3AuthMiddleware } from "../middleware/web3-auth.js";
+import { createOwnerCheckMiddleware } from "../middleware/owner-check.js";
 
 export interface AccessLogsRouteDeps {
   logger: Logger;
@@ -23,9 +23,9 @@ export function accessLogsRoutes(deps: AccessLogsRouteDeps): Hono {
   const ownerCheck = createOwnerCheckMiddleware(deps.serverOwner);
 
   // GET / — list access logs with pagination (owner auth required)
-  app.get('/', web3Auth, ownerCheck, async (c) => {
-    const limitParam = c.req.query('limit');
-    const offsetParam = c.req.query('offset');
+  app.get("/", web3Auth, ownerCheck, async (c) => {
+    const limitParam = c.req.query("limit");
+    const offsetParam = c.req.query("offset");
 
     const limit = limitParam !== undefined ? parseInt(limitParam, 10) : 50;
     const offset = offsetParam !== undefined ? parseInt(offsetParam, 10) : 0;

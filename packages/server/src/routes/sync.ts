@@ -3,10 +3,10 @@
  * Owner auth is wired in Task 4.1.
  */
 
-import { Hono } from 'hono';
-import type { Logger } from 'pino';
-import { createWeb3AuthMiddleware } from '../middleware/web3-auth.js';
-import { createOwnerCheckMiddleware } from '../middleware/owner-check.js';
+import { Hono } from "hono";
+import type { Logger } from "pino";
+import { createWeb3AuthMiddleware } from "../middleware/web3-auth.js";
+import { createOwnerCheckMiddleware } from "../middleware/owner-check.js";
 
 export interface SyncRouteDeps {
   logger: Logger;
@@ -21,13 +21,13 @@ export function syncRoutes(deps: SyncRouteDeps): Hono {
   const ownerCheck = createOwnerCheckMiddleware(deps.serverOwner);
 
   // POST /trigger — request a full sync (owner auth required)
-  app.post('/trigger', web3Auth, ownerCheck, async (c) => {
-    deps.logger.info('Sync trigger requested (stub)');
-    return c.json({ status: 'started', message: 'Sync triggered' }, 202);
+  app.post("/trigger", web3Auth, ownerCheck, async (c) => {
+    deps.logger.info("Sync trigger requested (stub)");
+    return c.json({ status: "started", message: "Sync triggered" }, 202);
   });
 
   // GET /status — current sync status (owner auth required)
-  app.get('/status', web3Auth, ownerCheck, async (c) => {
+  app.get("/status", web3Auth, ownerCheck, async (c) => {
     return c.json({
       lastSync: null,
       lastProcessedTimestamp: null,
@@ -37,10 +37,10 @@ export function syncRoutes(deps: SyncRouteDeps): Hono {
   });
 
   // POST /file/:fileId — request sync for a specific file (owner auth required)
-  app.post('/file/:fileId', web3Auth, ownerCheck, async (c) => {
-    const fileId = c.req.param('fileId');
-    deps.logger.info({ fileId }, 'File sync requested (stub)');
-    return c.json({ fileId, status: 'started' }, 202);
+  app.post("/file/:fileId", web3Auth, ownerCheck, async (c) => {
+    const fileId = c.req.param("fileId");
+    deps.logger.info({ fileId }, "File sync requested (stub)");
+    return c.json({ fileId, status: "started" }, 202);
   });
 
   return app;

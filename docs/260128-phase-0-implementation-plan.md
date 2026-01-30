@@ -1,6 +1,7 @@
 # Phase 0: Skeleton — Atomic Implementation Plan
 
 ## Goal
+
 Deliver a minimal, runnable personal server with: NPM workspace monorepo (3 packages), TypeScript composite project references, Hono HTTP server with `/health`, config loading with Zod validation, structured pino logging, server lifecycle (startup + graceful shutdown), and a composition root.
 
 **Source of truth:** `@docs/260127-personal-server-scaffold.md` (Phase 0, sections 3-5)
@@ -49,6 +50,7 @@ Layer 5 (final):
 ### Layer 0: Root Project Setup
 
 #### Task 0.1: Root package.json
+
 - **Status:** `[x]`
 - **Files:** `package.json`
 - **Deps:** none
@@ -76,6 +78,7 @@ Layer 5 (final):
 - **Done when:** File exists, has `workspaces: ["packages/*"]`, has build/test/lint scripts
 
 #### Task 0.2: Root tsconfig.json
+
 - **Status:** `[x]`
 - **Files:** `tsconfig.json`
 - **Deps:** none
@@ -108,6 +111,7 @@ Layer 5 (final):
 - **Done when:** References all 3 packages, `strict: true`, `composite: true`, `ES2022` + `Node16`
 
 #### Task 0.3: Git config files
+
 - **Status:** `[x]`
 - **Files:** `.gitignore`, `.nvmrc`
 - **Deps:** none
@@ -115,23 +119,24 @@ Layer 5 (final):
 - **`.nvmrc`:** `20`
 
 #### Task 0.4: Vitest config
+
 - **Status:** `[x]`
 - **Files:** `vitest.config.ts`
 - **Deps:** none
 - **Spec:**
   ```typescript
-  import { defineConfig } from 'vitest/config'
+  import { defineConfig } from "vitest/config";
   export default defineConfig({
     test: {
       globals: true,
-      include: ['packages/*/src/**/*.test.ts'],
+      include: ["packages/*/src/**/*.test.ts"],
       coverage: {
-        provider: 'v8',
-        include: ['packages/*/src/**/*.ts'],
-        exclude: ['packages/*/src/**/*.test.ts'],
+        provider: "v8",
+        include: ["packages/*/src/**/*.ts"],
+        exclude: ["packages/*/src/**/*.test.ts"],
       },
     },
-  })
+  });
   ```
 
 ---
@@ -139,6 +144,7 @@ Layer 5 (final):
 ### Layer 1: Package Scaffolds
 
 #### Task 1.1: Core package scaffold
+
 - **Status:** `[x]`
 - **Files:** `packages/core/package.json`, `packages/core/tsconfig.json`
 - **Deps:** 0.1, 0.2
@@ -146,6 +152,7 @@ Layer 5 (final):
 - **tsconfig.json:** extends `../../tsconfig.json`, `outDir: "dist"`, `rootDir: "src"`, `composite: true`. Exclude `src/**/*.test.ts`
 
 #### Task 1.2: Server package scaffold
+
 - **Status:** `[x]`
 - **Files:** `packages/server/package.json`, `packages/server/tsconfig.json`
 - **Deps:** 0.1, 0.2
@@ -153,6 +160,7 @@ Layer 5 (final):
 - **tsconfig.json:** extends root, references `../core`
 
 #### Task 1.3: CLI package scaffold (placeholder)
+
 - **Status:** `[x]`
 - **Files:** `packages/cli/package.json`, `packages/cli/tsconfig.json`, `packages/cli/src/index.ts`
 - **Deps:** 0.1, 0.2
@@ -165,6 +173,7 @@ Layer 5 (final):
 ### Layer 2: Core Module Implementation
 
 #### Task 2.1: Zod config schema
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/schemas/server-config.ts`
 - **Deps:** 1.1
@@ -178,6 +187,7 @@ Layer 5 (final):
   - All fields have defaults so empty `{}` is valid
 
 #### Task 2.2: Config loader + tests
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/config/defaults.ts`, `packages/core/src/config/loader.ts`, `packages/core/src/config/loader.test.ts`
 - **Deps:** 2.1
@@ -193,6 +203,7 @@ Layer 5 (final):
 - **Verify:** `npx vitest run packages/core/src/config/`
 
 #### Task 2.3: Logger setup + tests
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/logger/index.ts`, `packages/core/src/logger/index.test.ts`
 - **Deps:** 2.1 (for LoggingConfig type)
@@ -205,6 +216,7 @@ Layer 5 (final):
 - **Verify:** `npx vitest run packages/core/src/logger/`
 
 #### Task 2.4: Error catalog + tests
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/errors/catalog.ts`, `packages/core/src/errors/catalog.test.ts`
 - **Deps:** 1.1
@@ -225,6 +237,7 @@ Layer 5 (final):
 ### Layer 3: Server Implementation
 
 #### Task 3.1: Health route + tests
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/routes/health.ts`, `packages/server/src/routes/health.test.ts`
 - **Deps:** 2.4
@@ -237,6 +250,7 @@ Layer 5 (final):
 - **Verify:** `npx vitest run packages/server/src/routes/`
 
 #### Task 3.2: Hono app setup + tests
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/app.ts`, `packages/server/src/app.test.ts`
 - **Deps:** 3.1, 2.4
@@ -249,6 +263,7 @@ Layer 5 (final):
 - **Verify:** `npx vitest run packages/server/src/app.test.ts`
 
 #### Task 3.3: Composition root + tests
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/bootstrap.ts`, `packages/server/src/bootstrap.test.ts`
 - **Deps:** 2.2, 2.3, 3.2
@@ -265,6 +280,7 @@ Layer 5 (final):
 ### Layer 4: Entry Point
 
 #### Task 4.1: Server entry point + lifecycle
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/index.ts`
 - **Deps:** 3.3
@@ -276,6 +292,7 @@ Layer 5 (final):
 ### Layer 5: Final Verification
 
 #### Task 5.1: Install, build, test
+
 - **Status:** `[x]`
 - **Deps:** all previous
 - **Steps:**
@@ -289,23 +306,23 @@ Layer 5 (final):
 
 ## File Inventory (22 files)
 
-| Task | Files |
-|------|-------|
-| 0.1 | `package.json` |
-| 0.2 | `tsconfig.json` |
-| 0.3 | `.gitignore`, `.nvmrc` |
-| 0.4 | `vitest.config.ts` |
-| 1.1 | `packages/core/package.json`, `packages/core/tsconfig.json` |
-| 1.2 | `packages/server/package.json`, `packages/server/tsconfig.json` |
-| 1.3 | `packages/cli/package.json`, `packages/cli/tsconfig.json`, `packages/cli/src/index.ts` |
-| 2.1 | `packages/core/src/schemas/server-config.ts` |
-| 2.2 | `packages/core/src/config/defaults.ts`, `packages/core/src/config/loader.ts`, `packages/core/src/config/loader.test.ts` |
-| 2.3 | `packages/core/src/logger/index.ts`, `packages/core/src/logger/index.test.ts` |
-| 2.4 | `packages/core/src/errors/catalog.ts`, `packages/core/src/errors/catalog.test.ts` |
-| 3.1 | `packages/server/src/routes/health.ts`, `packages/server/src/routes/health.test.ts` |
-| 3.2 | `packages/server/src/app.ts`, `packages/server/src/app.test.ts` |
-| 3.3 | `packages/server/src/bootstrap.ts`, `packages/server/src/bootstrap.test.ts` |
-| 4.1 | `packages/server/src/index.ts` |
+| Task | Files                                                                                                                   |
+| ---- | ----------------------------------------------------------------------------------------------------------------------- |
+| 0.1  | `package.json`                                                                                                          |
+| 0.2  | `tsconfig.json`                                                                                                         |
+| 0.3  | `.gitignore`, `.nvmrc`                                                                                                  |
+| 0.4  | `vitest.config.ts`                                                                                                      |
+| 1.1  | `packages/core/package.json`, `packages/core/tsconfig.json`                                                             |
+| 1.2  | `packages/server/package.json`, `packages/server/tsconfig.json`                                                         |
+| 1.3  | `packages/cli/package.json`, `packages/cli/tsconfig.json`, `packages/cli/src/index.ts`                                  |
+| 2.1  | `packages/core/src/schemas/server-config.ts`                                                                            |
+| 2.2  | `packages/core/src/config/defaults.ts`, `packages/core/src/config/loader.ts`, `packages/core/src/config/loader.test.ts` |
+| 2.3  | `packages/core/src/logger/index.ts`, `packages/core/src/logger/index.test.ts`                                           |
+| 2.4  | `packages/core/src/errors/catalog.ts`, `packages/core/src/errors/catalog.test.ts`                                       |
+| 3.1  | `packages/server/src/routes/health.ts`, `packages/server/src/routes/health.test.ts`                                     |
+| 3.2  | `packages/server/src/app.ts`, `packages/server/src/app.test.ts`                                                         |
+| 3.3  | `packages/server/src/bootstrap.ts`, `packages/server/src/bootstrap.test.ts`                                             |
+| 4.1  | `packages/server/src/index.ts`                                                                                          |
 
 ---
 
@@ -313,14 +330,14 @@ Layer 5 (final):
 
 Tasks within the same layer can be dispatched to parallel agents when their deps are satisfied:
 
-| Batch | Tasks | Agents |
-|-------|-------|--------|
-| 1 | 0.1, 0.2, 0.3, 0.4 | 4 parallel |
-| 2 | 1.1, 1.2, 1.3 | 3 parallel |
-| 3 | 2.1, 2.4 | 2 parallel (2.4 only needs 1.1) |
-| 4 | 2.2, 2.3 | 2 parallel (both need 2.1) |
-| 5 | 3.1 | 1 |
-| 6 | 3.2 | 1 |
-| 7 | 3.3 | 1 |
-| 8 | 4.1 | 1 |
-| 9 | 5.1 | 1 (verification) |
+| Batch | Tasks              | Agents                          |
+| ----- | ------------------ | ------------------------------- |
+| 1     | 0.1, 0.2, 0.3, 0.4 | 4 parallel                      |
+| 2     | 1.1, 1.2, 1.3      | 3 parallel                      |
+| 3     | 2.1, 2.4           | 2 parallel (2.4 only needs 1.1) |
+| 4     | 2.2, 2.3           | 2 parallel (both need 2.1)      |
+| 5     | 3.1                | 1                               |
+| 6     | 3.2                | 1                               |
+| 7     | 3.3                | 1                               |
+| 8     | 4.1                | 1                               |
+| 9     | 5.1                | 1 (verification)                |

@@ -2,27 +2,27 @@
 
 ## **Table of Contents**
 
- 1. [Introduction](<#1-introduction>)
- 2. [Terminology](<#2-terminology>)
- 3. [Protocol Model](<#3-protocol-model>)
-4. [Protocol Components](<#4-protocol-components>)
-    * [4.1.6 Personal Server Implementation Targets](<#416-personal-server-implementation-targets>)
-    * [4.1.7 Data Sync Component](<#417-data-sync-component>)
-    * [4.1.8 Local Data Hierarchy](<#418-local-data-hierarchy>)
-    * [4.1.9 Builder Data Access Interface](<#419-builder-data-access-interface>)
-    * [4.1.10 MCP Server Integration](<#4110-mcp-server-integration>)
-    * [4.1.11 Internet Accessibility (Tunneling)](<#4111-internet-accessibility-tunneling>)
-    * [4.5 Session Relay Service](<#45-session-relay-service>)
- 5. [Data Formats](<#5-data-formats>)
- 6. [Protocol Operations](<#6-protocol-operations>)
-    * [6.6 Builder React Package (@vana/connect)](<#66-builder-react-package-vana-connect>)
- 7. [Security Considerations](<#7-security-considerations>)
- 8. [Error Handling](<#8-error-handling>)
- 9. [Extensibility](<#9-extensibility>)
-10. [Appendix A: Alignment Analysis](<#appendix-a-alignment-analysis>)
-11. [Appendix B: Complete Flow Scenarios](<#appendix-b-complete-flow-scenarios>)
-12. [Appendix C: SMTP Analogy Mapping](<#appendix-c-smtp-analogy-mapping>)
-13. [Appendix D: ODL Cloud Reference Architecture](<#appendix-d-vana-cloud-reference-architecture>)
+1.  [Introduction](#1-introduction)
+2.  [Terminology](#2-terminology)
+3.  [Protocol Model](#3-protocol-model)
+4.  [Protocol Components](#4-protocol-components)
+    - [4.1.6 Personal Server Implementation Targets](#416-personal-server-implementation-targets)
+    - [4.1.7 Data Sync Component](#417-data-sync-component)
+    - [4.1.8 Local Data Hierarchy](#418-local-data-hierarchy)
+    - [4.1.9 Builder Data Access Interface](#419-builder-data-access-interface)
+    - [4.1.10 MCP Server Integration](#4110-mcp-server-integration)
+    - [4.1.11 Internet Accessibility (Tunneling)](#4111-internet-accessibility-tunneling)
+    - [4.5 Session Relay Service](#45-session-relay-service)
+5.  [Data Formats](#5-data-formats)
+6.  [Protocol Operations](#6-protocol-operations)
+    - [6.6 Builder React Package (@vana/connect)](#66-builder-react-package-vana-connect)
+7.  [Security Considerations](#7-security-considerations)
+8.  [Error Handling](#8-error-handling)
+9.  [Extensibility](#9-extensibility)
+10. [Appendix A: Alignment Analysis](#appendix-a-alignment-analysis)
+11. [Appendix B: Complete Flow Scenarios](#appendix-b-complete-flow-scenarios)
+12. [Appendix C: SMTP Analogy Mapping](#appendix-c-smtp-analogy-mapping)
+13. [Appendix D: ODL Cloud Reference Architecture](#appendix-d-vana-cloud-reference-architecture)
 
 ---
 
@@ -50,18 +50,18 @@ The Data Portability Protocol (DP) enables users to:
 
 This specification covers:
 
-* Protocol entities and their roles
-* Data formats and schemas
-* Grant operations (create, revoke, verify)
-* Storage operations (write, read, delete)
-* Identity and authentication
-* Error handling
+- Protocol entities and their roles
+- Data formats and schemas
+- Grant operations (create, revoke, verify)
+- Storage operations (write, read, delete)
+- Identity and authentication
+- Error handling
 
 This specification does NOT cover:
 
-* Data connector implementations (platform-specific scrapers)
-* Application-specific features (search, vector DB, AI integration)
-* User interface design
+- Data connector implementations (platform-specific scrapers)
+- Application-specific features (search, vector DB, AI integration)
+- User interface design
 
 ---
 
@@ -73,7 +73,7 @@ This specification does NOT cover:
 
 **Data Portability Client** : Software that enables users to interact with the protocol. Analogous to an email client. The Vana Desktop App is the reference implementation. NOT a protocol participant (not registered on-chain). It may bundle a Personal Server; in that case the Personal Server (not the client) is the protocol participant and must be registered on-chain.
 
-**Personal Server** : A protocol-recognized environment integrated with user storage which responds to access requests and offers to certain compute operations on user data. Registered on-chain. 
+**Personal Server** : A protocol-recognized environment integrated with user storage which responds to access requests and offers to certain compute operations on user data. Registered on-chain.
 
 **Builder** : A third-party application that requests access to user data. Registered on-chain (via Desktop App + Gateway relayer) with a public key and an app URL used to resolve app metadata.
 
@@ -102,13 +102,16 @@ This specification does NOT cover:
 **Grant Signature** : An EIP-712 typed data signature proving user consent.
 
 **Key Derivation** :
-* **Master key material** = raw signature bytes produced by EIP-191 `personal_sign` over the fixed message `"vana-master-key-v1"`.
-* **Scope key** = `HKDF-SHA256(master_key_material, "vana", "scope:{scope}")` (32 bytes output).
+
+- **Master key material** = raw signature bytes produced by EIP-191 `personal_sign` over the fixed message `"vana-master-key-v1"`.
+- **Scope key** = `HKDF-SHA256(master_key_material, "vana", "scope:{scope}")` (32 bytes output).
 
 **Data Encryption** :
-* **Encryption scheme** = OpenPGP password-based encryption (`openpgp` library, symmetric mode).
-* **Encryption password** = `hex(scope_key)` — the 32-byte scope key hex-encoded as a 64-character string, used as the OpenPGP password.
-* Produces standard OpenPGP binary messages; compatible with vana-sdk encryption format.
+
+- **Encryption scheme** = OpenPGP password-based encryption (`openpgp` library, symmetric mode).
+- **Encryption password** = `hex(scope_key)` — the 32-byte scope key hex-encoded as a 64-character string, used as the OpenPGP password.
+- Produces standard OpenPGP binary messages; compatible with vana-sdk encryption format.
+
 ---
 
 ## **3. Protocol Model**
@@ -207,10 +210,10 @@ This specification does NOT cover:
 
 A protocol-recognized environment that:
 
-* Stores user data in plain text, ready to process
-* Responds to authorized data requests from Builders
-* Maintains access logs
-* Can operate unattended (without user actively present)
+- Stores user data in plain text, ready to process
+- Responds to authorized data requests from Builders
+- Maintains access logs
+- Can operate unattended (without user actively present)
 
 #### **4.1.2 Registration**
 
@@ -218,12 +221,12 @@ Personal Server MUST be registered on-chain via `DataPortabilityServers` (see Se
 
 #### **4.1.3 Hosting Options**
 
-| **Option** | **URL Format** | **Operator** | **Data Visibility** |
-| -- | -- | -- | -- |
-| Vana-Hosted | `https://server.vana.com/u/{userId}` | Vana | Unencrypted OK |
-| Self-Hosted | `https://server.alice.com` | User | Unencrypted OK (user's security zone) |
-| Desktop-Bundled | Local server within Desktop App | User's device | Unencrypted OK (user's security zone) |
-| Desktop-as-Server (tunneled) | `https://{userId}.server.vana.org` | User's device | Unencrypted OK (user's security zone) |
+| **Option**                   | **URL Format**                       | **Operator**  | **Data Visibility**                   |
+| ---------------------------- | ------------------------------------ | ------------- | ------------------------------------- |
+| Vana-Hosted                  | `https://server.vana.com/u/{userId}` | Vana          | Unencrypted OK                        |
+| Self-Hosted                  | `https://server.alice.com`           | User          | Unencrypted OK (user's security zone) |
+| Desktop-Bundled              | Local server within Desktop App      | User's device | Unencrypted OK (user's security zone) |
+| Desktop-as-Server (tunneled) | `https://{userId}.server.vana.org`   | User's device | Unencrypted OK (user's security zone) |
 
 #### **4.1.4 Encryption Requirements (Implementation-Specific)**
 
@@ -231,16 +234,16 @@ The protocol is NOT opinionated about whether the Personal Server stores data en
 
 **Protocol Requirements (ALL implementations MUST):**
 
-* Encrypt data **in transit** (TLS 1.3)
-* Verify grant validity before serving data
+- Encrypt data **in transit** (TLS 1.3)
+- Verify grant validity before serving data
 
 **Desktop-Bundled Personal Server:**
 
 The Desktop App MAY bundle a Personal Server implementation that:
 
-* Stores data unencrypted locally (within user's security zone)
-* Runs computations on unencrypted data
-* Is only available when the Desktop App is running
+- Stores data unencrypted locally (within user's security zone)
+- Runs computations on unencrypted data
+- Is only available when the Desktop App is running
 
 The bundled Personal Server is still a Personal Server and MUST be registered on-chain; the Desktop App submits the registration on the user's behalf.
 
@@ -264,8 +267,8 @@ The bundled Personal Server is still a Personal Server and MUST be registered on
 
 Users MAY configure both:
 
-* Desktop-Bundled for local compute and when app is open
-* Vana-Hosted as fallback when app is closed
+- Desktop-Bundled for local compute and when app is open
+- Vana-Hosted as fallback when app is closed
 
 #### **4.1.5 Personal Server API**
 
@@ -307,7 +310,7 @@ GET /health
 
 **POST /data/{scope} (plaintext ingest):**
 
-* Personal Server MUST:
+- Personal Server MUST:
   1. Look up the `schemaId` for the given scope via Gateway (`GET /v1/schemas?scope={scope}`).
   2. Reject with `400 Bad Request` if no schema is registered for the scope.
   3. Validate the request body against the schema definition.
@@ -339,40 +342,40 @@ GET /health
 
 **Authentication Model (Builder Data Requests)**
 
-* Builder data requests MUST include `Authorization: Web3Signed ...` (see **4.1.9** and **4.1.9.1**).
-* The Web3Signed payload MUST include `grantId` (permissionId) when raw data is requested.
-* Personal Server recovers the signer address from the `Authorization` header and verifies it matches the on-chain grantee for the provided `grantId`.
+- Builder data requests MUST include `Authorization: Web3Signed ...` (see **4.1.9** and **4.1.9.1**).
+- The Web3Signed payload MUST include `grantId` (permissionId) when raw data is requested.
+- Personal Server recovers the signer address from the `Authorization` header and verifies it matches the on-chain grantee for the provided `grantId`.
 
 **Authentication Model (Builder Non-Data Requests)**
 
 For builder calls that do NOT return raw data (e.g., `/data`, `/data/{scope}/versions`), the Personal Server MUST require a signed request but MUST NOT require a grant.
 
-* Builder MUST include `Authorization: Web3Signed ...` (see **4.1.9.1**).
-* Personal Server verifies the recovered signer is a registered Builder on-chain.
-* Personal Server enforces `iat`/`exp` time bounds (and MAY cache signatures to reduce replay).
+- Builder MUST include `Authorization: Web3Signed ...` (see **4.1.9.1**).
+- Personal Server verifies the recovered signer is a registered Builder on-chain.
+- Personal Server enforces `iat`/`exp` time bounds (and MAY cache signatures to reduce replay).
 
 **Access Control for Data Endpoints**
 
-* `/grants` endpoints are user-initiated actions (Desktop App or Personal Server UI) and MUST NOT be callable by Builders.
-* `GET /data/{scope}` MAY be user-initiated OR builder-initiated when a valid grant is provided (see **4.1.9**).
-* `DELETE /data/{scope}` is a user-only action for removing local/decrypted data and triggering storage cleanup in the storage backend.
-* `GET /data` and `GET /data/{scope}/versions` MAY be builder-initiated but require `Authorization: Web3Signed ...` per **4.1.9.1**.
+- `/grants` endpoints are user-initiated actions (Desktop App or Personal Server UI) and MUST NOT be callable by Builders.
+- `GET /data/{scope}` MAY be user-initiated OR builder-initiated when a valid grant is provided (see **4.1.9**).
+- `DELETE /data/{scope}` is a user-only action for removing local/decrypted data and triggering storage cleanup in the storage backend.
+- `GET /data` and `GET /data/{scope}/versions` MAY be builder-initiated but require `Authorization: Web3Signed ...` per **4.1.9.1**.
 
 #### **4.1.6 Personal Server Implementation Targets**
 
 The Personal Server is designed to be portable across multiple deployment targets. All implementations MUST expose the same API surface and enforce grants identically.
 
-| **Target** | **Runtime** | **Activation** | **Availability** | **Key Derivation** |
-| -- | -- | -- | -- | -- |
-| Desktop-Bundled | Embedded in Tauri app | User opens app | While app is running | User signs on app open |
-| ODL Cloud | Firecracker MicroVM (Sprites.dev) | HTTP request auto-activates | Always (cold start \~1s) | Delegated signature (never expires) |
-| Self-Hosted | Docker container | Always running | User manages | User's choice |
+| **Target**      | **Runtime**                       | **Activation**              | **Availability**         | **Key Derivation**                  |
+| --------------- | --------------------------------- | --------------------------- | ------------------------ | ----------------------------------- |
+| Desktop-Bundled | Embedded in Tauri app             | User opens app              | While app is running     | User signs on app open              |
+| ODL Cloud       | Firecracker MicroVM (Sprites.dev) | HTTP request auto-activates | Always (cold start \~1s) | Delegated signature (never expires) |
+| Self-Hosted     | Docker container                  | Always running              | User manages             | User's choice                       |
 
 **Note:** The Personal Server does NOT require the user's wallet private key. It only needs the master-key signature (the signature over `"vana-master-key-v1"`) to derive keys. Implementations MAY supply this at startup via an env var such as `VANA_MASTER_KEY_SIGNATURE`, or store it encrypted in Sprite storage for ODL Cloud.
 
 **ODL Cloud (Sprites.dev) Details:**
 
-ODL Cloud uses [Sprites.dev](<https://sprites.dev>) to provide stateful, per-user MicroVMs:
+ODL Cloud uses [Sprites.dev](https://sprites.dev) to provide stateful, per-user MicroVMs:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -458,10 +461,10 @@ When a user enables ODL Cloud, they sign a message that is stored encrypted in t
 
 Sprites are NOT provisioned for all users automatically. They are provisioned only when a user explicitly enables "unattended access" or "ODL Cloud":
 
-| **Trigger** | **Action** |
-| -- | -- |
-| User creates account | NO Sprite provisioned (Desktop-only) |
-| User enables "ODL Cloud" | Sprite provisioned, signature stored |
+| **Trigger**               | **Action**                                      |
+| ------------------------- | ----------------------------------------------- |
+| User creates account      | NO Sprite provisioned (Desktop-only)            |
+| User enables "ODL Cloud"  | Sprite provisioned, signature stored            |
 | User disables "ODL Cloud" | Sprite deleted, data remains in storage backend |
 
 #### **4.1.7 Data Sync Component**
@@ -477,12 +480,12 @@ Users select ONE storage backend for all their data (per-user, not per-file). Se
 
 When a storage backend is selected or changed, the Personal Server bulk-uploads existing local data to the new backend and registers corresponding `DataRegistry` file records on-chain (triggered/configured by the Desktop App).
 
-| **Backend** | **URL Format** | **Notes** |
-| -- | -- | -- |
+| **Backend**            | **URL Format**                     | **Notes**                 |
+| ---------------------- | ---------------------------------- | ------------------------- |
 | Vana Storage (default) | `vana://storage/{userId}/{fileId}` | Managed by Vana, no setup |
-| Google Drive | `gdrive://{fileId}` | User authorizes via OAuth |
-| Dropbox | `dropbox://{path}` | User authorizes via OAuth |
-| IPFS | `ipfs://{cid}` | Content-addressed |
+| Google Drive           | `gdrive://{fileId}`                | User authorizes via OAuth |
+| Dropbox                | `dropbox://{path}`                 | User authorizes via OAuth |
+| IPFS                   | `ipfs://{cid}`                     | Content-addressed         |
 
 **Data Flow (Storage-First Model):**
 
@@ -541,9 +544,9 @@ When a file record is registered on-chain, the Data Sync component records the `
 
 Personal Servers maintain a local index to avoid duplicate downloads and to support fast hierarchy lookups. Minimum fields:
 
-* `fileId → path` mapping
-* `scope`, `collectedAt`
-* `lastProcessedTimestamp` for polling cursor
+- `fileId → path` mapping
+- `scope`, `collectedAt`
+- `lastProcessedTimestamp` for polling cursor
 
 **Sync API (Personal Server exposes internally):**
 
@@ -688,20 +691,20 @@ GET /data/{scope}
 
 **Signature Requirements:**
 
-* Builder MUST include an `Authorization: Web3Signed ...` header per **4.1.9.1**.
-* `grantId` in the Web3Signed payload MUST be the on-chain `permissionId` for the Builder and user.
+- Builder MUST include an `Authorization: Web3Signed ...` header per **4.1.9.1**.
+- `grantId` in the Web3Signed payload MUST be the on-chain `permissionId` for the Builder and user.
 
 **Grant Enforcement:**
 
-* `grantId` (from Web3Signed payload) is the on-chain `permissionId` from `DataPortabilityPermissions`
-* Personal Server recovers the signer address from the `Authorization` header and verifies it matches the on-chain grantee for `grantId`
-* Requested `scope` MUST be a subset of the granted scopes
-* Access is logged to the audit trail
+- `grantId` (from Web3Signed payload) is the on-chain `permissionId` from `DataPortabilityPermissions`
+- Personal Server recovers the signer address from the `Authorization` header and verifies it matches the on-chain grantee for `grantId`
+- Requested `scope` MUST be a subset of the granted scopes
+- Access is logged to the audit trail
 
 **Response:**
 
-* Returns the decrypted data file JSON for the requested `scope` (see **5.2 Data File Format** before encryption)
-* If multiple versions exist, default is the most recent by `collectedAt`
+- Returns the decrypted data file JSON for the requested `scope` (see **5.2 Data File Format** before encryption)
+- If multiple versions exist, default is the most recent by `collectedAt`
 
 #### **4.1.9.1 Web3Signed Authorization (Builder Requests)**
 
@@ -715,30 +718,30 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 
 ```json
 {
-  "aud": "https://user-abc.server.vana.com",  // target origin
+  "aud": "https://user-abc.server.vana.com", // target origin
   "method": "GET",
   "uri": "/data?scopePrefix=instagram&limit=50&offset=0",
-  "bodyHash": "",                            // empty string for GET
+  "bodyHash": "", // empty string for GET
   "iat": 1737500000,
   "exp": 1737500300,
-  "grantId": "0x..."                         // required only for raw data reads
+  "grantId": "0x..." // required only for raw data reads
 }
 ```
 
 **Signing Rules:**
 
-* `json` MUST be canonicalized (keys sorted alphabetically at all levels).
-* `base64url(json)` is the UTF-8 JSON string encoded with base64url (no padding).
-* `signature` is an EIP-191 signature over the ASCII bytes of `<base64url(json)>`.
+- `json` MUST be canonicalized (keys sorted alphabetically at all levels).
+- `base64url(json)` is the UTF-8 JSON string encoded with base64url (no padding).
+- `signature` is an EIP-191 signature over the ASCII bytes of `<base64url(json)>`.
 
 **Verification Rules (Personal Server):**
 
-* Recover signer from `signature` and verify signer is a registered Builder on-chain.
-* `aud` MUST match the Personal Server origin.
-* `method` and `uri` MUST match the actual request.
-* `bodyHash` MUST match the request body (empty string for GET).
-* `iat`/`exp` MUST be within an allowed skew window (e.g., 5 minutes).
-* For raw data reads (`GET /data/{scope}`), the Web3Signed payload MUST include `grantId`.
+- Recover signer from `signature` and verify signer is a registered Builder on-chain.
+- `aud` MUST match the Personal Server origin.
+- `method` and `uri` MUST match the actual request.
+- `bodyHash` MUST match the request body (empty string for GET).
+- `iat`/`exp` MUST be within an allowed skew window (e.g., 5 minutes).
+- For raw data reads (`GET /data/{scope}`), the Web3Signed payload MUST include `grantId`.
 
 #### **4.1.10 MCP Server Integration**
 
@@ -746,14 +749,14 @@ The Personal Server includes an MCP (Model Context Protocol) server, enabling AI
 
 **MCP Resources:**
 
-| **URI** | **Description** |
-| -- | -- |
-| `vana://files` | List all data files for authenticated user |
-| `vana://file/{scope}` | Get decrypted file content |
-| `vana://file/{scope}/metadata` | Get file metadata only |
-| `vana://grants` | List active grants |
-| `vana://schemas` | List available data schemas |
-| `vana://schema/{schemaId}` | Get schema definition |
+| **URI**                        | **Description**                            |
+| ------------------------------ | ------------------------------------------ |
+| `vana://files`                 | List all data files for authenticated user |
+| `vana://file/{scope}`          | Get decrypted file content                 |
+| `vana://file/{scope}/metadata` | Get file metadata only                     |
+| `vana://grants`                | List active grants                         |
+| `vana://schemas`               | List available data schemas                |
+| `vana://schema/{schemaId}`     | Get schema definition                      |
 
 **MCP Tools:**
 
@@ -769,7 +772,7 @@ async function list_files(params: {
 async function get_file(params: {
   wallet_address: string;
   scope: string;
-  filter?: string;  // JSONPath expression
+  filter?: string; // JSONPath expression
 }): Promise<FileContent>;
 // Search across files
 async function search_files(params: {
@@ -785,11 +788,13 @@ All MCP requests require EIP-191 wallet signature verification:
 
 ```typescript
 // MCP client must sign request
-const signature = await wallet.signMessage(JSON.stringify({
-  action: "mcp_request",
-  uri: "vana://files",
-  timestamp: Date.now()
-}));
+const signature = await wallet.signMessage(
+  JSON.stringify({
+    action: "mcp_request",
+    uri: "vana://files",
+    timestamp: Date.now(),
+  }),
+);
 // Personal Server verifies signature and checks grants
 ```
 
@@ -834,20 +839,20 @@ FRP provides stable, long-lived URLs without requiring third-party accounts. Van
 
 **Why FRP over Cloudflare Tunnel:**
 
-| Aspect | FRP | Cloudflare Tunnel |
-| -- | -- | -- |
-| Third-party account | Not required | Required |
-| Subdomain control | Vana-managed, tied to on-chain userId | Random or requires CF account |
-| Ingress quality | Vana controls | Cloudflare controls |
+| Aspect              | FRP                                   | Cloudflare Tunnel             |
+| ------------------- | ------------------------------------- | ----------------------------- |
+| Third-party account | Not required                          | Required                      |
+| Subdomain control   | Vana-managed, tied to on-chain userId | Random or requires CF account |
+| Ingress quality     | Vana controls                         | Cloudflare controls           |
 
 **Tunnel Lifecycle:**
 
-| **Event** | **Action** |
-| -- | -- |
-| Desktop App opens | Start frpc, establish tunnel |
-| Tunnel established | Register tunnel URL in DataPortabilityServers (if changed) |
-| Desktop App closes | Tunnel terminates, builders get 503 |
-| Builder request while offline | DP RPC returns "server unavailable" error |
+| **Event**                     | **Action**                                                 |
+| ----------------------------- | ---------------------------------------------------------- |
+| Desktop App opens             | Start frpc, establish tunnel                               |
+| Tunnel established            | Register tunnel URL in DataPortabilityServers (if changed) |
+| Desktop App closes            | Tunnel terminates, builders get 503                        |
+| Builder request while offline | DP RPC returns "server unavailable" error                  |
 
 **Fallback Behavior:**
 
@@ -875,10 +880,10 @@ For now, all on-chain operations are submitted through the Gateway as a relayer;
 
 Vana L1 is slow for real-time UX. The Gateway:
 
-* Accepts signed operations immediately
-* Returns instant responses
-* Syncs to chain asynchronously
-* Allows verification against chain for trust
+- Accepts signed operations immediately
+- Returns instant responses
+- Syncs to chain asynchronously
+- Allows verification against chain for trust
 
 #### **4.2.3 Trust Model**
 
@@ -907,7 +912,7 @@ Phase 1: Add on-chain anchoring, the operations can be verified on-chain after o
 # Personal Server Operations
 POST   /v1/servers                 Register/update Personal Server URL
 GET    /v1/servers/{address}       Get Personal Server info
-GET    /v1/servers/{address}/status 
+GET    /v1/servers/{address}/status
                                    Get confirmation status (pending/confirmed)
 
 # Grant Operations
@@ -915,7 +920,7 @@ POST   /v1/grants                  Create grant
 DELETE /v1/grants/{grantId}        Revoke grant
 GET    /v1/grants/{grantId}        Get grant details
 GET    /v1/grants?user={address}   List grants for user
-GET    /v1/grants?builder={address} 
+GET    /v1/grants?builder={address}
                                    List grants for builder
 GET    /v1/grants/{grantId}/status Get confirmation status (pending/confirmed)
 
@@ -923,21 +928,21 @@ GET    /v1/grants/{grantId}/status Get confirmation status (pending/confirmed)
 POST   /v1/files                   Register file record (schemaId required)
 GET    /v1/files/{fileId}          Get file record
 GET    /v1/files?user={address}    List files for user
-GET    /v1/files?user={address}&since={ISO8601}    
+GET    /v1/files?user={address}&since={ISO8601}
                                    List files for user since timestamp
-GET    /v1/files/{fileId}/status 
+GET    /v1/files/{fileId}/status
                                    Get confirmation status (pending/confirmed)
 
 # Schema Registry
 GET    /v1/schemas/{schemaId}      Get schema metadata (canonical scope + schema URL)
 GET    /v1/schemas?scope={scope}   Look up schemaId by canonical scope (reverse lookup)
-GET    /v1/schemas/{schemaId}/status 
+GET    /v1/schemas/{schemaId}/status
                                    Get confirmation status (pending/confirmed)
 
 # Builder Operations
 POST   /v1/builders                Register builder (public key + app URL)
 GET    /v1/builders/{address}      Get builder info (public key + app URL)
-GET    /v1/builders/{address}/status 
+GET    /v1/builders/{address}/status
                                    Get confirmation status (pending/confirmed)
 
 
@@ -951,7 +956,7 @@ GET    /v1/nonces?user={address}&operation={operation}
 
 `grantId` refers to the on-chain `permissionId` from `DataPortabilityPermissions`.
 
-`serverAddress` and `builderAddress` are used as their idempotent IDs. `grantId` and `fileId` are computed deterministically from their input parameters. Those IDs are consistent between the off-chain gateway and the on-chain smart contracts, so that they can be used to query both on-chain and off-chain with the Gateway. 
+`serverAddress` and `builderAddress` are used as their idempotent IDs. `grantId` and `fileId` are computed deterministically from their input parameters. Those IDs are consistent between the off-chain gateway and the on-chain smart contracts, so that they can be used to query both on-chain and off-chain with the Gateway.
 
 #### **4.2.5 Gateway Request and Response Format**
 
@@ -960,6 +965,7 @@ GET    /v1/nonces?user={address}&operation={operation}
 Each POST request has an `Authorization` header with the user's EIP-712 signature against the fields in the request's body. The request's body includes the parameters of the corresponding on-chain function with a nonce to prevent replay attacks.
 
 Example:
+
 ```
 POST /v1/files
 Authorization: Signature 0xabc123...def
@@ -971,12 +977,12 @@ Content-Type: application/json
 }
 ```
 
-| Gateway API | On-chain function | Contract |
-|---|---|---|
-| `POST /v1/files` | `addFileWithSchema(string url, uint256 schemaId)` | `DataRegistry` (`0x8C8788f98385F6ba1adD4234e551ABba0f82Cb7C`) |
-| `POST /v1/servers` | `addServer(address serverAddress, string publicKey, string serverUrl)` | `DataPortabilityServer` (`0x1483B1F634DBA75AeaE60da7f01A679aabd5ee2c`) |
-| `POST /v1/builders` | `registerGrantee(address owner, address granteeAddress, string publicKey)` | `DataPortabilityGrantees` (`0x8325C0A0948483EdA023A1A2Fd895e62C5131234`) |
-| `POST /v1/grants` | `addPermission(uint256 granteeId, string grant, uint256[] fileIds)` | `DataPortabilityPermissions` (`0xD54523048AdD05b4d734aFaE7C68324Ebb7373eF`) |
+| Gateway API         | On-chain function                                                          | Contract                                                                    |
+| ------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `POST /v1/files`    | `addFileWithSchema(string url, uint256 schemaId)`                          | `DataRegistry` (`0x8C8788f98385F6ba1adD4234e551ABba0f82Cb7C`)               |
+| `POST /v1/servers`  | `addServer(address serverAddress, string publicKey, string serverUrl)`     | `DataPortabilityServer` (`0x1483B1F634DBA75AeaE60da7f01A679aabd5ee2c`)      |
+| `POST /v1/builders` | `registerGrantee(address owner, address granteeAddress, string publicKey)` | `DataPortabilityGrantees` (`0x8325C0A0948483EdA023A1A2Fd895e62C5131234`)    |
+| `POST /v1/grants`   | `addPermission(uint256 granteeId, string grant, uint256[] fileIds)`        | `DataPortabilityPermissions` (`0xD54523048AdD05b4d734aFaE7C68324Ebb7373eF`) |
 
 **Response**
 
@@ -989,12 +995,12 @@ All responses include verification data:
     "publicKey": "0x..."
   },
   "proof": {
-    "userSignature": "0x...",       // User's EIP-712 signature
-    "gatewaySignature": "0x...",    // Gateway attestation
+    "userSignature": "0x...", // User's EIP-712 signature
+    "gatewaySignature": "0x...", // Gateway attestation
     "timestamp": 1737500000,
-    "status": "pending",            // Chain sync status, pending or confirmed
+    "status": "pending", // Chain sync status, pending or confirmed
     "estimatedConfirmation": "30s", // Estimated on-chain confirmation time
-    "chainBlockHeight": null        // Block where confirmed
+    "chainBlockHeight": null // Block where confirmed
   }
 }
 ```
@@ -1017,6 +1023,7 @@ domainSeparator = keccak256(DOMAIN_TYPE_HASH, chainId, verifyingContract)
 ```
 fileId = keccak256(abi.encode(domainSeparator, ownerAddress, url, schemaId))
 ```
+
 To prevent front-running attacks, in which a file `url` is registered before the Gateway with another `ownerAddress` or `schemaId`, the `DataRegistry` contract MUST use the hash-based `fileId` for uniqueness. If a `fileId` is already registered, the contract returns immediately. (Currently, the `DataRegistry` contract uses only `url` for uniqueness that prevents the Gateway from registering an `url` if it is front-runned.)
 
 ```
@@ -1031,7 +1038,7 @@ The Gateway stores the `pending` operations in a queue and submit them on-chain 
 
 **Read Operations**
 
-The Gateway returns the records in its off-chain DB if the chain sync status is `pending`. Otherwise, it reads the on-chain records and returns. The Gateway also provides a proof, including its attestation on `(requestHash, responseHash)`. 
+The Gateway returns the records in its off-chain DB if the chain sync status is `pending`. Otherwise, it reads the on-chain records and returns. The Gateway also provides a proof, including its attestation on `(requestHash, responseHash)`.
 
 ### **4.3 Vana L1 (On-Chain Contracts)**
 
@@ -1240,10 +1247,10 @@ A user-facing application that:
 
 The Desktop App is a **protocol client**, NOT a **protocol participant**:
 
-* It is NOT registered on-chain
-* It CONTROLS the Personal Server (which IS a protocol participant)
-* If it bundles a Personal Server, that server still MUST be registered on-chain and is the participant
-* Multiple Desktop Apps can exist (different platforms, different UIs)
+- It is NOT registered on-chain
+- It CONTROLS the Personal Server (which IS a protocol participant)
+- If it bundles a Personal Server, that server still MUST be registered on-chain and is the participant
+- Multiple Desktop Apps can exist (different platforms, different UIs)
 
 #### **4.4.3 Roles**
 
@@ -1328,10 +1335,10 @@ Client-side authentication and wallet provisioning. Passport is NOT part of the 
 
 ##### **4.4.5.2 Requirements**
 
-* MUST support wallet creation without seed phrase exposure to user
-* MUST support social login (Google, Apple, email)
-* MUST support wallet recovery via social/email
-* SHOULD support existing wallet import for advanced users
+- MUST support wallet creation without seed phrase exposure to user
+- MUST support social login (Google, Apple, email)
+- MUST support wallet recovery via social/email
+- SHOULD support existing wallet import for advanced users
 
 ##### **4.4.5.3 Reference Implementation**
 
@@ -1374,13 +1381,13 @@ The Session Relay is a standalone service that coordinates "Connect Data" betwee
 
 **Request Signing**
 
-* `POST /v1/session/init` MUST include `Authorization: Web3Signed <base64url(json)>.<signature>`
-* The Web3Signed payload uses the same format as **4.1.9.1**, with:
-  * `aud` = Session Relay origin
-  * `uri` = `/v1/session/init`
-  * `bodyHash` = SHA-256 of the request body
-* `app_user_id` is optional and used only for builder correlation when the grant is returned
-* Session Relay verifies the signature against `granteeAddress`
+- `POST /v1/session/init` MUST include `Authorization: Web3Signed <base64url(json)>.<signature>`
+- The Web3Signed payload uses the same format as **4.1.9.1**, with:
+  - `aud` = Session Relay origin
+  - `uri` = `/v1/session/init`
+  - `bodyHash` = SHA-256 of the request body
+- `app_user_id` is optional and used only for builder correlation when the grant is returned
+- Session Relay verifies the signature against `granteeAddress`
 
 **Session API**
 
@@ -1404,7 +1411,7 @@ POST /v1/session/{sessionId}/approve
 
 ```json
 {
-  "grantId": "0x...",          // on-chain permissionId
+  "grantId": "0x...", // on-chain permissionId
   "userAddress": "0x...",
   "builderAddress": "0x...",
   "scopes": ["instagram.profile", "instagram.likes"],
@@ -1471,7 +1478,7 @@ const grantTypedData = {
     name: "Vana Data Portability",
     version: "1",
     chainId: 14800,
-    verifyingContract: "0x..." // DataPortabilityPermissions address
+    verifyingContract: "0x...", // DataPortabilityPermissions address
   },
   types: {
     Grant: [
@@ -1479,8 +1486,8 @@ const grantTypedData = {
       { name: "builder", type: "address" },
       { name: "scopes", type: "string[]" },
       { name: "expiresAt", type: "uint256" },
-      { name: "nonce", type: "uint256" }
-    ]
+      { name: "nonce", type: "uint256" },
+    ],
   },
   primaryType: "Grant",
   message: {
@@ -1488,14 +1495,14 @@ const grantTypedData = {
     builder: "0x...",
     scopes: ["instagram.profile", "instagram.likes"],
     expiresAt: 0,
-    nonce: 1
-  }
+    nonce: 1,
+  },
 };
 ```
 
 **Grant Identifier:**
 
-* `grantId` in API responses refers to the on-chain `permissionId` returned by `DataPortabilityPermissions`.
+- `grantId` in API responses refers to the on-chain `permissionId` returned by `DataPortabilityPermissions`.
 
 ### **5.4 Access Log Format**
 
@@ -1518,28 +1525,28 @@ Builders MUST publish an app manifest to provide human-readable consent UI metad
 
 **Manifest Discovery (Browser-Compatible):**
 
-* Clients MUST fetch `https://{appUrl}` and resolve the manifest URL from `<link rel="manifest" href="...">`
-* The manifest URL MUST be same-origin with `appUrl`
+- Clients MUST fetch `https://{appUrl}` and resolve the manifest URL from `<link rel="manifest" href="...">`
+- The manifest URL MUST be same-origin with `appUrl`
 
 **Base Standard:** W3C Web App Manifest with a custom top-level `vana` block for protocol-specific metadata.
 
 **Required `vana` Fields (logical):**
 
-* `vana.appUrl` (canonical app origin, must match on-chain `appUrl`)
-* `vana.privacyPolicyUrl`
-* `vana.termsUrl`
-* `vana.supportUrl`
-* `vana.webhookUrl`
-* `vana.signature` (Builder signature over the `vana` block)
+- `vana.appUrl` (canonical app origin, must match on-chain `appUrl`)
+- `vana.privacyPolicyUrl`
+- `vana.termsUrl`
+- `vana.supportUrl`
+- `vana.webhookUrl`
+- `vana.signature` (Builder signature over the `vana` block)
 
 **Scope Labels:**
 
-* Consent UI labels for scopes come from Data Connector metadata in the Desktop App, not from the manifest.
+- Consent UI labels for scopes come from Data Connector metadata in the Desktop App, not from the manifest.
 
 **Signature:**
 
-* `vana.signature` MUST be an EIP-191 signature by the Builder address over the canonical JSON of the `vana` block
-* Canonicalization: sort keys alphabetically, and exclude the `signature` field from the signed payload
+- `vana.signature` MUST be an EIP-191 signature by the Builder address over the canonical JSON of the `vana` block
+- Canonicalization: sort keys alphabetically, and exclude the `signature` field from the signed payload
 
 **Verification (Desktop App / Personal Server UI):**
 
@@ -1550,7 +1557,7 @@ Builders MUST publish an app manifest to provide human-readable consent UI metad
 
 **Manifest Failure:**
 
-* If manifest discovery or signature verification fails, the Desktop App MUST NOT render the consent screen and MUST fail the session flow.
+- If manifest discovery or signature verification fails, the Desktop App MUST NOT render the consent screen and MUST fail the session flow.
 
 **Example Manifest (abridged):**
 
@@ -1560,7 +1567,9 @@ Builders MUST publish an app manifest to provide human-readable consent UI metad
   "short_name": "Flipboard",
   "start_url": "https://flipboard.com/",
   "scope": "https://flipboard.com/",
-  "icons": [{ "src": "/icons/512.png", "sizes": "512x512", "type": "image/png" }],
+  "icons": [
+    { "src": "/icons/512.png", "sizes": "512x512", "type": "image/png" }
+  ],
   "vana": {
     "appUrl": "https://flipboard.com",
     "privacyPolicyUrl": "https://flipboard.com/privacy",
@@ -1810,9 +1819,9 @@ Grant payload includes `grantId` (on-chain `permissionId`) and the user's wallet
 
 **Notes:**
 
-* Deletion is user-initiated (Desktop App or Personal Server UI) and is not exposed to builders.
-* Gateway or chain layer records a delete marker (tombstone) so downstream systems treat the file as unavailable.
-* Personal Servers MUST treat tombstoned file records as non-existent and return `410` or `404` for read attempts.
+- Deletion is user-initiated (Desktop App or Personal Server UI) and is not exposed to builders.
+- Gateway or chain layer records a delete marker (tombstone) so downstream systems treat the file as unavailable.
+- Personal Servers MUST treat tombstoned file records as non-existent and return `410` or `404` for read attempts.
 
 ### **6.6 Builder React Package (@vana/connect)**
 
@@ -1826,36 +1835,36 @@ The builder-facing React package provides the default "Connect data" UX and abst
 2. Enter `appUrl` (canonical app origin)
 3. Desktop App generates (or imports) a Builder wallet and keypair
 4. Desktop App displays:
-   * Builder address (granteeAddress)
-   * Builder public key
-   * Builder private key (download/store securely)
+   - Builder address (granteeAddress)
+   - Builder public key
+   - Builder private key (download/store securely)
 5. Desktop App submits `registerGrantee` via Gateway relayer
 6. Builder config:
-   * Set `VANA_APP_PRIVATE_KEY` in server env (used to sign `Authorization: Web3Signed ...`)
-   * Use `granteeAddress` in `@vana/connect` init
-   * Publish manifest at `appUrl` with valid `vana` block
+   - Set `VANA_APP_PRIVATE_KEY` in server env (used to sign `Authorization: Web3Signed ...`)
+   - Use `granteeAddress` in `@vana/connect` init
+   - Publish manifest at `appUrl` with valid `vana` block
 
 **Responsibilities**
 
-* Create a Session Relay session and render the popup/modal
-* Display deep link to the Desktop App (no manual code entry)
-* Resolve completion via polling and/or webhook
-* Return the signed Grant payload to the builder application
-* Enforce that the Builder has an on-chain `appUrl` and a valid manifest discoverable via `<link rel="manifest">`
+- Create a Session Relay session and render the popup/modal
+- Display deep link to the Desktop App (no manual code entry)
+- Resolve completion via polling and/or webhook
+- Return the signed Grant payload to the builder application
+- Enforce that the Builder has an on-chain `appUrl` and a valid manifest discoverable via `<link rel="manifest">`
 
 **Required Inputs (Logical)**
 
-* Builder identifier (`granteeAddress`)
-* Builder authorization for the session init request (must be created server-side and sent as `Authorization: Web3Signed ...`)
-* Requested scopes
-* Optional webhook URL
-* Optional `app_user_id` for builder-local user tracking
+- Builder identifier (`granteeAddress`)
+- Builder authorization for the session init request (must be created server-side and sent as `Authorization: Web3Signed ...`)
+- Requested scopes
+- Optional webhook URL
+- Optional `app_user_id` for builder-local user tracking
 
 **Surface Area (Minimal)**
 
-* A single high-level `connect(...)` entrypoint that returns the grant payload (session must be created server-side)
-* A default modal component for fast integration
-* Hooks for custom UI using the same session lifecycle
+- A single high-level `connect(...)` entrypoint that returns the grant payload (session must be created server-side)
+- A default modal component for fast integration
+- Hooks for custom UI using the same session lifecycle
 
 **Signing Helpers**
 
@@ -1869,42 +1878,42 @@ The builder-facing React package provides the default "Connect data" UX and abst
 
 #### **7.1.1 Data Encryption**
 
-* All user data MUST be encrypted with OpenPGP password-based encryption before being written to a storage backend. The password is `hex(scope_key)` where the scope key is derived per §2.3.
-* Personal Servers serve decrypted data to authorized builders over TLS
-* Vana (or any intermediary) MUST NOT have access to plaintext data
+- All user data MUST be encrypted with OpenPGP password-based encryption before being written to a storage backend. The password is `hex(scope_key)` where the scope key is derived per §2.3.
+- Personal Servers serve decrypted data to authorized builders over TLS
+- Vana (or any intermediary) MUST NOT have access to plaintext data
 
 ### **7.2 Authentication**
 
-* On-chain protocol operations MUST be signed by the user's wallet using EIP-712 typed data.
-* Personal Server data requests from Builders MUST include `Authorization: Web3Signed ...` using ECDSA (EIP-191) per **4.1.9.1**.
-* Nonces MUST be used to prevent replay attacks for on-chain operations.
+- On-chain protocol operations MUST be signed by the user's wallet using EIP-712 typed data.
+- Personal Server data requests from Builders MUST include `Authorization: Web3Signed ...` using ECDSA (EIP-191) per **4.1.9.1**.
+- Nonces MUST be used to prevent replay attacks for on-chain operations.
 
 ### **7.3 Authorization**
 
-* Personal Server MUST verify grant validity before serving data.
-* Grant verification MUST check:
-  * Signature is valid
-  * Grant is not revoked
-  * Grant has not expired
-  * Requested scope is within granted scopes
-  * `Authorization` signer matches the on-chain grantee for the grant
+- Personal Server MUST verify grant validity before serving data.
+- Grant verification MUST check:
+  - Signature is valid
+  - Grant is not revoked
+  - Grant has not expired
+  - Requested scope is within granted scopes
+  - `Authorization` signer matches the on-chain grantee for the grant
 
 ### **7.4 Transport Security**
 
-* All HTTP endpoints MUST use TLS 1.3
-* Personal Servers SHOULD implement certificate pinning
-* Gateway SHOULD implement rate limiting
+- All HTTP endpoints MUST use TLS 1.3
+- Personal Servers SHOULD implement certificate pinning
+- Gateway SHOULD implement rate limiting
 
 ### **7.5 Threat Model**
 
-| **Threat** | **Mitigation** |
-| -- | -- |
-| Vana sees user data | Data encrypted before upload, Vana has no key |
-| Builder exceeds granted scope | Personal Server validates scope on each request |
-| Grant replay | Nonces and timestamps in grant signature |
-| Malicious builder | User must explicitly approve, can revoke anytime |
-| Gateway lies about grants | Grants include user signature, verifiable on chain |
-| Personal Server compromised | User data on that server may be exposed; storage backend remains encrypted |
+| **Threat**                    | **Mitigation**                                                             |
+| ----------------------------- | -------------------------------------------------------------------------- |
+| Vana sees user data           | Data encrypted before upload, Vana has no key                              |
+| Builder exceeds granted scope | Personal Server validates scope on each request                            |
+| Grant replay                  | Nonces and timestamps in grant signature                                   |
+| Malicious builder             | User must explicitly approve, can revoke anytime                           |
+| Gateway lies about grants     | Grants include user signature, verifiable on chain                         |
+| Personal Server compromised   | User data on that server may be exposed; storage backend remains encrypted |
 
 ---
 
@@ -1931,24 +1940,24 @@ Second digit:
 
 ### **8.2 Error Codes**
 
-| **Code** | **Description** |
-| -- | -- |
-| 200 | Success |
-| 201 | Created |
-| 301 | Redirect to personal server |
-| 400 | Bad request (syntax error) |
-| 401 | Unauthorized (invalid signature) |
-| 403 | Forbidden (valid auth but not permitted) |
-| 404 | Not found |
-| 410 | Grant revoked |
-| 411 | Grant expired |
-| 412 | Scope not granted |
-| 420 | Data not found at registry entry |
-| 421 | Storage backend unavailable |
-| 429 | Rate limited |
-| 440 | Chain sync pending |
-| 500 | Internal server error |
-| 503 | Service unavailable |
+| **Code** | **Description**                          |
+| -------- | ---------------------------------------- |
+| 200      | Success                                  |
+| 201      | Created                                  |
+| 301      | Redirect to personal server              |
+| 400      | Bad request (syntax error)               |
+| 401      | Unauthorized (invalid signature)         |
+| 403      | Forbidden (valid auth but not permitted) |
+| 404      | Not found                                |
+| 410      | Grant revoked                            |
+| 411      | Grant expired                            |
+| 412      | Scope not granted                        |
+| 420      | Data not found at registry entry         |
+| 421      | Storage backend unavailable              |
+| 429      | Rate limited                             |
+| 440      | Chain sync pending                       |
+| 500      | Internal server error                    |
+| 503      | Service unavailable                      |
 
 ### **8.3 Error Response Format**
 
@@ -1985,7 +1994,7 @@ Storage backends implement a standard interface:
 
 ```typescript
 interface StorageBackend {
-  write(path: string, data: Buffer): Promise<string>;  // Returns location
+  write(path: string, data: Buffer): Promise<string>; // Returns location
   read(location: string): Promise<Buffer>;
   delete(location: string): Promise<void>;
   exists(location: string): Promise<boolean>;
@@ -2012,14 +2021,14 @@ Based on team discussions, the following clarifications resolve potential misali
 
 #### **A.1.1 Desktop App vs Personal Server**
 
-| **Aspect** | **Desktop App** | **Personal Server** |
-| -- | -- | -- |
-| Protocol participant? | NO | YES |
-| Registered on-chain? | NO | YES |
-| Can receive requests? | NO | YES |
-| Can act unattended? | NO | YES |
-| Multiple instances? | YES (per user) | YES (per user) |
-| Relationship | Controls | Is controlled |
+| **Aspect**            | **Desktop App** | **Personal Server** |
+| --------------------- | --------------- | ------------------- |
+| Protocol participant? | NO              | YES                 |
+| Registered on-chain?  | NO              | YES                 |
+| Can receive requests? | NO              | YES                 |
+| Can act unattended?   | NO              | YES                 |
+| Multiple instances?   | YES (per user)  | YES (per user)      |
+| Relationship          | Controls        | Is controlled       |
 
 **Resolution:** Desktop App is a CLIENT that CONFIGURES the Personal Server. Like how an email client configures SMTP/IMAP servers. If the Desktop App bundles a Personal Server, the embedded server is still the protocol participant and must be registered on-chain; the app remains a client.
 
@@ -2027,9 +2036,9 @@ Based on team discussions, the following clarifications resolve potential misali
 
 Data Connectors (web scrapers) are NOT part of the protocol. They are:
 
-* Implementation-specific to the Desktop App
-* Can vary between clients
-* Follow protocol standard for data output format
+- Implementation-specific to the Desktop App
+- Can vary between clients
+- Follow protocol standard for data output format
 
 **Resolution:** The protocol defines data FORMAT, not data COLLECTION.
 
@@ -2037,9 +2046,9 @@ Data Connectors (web scrapers) are NOT part of the protocol. They are:
 
 Search, vector DB, MCP server are NOT part of the protocol. They are:
 
-* Convenience features bundled with Desktop App
-* Can be omitted in alternative clients
-* Advanced queries belong in third-party apps (like Vana Trace)
+- Convenience features bundled with Desktop App
+- Can be omitted in alternative clients
+- Advanced queries belong in third-party apps (like Vana Trace)
 
 **Resolution:** Protocol is minimal. Desktop App bundles extras for UX.
 
@@ -2049,18 +2058,18 @@ Search, vector DB, MCP server are NOT part of the protocol. They are:
 
 **Maciej's synthesis:** The protocol itself is NOT opinionated about whether the Personal Server stores encrypted or unencrypted data. This is an implementation decision:
 
-| **Implementation** | **Encrypted at Rest?** | **Rationale** |
-| -- | -- | -- |
-| Vana-Hosted | **MUST** encrypt | Vana ≠ data controller; legal "blind infrastructure" |
-| Desktop-Bundled | MAY store unencrypted | User's security zone; enables local compute |
-| Self-Hosted | User's choice | User controls their server |
+| **Implementation** | **Encrypted at Rest?** | **Rationale**                                        |
+| ------------------ | ---------------------- | ---------------------------------------------------- |
+| Vana-Hosted        | **MUST** encrypt       | Vana ≠ data controller; legal "blind infrastructure" |
+| Desktop-Bundled    | MAY store unencrypted  | User's security zone; enables local compute          |
+| Self-Hosted        | User's choice          | User controls their server                           |
 
 **Resolution:**
 
-* Protocol requires encryption **in transit** and **when sharing with builders**
-* At-rest encryption is implementation-specific
-* Desktop-Bundled Personal Server CAN access unencrypted data (user's security zone)
-* See Section 4.1.4 for full specification
+- Protocol requires encryption **in transit** and **when sharing with builders**
+- At-rest encryption is implementation-specific
+- Desktop-Bundled Personal Server CAN access unencrypted data (user's security zone)
+- See Section 4.1.4 for full specification
 
 ### **A.2 Remaining Open Questions**
 
@@ -2137,23 +2146,23 @@ Builder: [Shows personalized experience to user]
 
 ## **Appendix C: SMTP Analogy Mapping**
 
-| **SMTP** | **DP** | **Notes** |
-| -- | -- | -- |
-| RFC 5321 | This spec | Protocol definition |
-| Mail User Agent (MUA) | Data Portability Client | User-facing software |
-| Mail Transfer Agent (MTA) | Personal Server | Protocol participant that routes/stores |
-| Mail Delivery Agent (MDA) | Storage Backend | Final storage location |
-| SMTP Server | Data Portability RPC | Service endpoint |
-| Email address (user@domain) | Wallet address + Personal Server URL | User identifier + routing |
-| Email message | Data File | Unit of data |
-| SMTP EHLO | Personal Server registration | Establish identity |
-| SMTP MAIL FROM | Grant creation | Authorize data flow |
-| SMTP RCPT TO | Builder address | Recipient |
-| SMTP DATA | Data file upload | Content transfer |
-| SMTP QUIT | Grant revocation | Terminate authorization |
-| Mailbox | Scope | Data category |
-| Spam filter | Grant approval | User control over access |
-| Bounce message | Error response | Failure notification |
+| **SMTP**                    | **DP**                               | **Notes**                               |
+| --------------------------- | ------------------------------------ | --------------------------------------- |
+| RFC 5321                    | This spec                            | Protocol definition                     |
+| Mail User Agent (MUA)       | Data Portability Client              | User-facing software                    |
+| Mail Transfer Agent (MTA)   | Personal Server                      | Protocol participant that routes/stores |
+| Mail Delivery Agent (MDA)   | Storage Backend                      | Final storage location                  |
+| SMTP Server                 | Data Portability RPC                 | Service endpoint                        |
+| Email address (user@domain) | Wallet address + Personal Server URL | User identifier + routing               |
+| Email message               | Data File                            | Unit of data                            |
+| SMTP EHLO                   | Personal Server registration         | Establish identity                      |
+| SMTP MAIL FROM              | Grant creation                       | Authorize data flow                     |
+| SMTP RCPT TO                | Builder address                      | Recipient                               |
+| SMTP DATA                   | Data file upload                     | Content transfer                        |
+| SMTP QUIT                   | Grant revocation                     | Terminate authorization                 |
+| Mailbox                     | Scope                                | Data category                           |
+| Spam filter                 | Grant approval                       | User control over access                |
+| Bounce message              | Error response                       | Failure notification                    |
 
 ---
 
@@ -2161,35 +2170,35 @@ Builder: [Shows personalized experience to user]
 
 ### **D.1 Sprites.dev Integration**
 
-ODL Cloud uses [Sprites.dev](<https://sprites.dev>) (by [Fly.io](<http://Fly.io>)) for per-user stateful MicroVMs. Key characteristics:
+ODL Cloud uses [Sprites.dev](https://sprites.dev) (by [Fly.io](http://Fly.io)) for per-user stateful MicroVMs. Key characteristics:
 
-| **Feature** | **Benefit for Personal Server** |
-| -- | -- |
-| Firecracker MicroVMs | Hardware-level isolation per user |
-| Stateful storage | User data persists between activations |
-| Checkpoint/restore | Fast cold starts (\~300ms VM boot) |
-| HTTP auto-activation | Requests wake sleeping VMs automatically |
-| Pay-per-use billing | Cost scales with actual usage |
-| Up to 8 CPU, 16GB RAM | Sufficient for local LLM inference |
+| **Feature**           | **Benefit for Personal Server**          |
+| --------------------- | ---------------------------------------- |
+| Firecracker MicroVMs  | Hardware-level isolation per user        |
+| Stateful storage      | User data persists between activations   |
+| Checkpoint/restore    | Fast cold starts (\~300ms VM boot)       |
+| HTTP auto-activation  | Requests wake sleeping VMs automatically |
+| Pay-per-use billing   | Cost scales with actual usage            |
+| Up to 8 CPU, 16GB RAM | Sufficient for local LLM inference       |
 
 ### **D.2 Cost Model**
 
 Based on sprites.dev pricing (as of 2026):
 
-| **Component** | **Price** | **Typical Usage** |
-| -- | -- | -- |
-| CPU Time | $0.07/CPU-hour | \~$0.02-0.10/user/month |
-| Memory | $0.04375/GB-hour | \~$0.05-0.20/user/month |
-| Hot Storage | $0.000683/GB-hour | \~$0.01/user/month |
-| Cold Storage | $0.000027/GB-hour | \~$0.02/user/month |
+| **Component** | **Price**         | **Typical Usage**       |
+| ------------- | ----------------- | ----------------------- |
+| CPU Time      | $0.07/CPU-hour    | \~$0.02-0.10/user/month |
+| Memory        | $0.04375/GB-hour  | \~$0.05-0.20/user/month |
+| Hot Storage   | $0.000683/GB-hour | \~$0.01/user/month      |
+| Cold Storage  | $0.000027/GB-hour | \~$0.02/user/month      |
 
 **Estimated monthly cost per user:**
 
-| **Usage Pattern** | **Monthly Cost** |
-| -- | -- |
-| Light (few builder requests/month) | \~$0.10-0.50 |
-| Medium (daily builder access) | \~$0.50-2.00 |
-| Heavy (continuous access) | \~$2.00-10.00 |
+| **Usage Pattern**                  | **Monthly Cost** |
+| ---------------------------------- | ---------------- |
+| Light (few builder requests/month) | \~$0.10-0.50     |
+| Medium (daily builder access)      | \~$0.50-2.00     |
+| Heavy (continuous access)          | \~$2.00-10.00    |
 
 ### **D.3 Provisioning Flow**
 
@@ -2291,24 +2300,24 @@ BUILDER                 CLOUDFLARE              SPRITES                 PERSONAL
 
 ### **D.5 Security Considerations**
 
-| **Concern** | **Mitigation** |
-| -- | -- |
-| Vana sees user data | Sprites isolated per-user; Vana cannot access Sprite internals |
-| Signature stored in Sprite | Encrypted with Sprite-specific key; only decryptable within Sprite |
-| Sprite compromise | Hardware isolation (Firecracker); data encrypted at rest in storage backend |
-| Sprite deletion | Data remains in storage backend; user can re-provision anytime |
+| **Concern**                | **Mitigation**                                                              |
+| -------------------------- | --------------------------------------------------------------------------- |
+| Vana sees user data        | Sprites isolated per-user; Vana cannot access Sprite internals              |
+| Signature stored in Sprite | Encrypted with Sprite-specific key; only decryptable within Sprite          |
+| Sprite compromise          | Hardware isolation (Firecracker); data encrypted at rest in storage backend |
+| Sprite deletion            | Data remains in storage backend; user can re-provision anytime              |
 
 ---
 
 ## **Document History**
 
-| **Version** | **Date** | **Changes** |
-| -- | -- | -- |
-| 0.4.0-draft | 2026-01-27 | Renaming "Sign in with Vana" to "Connect data" and "Vana Cloud" to "ODL Cloud" (temporary name) |
+| **Version** | **Date**   | **Changes**                                                                                                                                                                                  |
+| ----------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.4.0-draft | 2026-01-27 | Renaming "Sign in with Vana" to "Connect data" and "Vana Cloud" to "ODL Cloud" (temporary name)                                                                                              |
 | 0.3.0-draft | 2026-01-26 | Standardized Session Relay flow, builder reads from Personal Server (decrypted), added versioned /data reads, clarified storage backend bulk sync, and documented builder registration steps |
-| 0.2.0-draft | 2026-01-22 | Added Personal Server deployment details, sync model, MCP integration, and ODL Cloud reference architecture |
-| 0.1.0-draft | 2026-01-21 | Initial draft |
+| 0.2.0-draft | 2026-01-22 | Added Personal Server deployment details, sync model, MCP integration, and ODL Cloud reference architecture                                                                                  |
+| 0.1.0-draft | 2026-01-21 | Initial draft                                                                                                                                                                                |
 
 ---
 
-*End of Specification*
+_End of Specification_

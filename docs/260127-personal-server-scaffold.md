@@ -24,6 +24,7 @@ STATUS: active
 ## 1) Requirements distilled from the DPv1 spec (must-haves)
 
 ### Core Responsibilities
+
 1. **Serve builder data requests** — Respond to authorized `GET /v1/data/{scope}` requests
 2. **Verify grant validity** — Check EIP-712 signatures, grantId, and scope permissions
 3. **Maintain local data store** — Decrypted data in `~/.vana/data/{scope}/{collectedAt}.json`
@@ -32,32 +33,35 @@ STATUS: active
 6. **Access logging** — Timestamped, rotated audit logs of all builder data accesses
 
 ### Required API Endpoints
-| Endpoint | Purpose |
-|----------|---------|
-| `POST /v1/data/{scope}` | Ingest new data (from Desktop connectors) |
-| `GET /v1/data` | List available scopes (requires Web3Signed auth) |
-| `GET /v1/data/{scope}` | Read data (requires grant + Web3Signed auth) |
-| `GET /v1/data/{scope}/versions` | List versions (requires Web3Signed auth) |
-| `DELETE /v1/data/{scope}` | Delete data (user-only) |
-| `GET /v1/grants` | List grants (user-only) |
-| `POST /v1/grants/verify` | Verify grant signature |
-| `GET /v1/access-logs` | Get access log history |
-| `POST /v1/sync/trigger` | Force sync from storage backend |
-| `GET /v1/sync/status` | Get sync status |
-| `POST /v1/sync/file/{fileId}` | Sync specific file |
-| `GET /health` | Health check (unversioned) |
+
+| Endpoint                        | Purpose                                          |
+| ------------------------------- | ------------------------------------------------ |
+| `POST /v1/data/{scope}`         | Ingest new data (from Desktop connectors)        |
+| `GET /v1/data`                  | List available scopes (requires Web3Signed auth) |
+| `GET /v1/data/{scope}`          | Read data (requires grant + Web3Signed auth)     |
+| `GET /v1/data/{scope}/versions` | List versions (requires Web3Signed auth)         |
+| `DELETE /v1/data/{scope}`       | Delete data (user-only)                          |
+| `GET /v1/grants`                | List grants (user-only)                          |
+| `POST /v1/grants/verify`        | Verify grant signature                           |
+| `GET /v1/access-logs`           | Get access log history                           |
+| `POST /v1/sync/trigger`         | Force sync from storage backend                  |
+| `GET /v1/sync/status`           | Get sync status                                  |
+| `POST /v1/sync/file/{fileId}`   | Sync specific file                               |
+| `GET /health`                   | Health check (unversioned)                       |
 
 ### Authentication Requirements
+
 - **Web3Signed Authorization** — All builder AND user requests: `Authorization: Web3Signed <base64url(json)>.<signature>`
 - **EIP-712 Grant Verification** — Recover signer, verify against on-chain grantee
 - **Key Derivation** — Master key via EIP-191 signature over `"vana-master-key-v1"`, scope keys via HKDF
 
 ### Body Size Limits
-| Endpoint | Max Body Size |
-|----------|---------------|
-| `POST /v1/data/{scope}` | 50 MB (configurable in `server.json`) |
-| `POST /v1/grants/verify` | 1 MB |
-| All other endpoints | 1 MB (default) |
+
+| Endpoint                 | Max Body Size                         |
+| ------------------------ | ------------------------------------- |
+| `POST /v1/data/{scope}`  | 50 MB (configurable in `server.json`) |
+| `POST /v1/grants/verify` | 1 MB                                  |
+| All other endpoints      | 1 MB (default)                        |
 
 Connectors SHOULD split data exceeding 50 MB into multiple time-windowed snapshots. Each snapshot is a separate versioned file under the same scope.
 
@@ -66,6 +70,7 @@ Connectors SHOULD split data exceeding 50 MB into multiple time-windowed snapsho
 A data file "exists" for builder queries as soon as the Personal Server has written it locally (atomic: write to temp file, then rename). It does **not** need to be synced to a storage backend or registered on-chain before a builder can read it. Sync and on-chain registration happen asynchronously after local write. This means the Personal Server can serve data immediately after ingest, regardless of sync or gateway availability.
 
 ### MCP Server (Required)
+
 - Resources: `vana://files`, `vana://file/{scope}`, `vana://grants`, `vana://schemas`
 - Tools: `list_files`, `get_file`, `search_files`
 - Auth model:
@@ -73,13 +78,15 @@ A data file "exists" for builder queries as soon as the Personal Server has writ
   - **Remote SSE/HTTP MCP** (ODL Cloud, tunneled): `Authorization: Web3Signed ...` (same scheme as builder requests)
 
 ### Deployment Targets
-| Target | Runtime | Activation |
-|--------|---------|------------|
-| Desktop-Bundled | Embedded in Tauri | User opens app |
-| ODL Cloud | Firecracker MicroVM (Sprites) | HTTP auto-activates |
-| Self-Hosted | Docker container | Always running |
+
+| Target          | Runtime                       | Activation          |
+| --------------- | ----------------------------- | ------------------- |
+| Desktop-Bundled | Embedded in Tauri             | User opens app      |
+| ODL Cloud       | Firecracker MicroVM (Sprites) | HTTP auto-activates |
+| Self-Hosted     | Docker container              | Always running      |
 
 ### Local Data Hierarchy (Canonical)
+
 ```
 ~/.vana/
 ├── data/                    # Decrypted data files
@@ -96,30 +103,42 @@ A data file "exists" for builder queries as soon as the Personal Server has writ
 ## 2) Reference Patterns (from OSS TypeScript/Node repos)
 
 ### 1. anomalyco/opencode: MCP Server & Tool Execution
+
 - **Pattern**: Registry-based tool dispatching with dynamic conversion.
 - **Reference**: `packages/opencode/src/mcp/index.ts` (Lines 120-148)
 - **Relevance**: Direct model for our MCP server integration (`packages/server/src/mcp/`).
 - **Code Snippet**:
+
 ```typescript
-async function convertMcpTool(mcpTool: MCPToolDef, client: MCPClient, timeout?: number): Promise<Tool> {
+async function convertMcpTool(
+  mcpTool: MCPToolDef,
+  client: MCPClient,
+  timeout?: number,
+): Promise<Tool> {
   return dynamicTool({
     description: mcpTool.description ?? "",
     inputSchema: jsonSchema(schema),
     execute: async (args: unknown) => {
-      return client.callTool({
-        name: mcpTool.name,
-        arguments: args as Record<string, unknown>,
-      }, CallToolResultSchema, { timeout });
+      return client.callTool(
+        {
+          name: mcpTool.name,
+          arguments: args as Record<string, unknown>,
+        },
+        CallToolResultSchema,
+        { timeout },
+      );
     },
   });
 }
 ```
 
 ### 2. standardnotes/server: E2EE & Decoupled Storage
+
 - **Pattern**: Interface-driven storage adapters for E2EE data persistence.
 - **Reference**: `packages/tm-core/src/modules/storage/index.ts`
 - **Relevance**: Direct model for our `StorageAdapter` interface (`packages/core/src/storage/adapters/`).
 - **Code Snippet**:
+
 ```typescript
 export interface StorageAdapter {
   read(path: string): Promise<string | null>;
@@ -130,6 +149,7 @@ export interface StorageAdapter {
 ```
 
 ### Key Conclusions for personal-server-ts:
+
 - **Composition Root**: Wire all services in a single `bootstrap.ts` factory function (simple constructor injection, no DI framework).
 - **Zod for Schema Validation**: Use Zod to validate both network payloads and local data snapshots against the canonical Schema Registry.
 - **Middleware-based Auth**: Isolate EIP-712/Web3Signed verification into dedicated middleware.
@@ -140,6 +160,7 @@ export interface StorageAdapter {
 ## 3) Proposed repo structure (personal-server-ts)
 
 **Key structural decisions** (aligned with OpenCode & Gemini-CLI patterns):
+
 - All code under `packages/` — no hybrid `packages/` + `src/` split
 - NPM workspaces for monorepo management (simpler than Turborepo)
 - esbuild for fast builds, TypeScript composite projects for incremental compilation
@@ -256,20 +277,20 @@ personal-server-ts/
 
 ### Component Mapping to DPv1 Requirements
 
-| DPv1 Requirement | Package | Key Files |
-|------------------|---------|-----------|
-| Grant verification | `core/` | `grants/verify.ts`, `auth/web3-signed.ts` |
-| Key derivation | `core/` | `keys/master.ts`, `keys/derive.ts` |
-| Local data hierarchy | `core/` | `storage/hierarchy/paths.ts`, `storage/hierarchy/versioning.ts` |
-| Storage backends | `core/` | `storage/adapters/*.ts` |
-| Registry index (SQLite) | `core/` | `storage/index/manager.ts`, `storage/index/schema.ts` |
-| Error catalog | `core/` | `errors/catalog.ts` |
-| Data sync | `core/` | `sync/engine/sync-manager.ts`, `sync/workers/*.ts` |
-| DP RPC polling | `core/` | `gateway/client.ts`, `sync/engine/cursor.ts` |
-| Builder data API | `server/` | `routes/data.ts`, `middleware/*.ts` |
-| MCP server | `server/` | `mcp/*.ts` |
-| Access logging | `server/` | `middleware/access-log.ts` |
-| Gateway operations | `core/` | `gateway/client.ts` |
+| DPv1 Requirement        | Package   | Key Files                                                       |
+| ----------------------- | --------- | --------------------------------------------------------------- |
+| Grant verification      | `core/`   | `grants/verify.ts`, `auth/web3-signed.ts`                       |
+| Key derivation          | `core/`   | `keys/master.ts`, `keys/derive.ts`                              |
+| Local data hierarchy    | `core/`   | `storage/hierarchy/paths.ts`, `storage/hierarchy/versioning.ts` |
+| Storage backends        | `core/`   | `storage/adapters/*.ts`                                         |
+| Registry index (SQLite) | `core/`   | `storage/index/manager.ts`, `storage/index/schema.ts`           |
+| Error catalog           | `core/`   | `errors/catalog.ts`                                             |
+| Data sync               | `core/`   | `sync/engine/sync-manager.ts`, `sync/workers/*.ts`              |
+| DP RPC polling          | `core/`   | `gateway/client.ts`, `sync/engine/cursor.ts`                    |
+| Builder data API        | `server/` | `routes/data.ts`, `middleware/*.ts`                             |
+| MCP server              | `server/` | `mcp/*.ts`                                                      |
+| Access logging          | `server/` | `middleware/access-log.ts`                                      |
+| Gateway operations      | `core/`   | `gateway/client.ts`                                             |
 
 ---
 
@@ -281,20 +302,20 @@ This section elaborates on the API endpoints and authorization model, extracted 
 
 **Summary Table:**
 
-| Endpoint | Method | Auth Required | Grant Required | Caller | Purpose |
-|----------|--------|---------------|----------------|--------|---------|
-| `/v1/data/{scope}` | POST | Web3Signed (owner) | No | Desktop App | Ingest new data |
-| `/v1/data` | GET | Web3Signed (builder) | No | Builder | List available scopes |
-| `/v1/data/{scope}` | GET | Web3Signed (builder) | **Yes** | Builder/User | Read data file |
-| `/v1/data/{scope}/versions` | GET | Web3Signed (builder) | No | Builder | List versions |
-| `/v1/data/{scope}` | DELETE | Web3Signed (owner) | No | User only | Delete data |
-| `/v1/grants` | GET | Web3Signed (owner) | No | User only | List grants |
-| `/v1/grants/verify` | POST | None | No | Any | Verify grant signature |
-| `/v1/access-logs` | GET | Web3Signed (owner) | No | User only | Get access history |
-| `/v1/sync/trigger` | POST | Web3Signed (owner) | No | User only | Force sync |
-| `/v1/sync/status` | GET | Web3Signed (owner) | No | User only | Get sync status |
-| `/v1/sync/file/{fileId}` | POST | Web3Signed (owner) | No | User only | Sync specific file |
-| `/health` | GET | None | No | Any | Health check |
+| Endpoint                    | Method | Auth Required        | Grant Required | Caller       | Purpose                |
+| --------------------------- | ------ | -------------------- | -------------- | ------------ | ---------------------- |
+| `/v1/data/{scope}`          | POST   | Web3Signed (owner)   | No             | Desktop App  | Ingest new data        |
+| `/v1/data`                  | GET    | Web3Signed (builder) | No             | Builder      | List available scopes  |
+| `/v1/data/{scope}`          | GET    | Web3Signed (builder) | **Yes**        | Builder/User | Read data file         |
+| `/v1/data/{scope}/versions` | GET    | Web3Signed (builder) | No             | Builder      | List versions          |
+| `/v1/data/{scope}`          | DELETE | Web3Signed (owner)   | No             | User only    | Delete data            |
+| `/v1/grants`                | GET    | Web3Signed (owner)   | No             | User only    | List grants            |
+| `/v1/grants/verify`         | POST   | None                 | No             | Any          | Verify grant signature |
+| `/v1/access-logs`           | GET    | Web3Signed (owner)   | No             | User only    | Get access history     |
+| `/v1/sync/trigger`          | POST   | Web3Signed (owner)   | No             | User only    | Force sync             |
+| `/v1/sync/status`           | GET    | Web3Signed (owner)   | No             | User only    | Get sync status        |
+| `/v1/sync/file/{fileId}`    | POST   | Web3Signed (owner)   | No             | User only    | Sync specific file     |
+| `/health`                   | GET    | None                 | No             | Any          | Health check           |
 
 ---
 
@@ -303,6 +324,7 @@ This section elaborates on the API endpoints and authorization model, extracted 
 Ingests raw data from Desktop connectors and constructs the full Data File envelope.
 
 **Request:**
+
 ```http
 POST /v1/data/{scope}
 Content-Type: application/json
@@ -317,6 +339,7 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 **Query Parameters:** None
 
 **Processing Steps:**
+
 1. Look up the `schemaId` for the given scope via Gateway (`GET /v1/schemas?scope={scope}`)
 2. Reject with `400 Bad Request` if no schema is registered for the scope
 3. Validate the request body against the schema definition
@@ -328,6 +351,7 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 9. Async (background): encrypt, upload to storage backend, register file in `DataRegistry` via DP RPC
 
 **Response (201 Created):**
+
 ```json
 {
   "scope": "instagram.profile",
@@ -337,6 +361,7 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 ```
 
 **Error Responses:**
+
 - `400 Bad Request` — No schema registered for scope, or validation failed
 - `413 Content Too Large` — Request body exceeds 50 MB
 
@@ -349,6 +374,7 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 Lists available scopes and latest version metadata for builders.
 
 **Request:**
+
 ```http
 GET /v1/data?scopePrefix={scopePrefix}&limit={limit}&offset={offset}
 Authorization: Web3Signed <base64url(json)>.<signature>
@@ -362,6 +388,7 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 | `offset` | number | No | Pagination offset (default: 0) |
 
 **Web3Signed Payload:**
+
 ```json
 {
   "aud": "https://user-abc.server.vana.com",
@@ -374,6 +401,7 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "scopes": [
@@ -396,6 +424,7 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 Returns the decrypted data file JSON for the requested scope. Requires a valid grant for builder access.
 
 **Request:**
+
 ```http
 GET /v1/data/{scope}?fileId={fileId}&at={ISO8601}
 Authorization: Web3Signed <base64url(json)>.<signature>
@@ -410,6 +439,7 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 Default: latest by `collectedAt`
 
 **Web3Signed Payload (must include grantId):**
+
 ```json
 {
   "aud": "https://user-abc.server.vana.com",
@@ -423,6 +453,7 @@ Default: latest by `collectedAt`
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "$schema": "<schema URL from registry>",
@@ -440,6 +471,7 @@ Default: latest by `collectedAt`
 ```
 
 **Error Responses:**
+
 - `401 MISSING_AUTH` — No Authorization header provided
 - `401 INVALID_SIGNATURE` — Signature recovery failed
 - `401 UNREGISTERED_BUILDER` — Signer not registered as Builder
@@ -455,6 +487,7 @@ Default: latest by `collectedAt`
 Lists available versions (metadata only) for a given scope.
 
 **Request:**
+
 ```http
 GET /v1/data/{scope}/versions?limit={limit}&offset={offset}
 Authorization: Web3Signed <base64url(json)>.<signature>
@@ -467,6 +500,7 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 | `offset` | number | No | Pagination offset (default: 0) |
 
 **Web3Signed Payload:**
+
 ```json
 {
   "aud": "https://user-abc.server.vana.com",
@@ -479,6 +513,7 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "scope": "instagram.profile",
@@ -505,10 +540,12 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 User-only action for removing local/decrypted data and triggering storage cleanup in the storage backend.
 
 **Request:**
+
 ```http
 DELETE /v1/data/{scope}
 Authorization: Web3Signed <base64url(json)>.<signature>
 ```
+
 (Owner auth — signer must match `server.address`)
 
 **Response (204 No Content):** Empty body
@@ -520,13 +557,16 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 Lists all grants for the authenticated user.
 
 **Request:**
+
 ```http
 GET /v1/grants
 Authorization: Web3Signed <base64url(json)>.<signature>
 ```
+
 (Owner auth — signer must match `server.address`)
 
 **Response (200 OK):**
+
 ```json
 {
   "grants": [
@@ -548,6 +588,7 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 Verifies a grant signature. Public endpoint, no authentication required.
 
 **Request:**
+
 ```http
 POST /v1/grants/verify
 Content-Type: application/json
@@ -559,6 +600,7 @@ Content-Type: application/json
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "valid": true,
@@ -576,10 +618,12 @@ Content-Type: application/json
 Returns the access log history for the authenticated user. Matches spec section 5.4.
 
 **Request:**
+
 ```http
 GET /v1/access-logs?limit={limit}&offset={offset}
 Authorization: Web3Signed <base64url(json)>.<signature>
 ```
+
 (Owner auth — signer must match `server.address`)
 
 **Query Parameters:**
@@ -589,6 +633,7 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 | `offset` | number | No | Pagination offset (default: 0) |
 
 **Response (200 OK):**
+
 ```json
 {
   "logs": [
@@ -616,13 +661,16 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 Triggers a force sync from the storage backend.
 
 **Request:**
+
 ```http
 POST /v1/sync/trigger
 Authorization: Web3Signed <base64url(json)>.<signature>
 ```
+
 (Owner auth — signer must match `server.address`)
 
 **Response (202 Accepted):**
+
 ```json
 {
   "status": "started",
@@ -637,13 +685,16 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 Returns the current sync status including last sync time, cursor position, and any pending operations.
 
 **Request:**
+
 ```http
 GET /v1/sync/status
 Authorization: Web3Signed <base64url(json)>.<signature>
 ```
+
 (Owner auth — signer must match `server.address`)
 
 **Response (200 OK):**
+
 ```json
 {
   "lastSync": "2026-01-21T10:00:00Z",
@@ -660,13 +711,16 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 Triggers sync for a specific file from the storage backend.
 
 **Request:**
+
 ```http
 POST /v1/sync/file/{fileId}
 Authorization: Web3Signed <base64url(json)>.<signature>
 ```
+
 (Owner auth — signer must match `server.address`)
 
 **Response (202 Accepted):**
+
 ```json
 {
   "fileId": "0x...",
@@ -681,21 +735,31 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 Public health check endpoint. No authentication required. Unversioned path.
 
 **Request:**
+
 ```http
 GET /health
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "status": "healthy",
   "version": "1.0.0",
   "uptime": 3600,
   "checks": {
-    "registration": { "status": "healthy", "registered": true, "trusted": true },
+    "registration": {
+      "status": "healthy",
+      "registered": true,
+      "trusted": true
+    },
     "storage": { "status": "healthy", "backend": "vana" },
     "gateway": { "status": "healthy", "latencyMs": 42 },
-    "sync": { "status": "healthy", "lastSync": "2026-01-21T10:00:00Z", "pendingFiles": 0 }
+    "sync": {
+      "status": "healthy",
+      "lastSync": "2026-01-21T10:00:00Z",
+      "pendingFiles": 0
+    }
   }
 }
 ```
@@ -712,11 +776,11 @@ The personal server uses **Web3Signed authorization for all authenticated endpoi
 
 #### Caller Types
 
-| Caller Type | Authentication | Grant Required | Use Cases |
-|-------------|----------------|----------------|-----------|
-| **User (Desktop App/UI)** | Web3Signed + owner check | No | Managing data, viewing grants, triggering sync |
-| **Builder (External)** | Web3Signed + builder check | Yes (for data reads) | Accessing user data via granted permissions |
-| **Public** | None | No | Health check, grant verification |
+| Caller Type               | Authentication             | Grant Required       | Use Cases                                      |
+| ------------------------- | -------------------------- | -------------------- | ---------------------------------------------- |
+| **User (Desktop App/UI)** | Web3Signed + owner check   | No                   | Managing data, viewing grants, triggering sync |
+| **Builder (External)**    | Web3Signed + builder check | Yes (for data reads) | Accessing user data via granted permissions    |
+| **Public**                | None                       | No                   | Health check, grant verification               |
 
 #### How User Auth Works
 
@@ -747,15 +811,15 @@ Authorization: Web3Signed <base64url(json)>.<signature>
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `aud` | string | Yes | Target server origin (must match request) |
-| `method` | string | Yes | HTTP method (must match request) |
-| `uri` | string | Yes | Request path (must match request) |
-| `bodyHash` | string | Yes | SHA-256 hash of request body (empty string if no body) |
-| `iat` | number | Yes | Issued-at timestamp (Unix seconds) |
-| `exp` | number | Yes | Expiration timestamp (Unix seconds) |
-| `grantId` | string | For data reads | Grant ID (required only for `GET /v1/data/{scope}`) |
+| Field      | Type   | Required       | Description                                            |
+| ---------- | ------ | -------------- | ------------------------------------------------------ |
+| `aud`      | string | Yes            | Target server origin (must match request)              |
+| `method`   | string | Yes            | HTTP method (must match request)                       |
+| `uri`      | string | Yes            | Request path (must match request)                      |
+| `bodyHash` | string | Yes            | SHA-256 hash of request body (empty string if no body) |
+| `iat`      | number | Yes            | Issued-at timestamp (Unix seconds)                     |
+| `exp`      | number | Yes            | Expiration timestamp (Unix seconds)                    |
+| `grantId`  | string | For data reads | Grant ID (required only for `GET /v1/data/{scope}`)    |
 
 #### Web3Signed Verification Steps
 
@@ -806,28 +870,31 @@ Scope matching follows hierarchical rules:
 
 ### 4.4) Endpoint Classification
 
-| Category | Endpoints | Auth | Notes |
-|----------|-----------|------|-------|
-| **Builder (External)** | `GET /v1/data`, `GET /v1/data/{scope}`, `GET /v1/data/{scope}/versions` | Web3Signed + builder check | Grant required for data reads |
-| **User (Owner)** | `DELETE /v1/data/*`, `GET /v1/grants`, `GET /v1/access-logs`, `/v1/sync/*` | Web3Signed + owner check | User-only operations |
-| **Data Ingest** | `POST /v1/data/{scope}` | Web3Signed (owner) or none (localhost-only) | Desktop App |
-| **Public** | `/health`, `POST /v1/grants/verify` | None | No auth required |
+| Category               | Endpoints                                                                  | Auth                                        | Notes                         |
+| ---------------------- | -------------------------------------------------------------------------- | ------------------------------------------- | ----------------------------- |
+| **Builder (External)** | `GET /v1/data`, `GET /v1/data/{scope}`, `GET /v1/data/{scope}/versions`    | Web3Signed + builder check                  | Grant required for data reads |
+| **User (Owner)**       | `DELETE /v1/data/*`, `GET /v1/grants`, `GET /v1/access-logs`, `/v1/sync/*` | Web3Signed + owner check                    | User-only operations          |
+| **Data Ingest**        | `POST /v1/data/{scope}`                                                    | Web3Signed (owner) or none (localhost-only) | Desktop App                   |
+| **Public**             | `/health`, `POST /v1/grants/verify`                                        | None                                        | No auth required              |
 
 ### 4.5) Implementation Notes
 
 #### Middleware Stack
 
 **Builder-facing endpoints:**
+
 ```
 Request → CORS → RateLimit (future) → Web3SignedAuth → BuilderCheck → GrantCheck (if data read) → AccessLog → Handler → Response
 ```
 
 **User-facing endpoints:**
+
 ```
 Request → CORS → RateLimit (future) → Web3SignedAuth → OwnerCheck → Handler → Response
 ```
 
 **Public endpoints:**
+
 ```
 Request → CORS → Handler → Response
 ```
@@ -838,18 +905,18 @@ Request → CORS → Handler → Response
 
 #### Error Responses
 
-| Status | Error Code | Description |
-|--------|------------|-------------|
-| 401 | `MISSING_AUTH` | No Authorization header provided |
-| 401 | `INVALID_SIGNATURE` | Signature recovery failed |
-| 401 | `UNREGISTERED_BUILDER` | Signer not registered as Builder |
-| 401 | `NOT_OWNER` | Signer does not match server owner address |
-| 401 | `EXPIRED_TOKEN` | Token `exp` has passed |
-| 403 | `GRANT_REQUIRED` | Data read without valid grant |
-| 403 | `GRANT_EXPIRED` | Grant has expired |
-| 403 | `GRANT_REVOKED` | Grant has been revoked |
-| 403 | `SCOPE_MISMATCH` | Requested scope not covered by grant |
-| 413 | `CONTENT_TOO_LARGE` | Request body exceeds size limit |
+| Status | Error Code             | Description                                |
+| ------ | ---------------------- | ------------------------------------------ |
+| 401    | `MISSING_AUTH`         | No Authorization header provided           |
+| 401    | `INVALID_SIGNATURE`    | Signature recovery failed                  |
+| 401    | `UNREGISTERED_BUILDER` | Signer not registered as Builder           |
+| 401    | `NOT_OWNER`            | Signer does not match server owner address |
+| 401    | `EXPIRED_TOKEN`        | Token `exp` has passed                     |
+| 403    | `GRANT_REQUIRED`       | Data read without valid grant              |
+| 403    | `GRANT_EXPIRED`        | Grant has expired                          |
+| 403    | `GRANT_REVOKED`        | Grant has been revoked                     |
+| 403    | `SCOPE_MISMATCH`       | Requested scope not covered by grant       |
+| 413    | `CONTENT_TOO_LARGE`    | Request body exceeds size limit            |
 
 ---
 
@@ -865,25 +932,31 @@ export class GatewayClient {
   constructor(private baseUrl: string) {}
 
   // Server operations
-  async registerServer(params: RegisterServerParams): Promise<ServerRegistration>
-  async getServer(address: string): Promise<ServerInfo | null>
+  async registerServer(
+    params: RegisterServerParams,
+  ): Promise<ServerRegistration>;
+  async getServer(address: string): Promise<ServerInfo | null>;
 
   // Grant operations
-  async getGrant(grantId: string): Promise<Grant | null>
-  async verifyGrant(grantId: string, grantee: string, scope: string): Promise<GrantVerification>
+  async getGrant(grantId: string): Promise<Grant | null>;
+  async verifyGrant(
+    grantId: string,
+    grantee: string,
+    scope: string,
+  ): Promise<GrantVerification>;
 
   // File registry operations
-  async registerFile(params: RegisterFileParams): Promise<FileRegistration>
-  async getFile(fileId: string): Promise<FileRecord | null>
-  async listFiles(owner: string, cursor?: string): Promise<FileListResult>
+  async registerFile(params: RegisterFileParams): Promise<FileRegistration>;
+  async getFile(fileId: string): Promise<FileRecord | null>;
+  async listFiles(owner: string, cursor?: string): Promise<FileListResult>;
 
   // Schema operations
-  async getSchema(schemaId: string): Promise<Schema | null>
-  async getSchemaForScope(scope: string): Promise<Schema | null>
+  async getSchema(schemaId: string): Promise<Schema | null>;
+  async getSchemaForScope(scope: string): Promise<Schema | null>;
 
   // Builder operations
-  async isRegisteredBuilder(address: string): Promise<boolean>
-  async getBuilder(address: string): Promise<Builder | null>
+  async isRegisteredBuilder(address: string): Promise<boolean>;
+  async getBuilder(address: string): Promise<Builder | null>;
 }
 ```
 
@@ -898,7 +971,7 @@ const mockGateway = {
   getGrant: vi.fn().mockResolvedValue(testGrant),
   isRegisteredBuilder: vi.fn().mockResolvedValue(true),
   // ...
-}
+};
 ```
 
 ### Configuration
@@ -916,17 +989,17 @@ In `~/.vana/server.json`:
 The `register-server.ts` script uses the `GatewayClient` directly:
 
 ```typescript
-import { GatewayClient } from '@personal-server/core/gateway'
-import { loadConfig } from '@personal-server/core/config'
+import { GatewayClient } from "@personal-server/core/gateway";
+import { loadConfig } from "@personal-server/core/config";
 
-const config = await loadConfig()
-const gateway = new GatewayClient(config.gatewayUrl)
+const config = await loadConfig();
+const gateway = new GatewayClient(config.gatewayUrl);
 
 await gateway.registerServer({
   owner: wallet.address,
   endpoint: config.publicUrl,
-  metadata: { version: '1.0.0' }
-})
+  metadata: { version: "1.0.0" },
+});
 ```
 
 ---
@@ -935,17 +1008,17 @@ await gateway.registerServer({
 
 ### Tooling Choices (Confirmed)
 
-| Aspect | Choice | Rationale |
-|--------|--------|-----------|
-| **Monorepo Tool** | NPM workspaces | Simpler than Turborepo, matches Gemini-CLI |
-| **Runtime** | Node.js | Tauri desktop app bundles Node; consistent across all deployment targets |
-| **HTTP Framework** | Hono via `@hono/node-server` | Lightweight, TypeScript-first (OpenCode pattern) |
-| **DI Pattern** | Composition root (`bootstrap.ts`) | Simple constructor injection, no DI framework |
-| **Storage** | Interface + adapters + migrations | Standard Notes pattern + OpenCode migrations |
-| **CLI** | Yargs | Standard, skip Ink for simplicity |
-| **Testing** | Vitest + co-located tests | Gemini-CLI pattern; test-utils in `core/src/test-utils/` |
-| **Build** | esbuild + TypeScript composite | Fast builds, incremental compilation |
-| **Logging** | pino + pino-pretty | Fast structured logging, human-readable in dev |
+| Aspect             | Choice                            | Rationale                                                                |
+| ------------------ | --------------------------------- | ------------------------------------------------------------------------ |
+| **Monorepo Tool**  | NPM workspaces                    | Simpler than Turborepo, matches Gemini-CLI                               |
+| **Runtime**        | Node.js                           | Tauri desktop app bundles Node; consistent across all deployment targets |
+| **HTTP Framework** | Hono via `@hono/node-server`      | Lightweight, TypeScript-first (OpenCode pattern)                         |
+| **DI Pattern**     | Composition root (`bootstrap.ts`) | Simple constructor injection, no DI framework                            |
+| **Storage**        | Interface + adapters + migrations | Standard Notes pattern + OpenCode migrations                             |
+| **CLI**            | Yargs                             | Standard, skip Ink for simplicity                                        |
+| **Testing**        | Vitest + co-located tests         | Gemini-CLI pattern; test-utils in `core/src/test-utils/`                 |
+| **Build**          | esbuild + TypeScript composite    | Fast builds, incremental compilation                                     |
+| **Logging**        | pino + pino-pretty                | Fast structured logging, human-readable in dev                           |
 
 ### Logging
 
@@ -971,21 +1044,23 @@ await gateway.registerServer({
 
 **Log levels**:
 
-| Level | Use |
-|-------|-----|
-| `fatal` | Server cannot start (missing config, port in use) |
-| `error` | Operation failed (sync error, storage write failure) |
-| `warn` | Degraded state (gateway unreachable, retrying) |
-| `info` | Significant events (server start/stop, data access, sync complete) |
-| `debug` | Detailed flow (request parsing, grant verification steps) |
+| Level   | Use                                                                |
+| ------- | ------------------------------------------------------------------ |
+| `fatal` | Server cannot start (missing config, port in use)                  |
+| `error` | Operation failed (sync error, storage write failure)               |
+| `warn`  | Degraded state (gateway unreachable, retrying)                     |
+| `info`  | Significant events (server start/stop, data access, sync complete) |
+| `debug` | Detailed flow (request parsing, grant verification steps)          |
 
 **Log destinations**:
+
 - **stdout**: All application logs (standard for containers and desktop apps)
 - **`~/.vana/logs/access-{YYYY-MM-DD}.log`**: Access audit log only (JSON lines format per spec §5.4, append-only, daily rotation, separate from application logs)
 
 **Log file rotation**: Access logs are written to daily timestamped files (`access-2026-01-21.log`, `access-2026-01-22.log`, etc.) to prevent any single file from growing unbounded. Old log files are retained indefinitely (cleanup is a user/ops concern).
 
 **Configuration** in `server.json`:
+
 ```json
 {
   "logging": {
@@ -1030,10 +1105,11 @@ All operations must be idempotent. The sync cursor (`lastProcessedTimestamp`) is
 ### Key Patterns to Adopt
 
 **From OpenCode:**
+
 1. **Lazy initialization** — Use for expensive resources (gateway client, storage adapters). Each lazy-initialized resource must register a cleanup handler for graceful shutdown.
    ```typescript
-   import { lazy } from "@/util/lazy"
-   const registryIndex = lazy(async () => await loadRegistryFromGateway())
+   import { lazy } from "@/util/lazy";
+   const registryIndex = lazy(async () => await loadRegistryFromGateway());
    ```
 2. **Namespace pattern** — `Storage.*`, `Sync.*`, `Grant.*` for module organization
 3. **File-based storage with migrations** — JSON files + migration runner
@@ -1045,29 +1121,48 @@ All operations must be idempotent. The sync cursor (`lastProcessedTimestamp`) is
        public readonly code: number,
        public readonly errorCode: string,
        message: string,
-       public readonly details?: Record<string, unknown>
-     ) { super(message) }
+       public readonly details?: Record<string, unknown>,
+     ) {
+       super(message);
+     }
    }
-   export class GrantExpiredError extends ProtocolError { /* 403 GRANT_EXPIRED */ }
-   export class GrantRevokedError extends ProtocolError { /* 403 GRANT_REVOKED */ }
-   export class ScopeMismatchError extends ProtocolError { /* 403 SCOPE_MISMATCH */ }
-   export class MissingAuthError extends ProtocolError { /* 401 MISSING_AUTH */ }
-   export class InvalidSignatureError extends ProtocolError { /* 401 INVALID_SIGNATURE */ }
-   export class UnregisteredBuilderError extends ProtocolError { /* 401 UNREGISTERED_BUILDER */ }
-   export class NotOwnerError extends ProtocolError { /* 401 NOT_OWNER */ }
-   export class ContentTooLargeError extends ProtocolError { /* 413 CONTENT_TOO_LARGE */ }
+   export class GrantExpiredError extends ProtocolError {
+     /* 403 GRANT_EXPIRED */
+   }
+   export class GrantRevokedError extends ProtocolError {
+     /* 403 GRANT_REVOKED */
+   }
+   export class ScopeMismatchError extends ProtocolError {
+     /* 403 SCOPE_MISMATCH */
+   }
+   export class MissingAuthError extends ProtocolError {
+     /* 401 MISSING_AUTH */
+   }
+   export class InvalidSignatureError extends ProtocolError {
+     /* 401 INVALID_SIGNATURE */
+   }
+   export class UnregisteredBuilderError extends ProtocolError {
+     /* 401 UNREGISTERED_BUILDER */
+   }
+   export class NotOwnerError extends ProtocolError {
+     /* 401 NOT_OWNER */
+   }
+   export class ContentTooLargeError extends ProtocolError {
+     /* 413 CONTENT_TOO_LARGE */
+   }
    ```
 
 **From Gemini-CLI:**
+
 1. **Composition root** — All services wired in a single `bootstrap.ts` factory function:
    ```typescript
    // server/src/bootstrap.ts
    export function createServer(config: ServerConfig) {
-     const gateway = new GatewayClient(config.gatewayUrl)
-     const storage = createStorageAdapter(config.storage)
-     const index = new IndexManager(config.dataDir)
-     const sync = new SyncManager(gateway, storage, index)
-     return new App({ gateway, storage, index, sync })
+     const gateway = new GatewayClient(config.gatewayUrl);
+     const storage = createStorageAdapter(config.storage);
+     const index = new IndexManager(config.dataDir);
+     const sync = new SyncManager(gateway, storage, index);
+     return new App({ gateway, storage, index, sync });
    }
    ```
 2. **Service interface pattern** — `interface StorageService` + concrete implementations
@@ -1089,6 +1184,7 @@ All operations must be idempotent. The sync cursor (`lastProcessedTimestamp`) is
 4. **Three-tier separation** — CLI (UI) → Server (API) → Core (Business Logic)
 
 **From DPv1 Spec:**
+
 1. **Web3Signed middleware** — Required for all builder AND user requests
 2. **Grant enforcement** — Scope subset matching, access logging
 3. **Local index** — `fileId → (path, scope, collectedAt)` for fast lookups
@@ -1098,6 +1194,7 @@ All operations must be idempotent. The sync cursor (`lastProcessedTimestamp`) is
 ### Configuration Hierarchy
 
 Multi-layer configuration (Gemini-CLI pattern):
+
 1. **Global**: `~/.vana/server.json`
 2. **Per-deployment**: Environment variables
 3. **Runtime**: API overrides
@@ -1106,36 +1203,36 @@ Multi-layer configuration (Gemini-CLI pattern):
 
 ## 6) Gaps Addressed from Original Scaffold
 
-| Original Issue | Resolution |
-|----------------|------------|
-| Hybrid `packages/` + `src/` structure | All code under `packages/` |
-| Too many packages (7) | Reduced to 3: `core`, `server`, `cli` |
-| Missing test infrastructure | Added `core/src/test-utils/` with factory-function fixtures |
-| No storage migration system | Added `core/src/storage/migrations/` |
-| Event bus over-engineering | Removed — use direct function calls |
-| No auth modules | Added `core/src/auth/` |
-| No key derivation | Added `core/src/keys/` |
-| No gateway client | Added `core/src/gateway/` |
-| Unspecified monorepo tool | NPM workspaces |
-| Unspecified build tool | esbuild + TypeScript composite |
-| Session auth unspecified | Web3Signed + owner check (same as builder auth) |
-| No CORS handling | CORS middleware allowing all origins |
-| No body size limits | 50 MB for data ingest, 1 MB default |
-| No server lifecycle | Startup sequence, graceful shutdown, crash recovery |
-| No logging spec | pino + pino-pretty, daily rotated access logs |
-| ChainAdapter premature abstraction | Concrete `GatewayClient` class |
-| FRP tunneling under-specified | Deferred to separate design doc |
-| MCP auth mismatch | Local stdio = no auth; remote SSE/HTTP = Web3Signed |
-| No API versioning | `/v1/` prefix on all endpoints (except `/health`) |
-| Shallow health check | Expanded with registration + subsystem checks |
-| Grant cache unspecified | Removed — grant verification is local-only (EIP-712 signature, expiry, scope, grantee); only revocation check requires remote Gateway lookup |
-| Local index storage unspecified | SQLite via `better-sqlite3` at `~/.vana/index.db` |
-| No error catalog | Typed `ProtocolError` hierarchy mapping to spec §8.2 |
-| DI pattern unspecified | Composition root factory in `server/src/bootstrap.ts` |
-| Startup blocks on sync | HTTP starts first, sync runs in background |
-| File existence model unclear | Files available to readers immediately after local write |
-| Runtime unspecified | Node.js (Tauri bundles Node; consistent across all targets) |
-| Access log format unspecified | JSON lines per spec §5.4, daily rotation |
+| Original Issue                        | Resolution                                                                                                                                   |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hybrid `packages/` + `src/` structure | All code under `packages/`                                                                                                                   |
+| Too many packages (7)                 | Reduced to 3: `core`, `server`, `cli`                                                                                                        |
+| Missing test infrastructure           | Added `core/src/test-utils/` with factory-function fixtures                                                                                  |
+| No storage migration system           | Added `core/src/storage/migrations/`                                                                                                         |
+| Event bus over-engineering            | Removed — use direct function calls                                                                                                          |
+| No auth modules                       | Added `core/src/auth/`                                                                                                                       |
+| No key derivation                     | Added `core/src/keys/`                                                                                                                       |
+| No gateway client                     | Added `core/src/gateway/`                                                                                                                    |
+| Unspecified monorepo tool             | NPM workspaces                                                                                                                               |
+| Unspecified build tool                | esbuild + TypeScript composite                                                                                                               |
+| Session auth unspecified              | Web3Signed + owner check (same as builder auth)                                                                                              |
+| No CORS handling                      | CORS middleware allowing all origins                                                                                                         |
+| No body size limits                   | 50 MB for data ingest, 1 MB default                                                                                                          |
+| No server lifecycle                   | Startup sequence, graceful shutdown, crash recovery                                                                                          |
+| No logging spec                       | pino + pino-pretty, daily rotated access logs                                                                                                |
+| ChainAdapter premature abstraction    | Concrete `GatewayClient` class                                                                                                               |
+| FRP tunneling under-specified         | Deferred to separate design doc                                                                                                              |
+| MCP auth mismatch                     | Local stdio = no auth; remote SSE/HTTP = Web3Signed                                                                                          |
+| No API versioning                     | `/v1/` prefix on all endpoints (except `/health`)                                                                                            |
+| Shallow health check                  | Expanded with registration + subsystem checks                                                                                                |
+| Grant cache unspecified               | Removed — grant verification is local-only (EIP-712 signature, expiry, scope, grantee); only revocation check requires remote Gateway lookup |
+| Local index storage unspecified       | SQLite via `better-sqlite3` at `~/.vana/index.db`                                                                                            |
+| No error catalog                      | Typed `ProtocolError` hierarchy mapping to spec §8.2                                                                                         |
+| DI pattern unspecified                | Composition root factory in `server/src/bootstrap.ts`                                                                                        |
+| Startup blocks on sync                | HTTP starts first, sync runs in background                                                                                                   |
+| File existence model unclear          | Files available to readers immediately after local write                                                                                     |
+| Runtime unspecified                   | Node.js (Tauri bundles Node; consistent across all targets)                                                                                  |
+| Access log format unspecified         | JSON lines per spec §5.4, daily rotation                                                                                                     |
 
 ---
 
@@ -1144,6 +1241,7 @@ Multi-layer configuration (Gemini-CLI pattern):
 Phases are ordered to deliver an end-to-end working slice as early as possible (a locally-serving Personal Server that a builder can read from).
 
 **Phase 0: Skeleton**
+
 - Repo scaffold with NPM workspaces (3 packages: `core`, `server`, `cli`)
 - Package structure with tsconfig references
 - Hono HTTP server (via `@hono/node-server`) with `/health` endpoint
@@ -1153,12 +1251,14 @@ Phases are ordered to deliver an end-to-end working slice as early as possible (
 - Composition root (`server/src/bootstrap.ts`)
 
 **Phase 1: Local Data Store + Ingest**
+
 - Local filesystem hierarchy manager (`core/src/storage/hierarchy/`)
 - SQLite registry index via `better-sqlite3` (`core/src/storage/index/`)
 - `POST /v1/data/{scope}` endpoint (no sync, no encryption)
 - File existence model: data available to readers immediately after local write
 
 **Phase 2: Auth + Builder Read Path**
+
 - Web3Signed authorization parsing (`core/src/auth/`)
 - Builder check middleware (verify registered builder via Gateway)
 - Grant enforcement middleware (4-step local verification + remote revocation check)
@@ -1168,6 +1268,7 @@ Phases are ordered to deliver an end-to-end working slice as early as possible (
 - Error catalog (`core/src/errors/`)
 
 **Phase 3: Owner Endpoints + Gateway Integration**
+
 - Owner check middleware (signer === server owner)
 - `DELETE /v1/data/{scope}`, `GET /v1/grants`, `GET /v1/access-logs` endpoints
 - `/v1/sync/trigger`, `/v1/sync/status`, `/v1/sync/file/{fileId}` endpoints
@@ -1176,6 +1277,7 @@ Phases are ordered to deliver an end-to-end working slice as early as possible (
 - Key derivation (master key, scope keys) (`core/src/keys/`)
 
 **Phase 4: Sync Engine + Storage Backends**
+
 - Cursor-based sync loop (`core/src/sync/`)
 - Upload/download workers
 - Encryption/decryption with scope keys
@@ -1184,16 +1286,19 @@ Phases are ordered to deliver an end-to-end working slice as early as possible (
 - Crash recovery (idempotent resume)
 
 **Phase 5: Operational Hardening**
+
 - OpenAPI spec generation
 - Metrics and observability
 - Rate limiting middleware
 
 **Phase 6: MCP Server**
+
 - MCP resources (`vana://files`, `vana://grants`)
 - MCP tools (`list_files`, `get_file`, `search_files`)
 - Auth: local stdio MCP = no auth; remote SSE/HTTP MCP = `Authorization: Web3Signed ...` (same scheme as builder requests)
 
 **Phase 7: Tunneling + Desktop Integration** (deferred — separate design doc)
+
 - FRP tunneling design and security model
 - Desktop app integration documentation
 - On-chain registration scripts

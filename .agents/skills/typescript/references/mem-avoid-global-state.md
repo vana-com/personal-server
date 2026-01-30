@@ -13,14 +13,14 @@ Global variables and module-level state persist for the application's lifetime. 
 
 ```typescript
 // cache.ts
-const userCache = new Map<string, User>()  // Never cleared
+const userCache = new Map<string, User>(); // Never cleared
 
 export function getCachedUser(id: string): User | undefined {
-  return userCache.get(id)
+  return userCache.get(id);
 }
 
 export function cacheUser(user: User): void {
-  userCache.set(user.id, user)
+  userCache.set(user.id, user);
   // Cache grows forever, never evicts old entries
 }
 
@@ -32,65 +32,65 @@ export function cacheUser(user: User): void {
 ```typescript
 // cache.ts
 class LRUCache<K, V> {
-  private cache = new Map<K, V>()
-  private maxSize: number
+  private cache = new Map<K, V>();
+  private maxSize: number;
 
   constructor(maxSize: number) {
-    this.maxSize = maxSize
+    this.maxSize = maxSize;
   }
 
   get(key: K): V | undefined {
-    const value = this.cache.get(key)
+    const value = this.cache.get(key);
     if (value !== undefined) {
       // Move to end (most recently used)
-      this.cache.delete(key)
-      this.cache.set(key, value)
+      this.cache.delete(key);
+      this.cache.set(key, value);
     }
-    return value
+    return value;
   }
 
   set(key: K, value: V): void {
     if (this.cache.has(key)) {
-      this.cache.delete(key)
+      this.cache.delete(key);
     } else if (this.cache.size >= this.maxSize) {
       // Evict oldest (first) entry
-      const oldest = this.cache.keys().next().value
-      this.cache.delete(oldest)
+      const oldest = this.cache.keys().next().value;
+      this.cache.delete(oldest);
     }
-    this.cache.set(key, value)
+    this.cache.set(key, value);
   }
 }
 
-const userCache = new LRUCache<string, User>(1000)  // Max 1000 entries
+const userCache = new LRUCache<string, User>(1000); // Max 1000 entries
 
 export function getCachedUser(id: string): User | undefined {
-  return userCache.get(id)
+  return userCache.get(id);
 }
 
 export function cacheUser(user: User): void {
-  userCache.set(user.id, user)
+  userCache.set(user.id, user);
 }
 ```
 
 **For request-scoped state (Node.js):**
 
 ```typescript
-import { AsyncLocalStorage } from 'async_hooks'
+import { AsyncLocalStorage } from "async_hooks";
 
 interface RequestContext {
-  userId: string
-  cache: Map<string, unknown>
+  userId: string;
+  cache: Map<string, unknown>;
 }
 
-const requestContext = new AsyncLocalStorage<RequestContext>()
+const requestContext = new AsyncLocalStorage<RequestContext>();
 
 export function runWithContext<T>(context: RequestContext, fn: () => T): T {
-  return requestContext.run(context, fn)
+  return requestContext.run(context, fn);
   // Context is automatically cleaned up when request ends
 }
 
 export function getRequestCache(): Map<string, unknown> {
-  return requestContext.getStore()?.cache ?? new Map()
+  return requestContext.getStore()?.cache ?? new Map();
 }
 ```
 

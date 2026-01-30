@@ -1,19 +1,17 @@
-import { z } from 'zod'
+import { z } from "zod";
 
 export const LoggingConfigSchema = z.object({
-  level: z
-    .enum(['fatal', 'error', 'warn', 'info', 'debug'])
-    .default('info'),
+  level: z.enum(["fatal", "error", "warn", "info", "debug"]).default("info"),
   pretty: z.boolean().default(false),
-})
+});
 
 export const StorageBackend = z.enum([
-  'local',
-  'vana',
-  'ipfs',
-  'gdrive',
-  'dropbox',
-])
+  "local",
+  "vana",
+  "ipfs",
+  "gdrive",
+  "dropbox",
+]);
 
 export const ServerConfigSchema = z.object({
   server: z
@@ -23,14 +21,14 @@ export const ServerConfigSchema = z.object({
       origin: z.string().url().optional(),
     })
     .default({}),
-  gatewayUrl: z.string().url().default('https://rpc.vana.org'),
+  gatewayUrl: z.string().url().default("https://rpc.vana.org"),
   logging: LoggingConfigSchema.default({}),
   storage: z
     .object({
-      backend: StorageBackend.default('local'),
+      backend: StorageBackend.default("local"),
     })
     .default({}),
-})
+});
 
-export type ServerConfig = z.infer<typeof ServerConfigSchema>
-export type LoggingConfig = z.infer<typeof LoggingConfigSchema>
+export type ServerConfig = z.infer<typeof ServerConfigSchema>;
+export type LoggingConfig = z.infer<typeof LoggingConfigSchema>;

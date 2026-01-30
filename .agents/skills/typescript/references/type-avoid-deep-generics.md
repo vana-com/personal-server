@@ -13,22 +13,22 @@ Each layer of generic nesting multiplies type instantiation cost. Flatten generi
 
 ```typescript
 type ApiResponse<T> = {
-  data: T
-  meta: ResponseMeta
-}
+  data: T;
+  meta: ResponseMeta;
+};
 
 type PaginatedResponse<T> = ApiResponse<{
-  items: T[]
-  pagination: PaginationInfo
-}>
+  items: T[];
+  pagination: PaginationInfo;
+}>;
 
 type CachedResponse<T> = PaginatedResponse<{
-  value: T
-  cachedAt: Date
-}>
+  value: T;
+  cachedAt: Date;
+}>;
 
 // Usage creates 4+ levels of nesting
-function fetchUsers(): CachedResponse<User> { }
+function fetchUsers(): CachedResponse<User> {}
 // Compiler must resolve: CachedResponse<User> → PaginatedResponse<...> → ApiResponse<...>
 ```
 
@@ -36,28 +36,28 @@ function fetchUsers(): CachedResponse<User> { }
 
 ```typescript
 interface PaginationInfo {
-  page: number
-  totalPages: number
+  page: number;
+  totalPages: number;
 }
 
 interface CacheInfo {
-  cachedAt: Date
+  cachedAt: Date;
 }
 
 interface PaginatedData<T> {
-  items: T[]
-  pagination: PaginationInfo
+  items: T[];
+  pagination: PaginationInfo;
 }
 
 interface ApiResponse<T> {
-  data: T
-  meta: ResponseMeta
+  data: T;
+  meta: ResponseMeta;
 }
 
 // Compose at usage site instead of nesting
-type UserListResponse = ApiResponse<PaginatedData<User> & CacheInfo>
+type UserListResponse = ApiResponse<PaginatedData<User> & CacheInfo>;
 
-function fetchUsers(): UserListResponse { }
+function fetchUsers(): UserListResponse {}
 // Single-level generic instantiation
 ```
 
@@ -65,16 +65,19 @@ function fetchUsers(): UserListResponse { }
 
 ```typescript
 interface ResponseBuilder<T> {
-  data: T
-  meta: ResponseMeta
+  data: T;
+  meta: ResponseMeta;
 }
 
-function withPagination<T>(items: T[], pagination: PaginationInfo): PaginatedData<T> {
-  return { items, pagination }
+function withPagination<T>(
+  items: T[],
+  pagination: PaginationInfo,
+): PaginatedData<T> {
+  return { items, pagination };
 }
 
 function withCache<T>(value: T): T & CacheInfo {
-  return { ...value, cachedAt: new Date() }
+  return { ...value, cachedAt: new Date() };
 }
 ```
 

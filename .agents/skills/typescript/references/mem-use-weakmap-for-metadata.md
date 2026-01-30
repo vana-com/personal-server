@@ -12,19 +12,19 @@ WeakMap allows garbage collection of keys when no other references exist. Use it
 **Incorrect (Map retains object references):**
 
 ```typescript
-const userMetadata = new Map<User, UserMetadata>()
+const userMetadata = new Map<User, UserMetadata>();
 
 function trackUser(user: User): void {
   userMetadata.set(user, {
     lastSeen: Date.now(),
-    pageViews: 0
-  })
+    pageViews: 0,
+  });
 }
 
 function removeUser(user: User): void {
   // Even after user is "removed" from app state,
   // Map still holds reference, preventing GC
-  userMetadata.delete(user)  // Must manually clean up
+  userMetadata.delete(user); // Must manually clean up
 }
 
 // If delete is forgotten, user objects leak forever
@@ -33,20 +33,20 @@ function removeUser(user: User): void {
 **Correct (WeakMap allows GC):**
 
 ```typescript
-const userMetadata = new WeakMap<User, UserMetadata>()
+const userMetadata = new WeakMap<User, UserMetadata>();
 
 function trackUser(user: User): void {
   userMetadata.set(user, {
     lastSeen: Date.now(),
-    pageViews: 0
-  })
+    pageViews: 0,
+  });
 }
 
 // No cleanup needed - when user object is GC'd,
 // WeakMap entry is automatically removed
 function processUsers(users: User[]): void {
   for (const user of users) {
-    trackUser(user)
+    trackUser(user);
   }
   // When users array is cleared, all metadata is cleaned up automatically
 }
@@ -56,27 +56,28 @@ function processUsers(users: User[]): void {
 
 ```typescript
 // DOM element metadata
-const elementState = new WeakMap<HTMLElement, ElementState>()
+const elementState = new WeakMap<HTMLElement, ElementState>();
 
 function attachState(element: HTMLElement): void {
-  elementState.set(element, { isExpanded: false })
+  elementState.set(element, { isExpanded: false });
   // When element is removed from DOM and GC'd, state is cleaned up
 }
 
 // Caching computed values
-const computedCache = new WeakMap<Config, ComputedConfig>()
+const computedCache = new WeakMap<Config, ComputedConfig>();
 
 function getComputedConfig(config: Config): ComputedConfig {
-  let computed = computedCache.get(config)
+  let computed = computedCache.get(config);
   if (!computed) {
-    computed = expensiveComputation(config)
-    computedCache.set(config, computed)
+    computed = expensiveComputation(config);
+    computedCache.set(config, computed);
   }
-  return computed
+  return computed;
 }
 ```
 
 **Limitations of WeakMap:**
+
 - Keys must be objects (not primitives)
 - Not iterable (no `.keys()`, `.values()`, `.entries()`)
 - No `.size` property

@@ -13,11 +13,11 @@ Object spread (`...`) creates a new object on each use. In loops, this causes N 
 
 ```typescript
 function enrichOrders(orders: Order[]): EnrichedOrder[] {
-  return orders.map(order => ({
-    ...order,  // Creates new object
-    ...calculateTotals(order),  // Spreads another object
-    processedAt: new Date()
-  }))
+  return orders.map((order) => ({
+    ...order, // Creates new object
+    ...calculateTotals(order), // Spreads another object
+    processedAt: new Date(),
+  }));
 }
 // 10,000 orders = 10,000 object spreads = significant GC pressure
 ```
@@ -26,15 +26,15 @@ function enrichOrders(orders: Order[]): EnrichedOrder[] {
 
 ```typescript
 interface EnrichedOrder extends Order {
-  tax: number
-  shipping: number
-  total: number
-  processedAt: Date
+  tax: number;
+  shipping: number;
+  total: number;
+  processedAt: Date;
 }
 
 function enrichOrders(orders: Order[]): EnrichedOrder[] {
-  return orders.map(order => {
-    const totals = calculateTotals(order)
+  return orders.map((order) => {
+    const totals = calculateTotals(order);
 
     return {
       id: order.id,
@@ -44,9 +44,9 @@ function enrichOrders(orders: Order[]): EnrichedOrder[] {
       tax: totals.tax,
       shipping: totals.shipping,
       total: totals.total,
-      processedAt: new Date()
-    }
-  })
+      processedAt: new Date(),
+    };
+  });
 }
 ```
 
@@ -56,21 +56,28 @@ function enrichOrders(orders: Order[]): EnrichedOrder[] {
 
 ```typescript
 // Incorrect - spreads on every iteration
-const result = items.reduce((acc, item) => ({
-  ...acc,
-  [item.id]: item.value
-}), {})
+const result = items.reduce(
+  (acc, item) => ({
+    ...acc,
+    [item.id]: item.value,
+  }),
+  {},
+);
 // O(n²) - each spread copies growing object
 
 // Correct - mutate accumulator
-const result = items.reduce((acc, item) => {
-  acc[item.id] = item.value
-  return acc
-}, {} as Record<string, number>)
+const result = items.reduce(
+  (acc, item) => {
+    acc[item.id] = item.value;
+    return acc;
+  },
+  {} as Record<string, number>,
+);
 // O(n) - direct property assignment
 ```
 
 **When spread is acceptable:**
+
 - Outside hot paths
 - Small objects (< 10 properties)
 - When immutability is required for state management

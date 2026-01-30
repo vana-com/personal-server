@@ -1,1 +1,1 @@
-export { deriveMasterKey, deriveScopeKey } from './derive.js'
+export { deriveMasterKey, deriveScopeKey } from "./derive.js";

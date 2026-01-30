@@ -1,6 +1,7 @@
 # Phase 3: Owner Endpoints + Gateway Integration — Atomic Implementation Plan
 
 ## Goal
+
 Deliver owner-only operations (delete, grants list, access logs), public grant verification, sync endpoint stubs, Gateway expansion (schemas, grants list, server lookup), schema-enforced data ingest, key derivation module, and access log reader. After Phase 3, the server supports the complete owner UX and is ready for the sync engine in Phase 4.
 
 **Prerequisite:** Phase 2 complete (all tasks marked `[x]` in `docs/260128-phase-2-implementation-plan.md`)
@@ -50,6 +51,7 @@ Layer 5 (final):
 ### Layer 0: Foundation (all parallel)
 
 #### Task 0.1: Update core package.json
+
 - **Status:** `[x]`
 - **Files:** `packages/core/package.json`
 - **Deps:** Phase 2 complete
@@ -75,15 +77,17 @@ Layer 5 (final):
 ---
 
 #### Task 0.2: Key derivation (master + scope keys)
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/keys/derive.ts`, `packages/core/src/keys/derive.test.ts`, `packages/core/src/keys/index.ts`
 - **Deps:** 0.1
 - **Spec:**
 
   `derive.ts`:
+
   ```typescript
-  import { hkdf } from '@noble/hashes/hkdf'
-  import { sha256 } from '@noble/hashes/sha256'
+  import { hkdf } from "@noble/hashes/hkdf";
+  import { sha256 } from "@noble/hashes/sha256";
 
   /**
    * Extracts master key material from EIP-191 signature over "vana-master-key-v1".
@@ -91,13 +95,16 @@ Layer 5 (final):
    * @param signature - 0x-prefixed hex string (65 bytes = 130 hex chars + 0x)
    * @returns 65-byte Uint8Array
    */
-  export function deriveMasterKey(signature: `0x${string}`): Uint8Array
+  export function deriveMasterKey(signature: `0x${string}`): Uint8Array;
 
   /**
    * Derives a scope-specific 32-byte key via HKDF-SHA256.
    * salt = "vana", info = "scope:{scope}" (spec §2.3).
    */
-  export function deriveScopeKey(masterKey: Uint8Array, scope: string): Uint8Array
+  export function deriveScopeKey(
+    masterKey: Uint8Array,
+    scope: string,
+  ): Uint8Array;
   ```
 
   `index.ts` — barrel re-export.
@@ -114,27 +121,31 @@ Layer 5 (final):
 ---
 
 #### Task 0.3: Access log reader
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/logging/access-reader.ts`, `packages/core/src/logging/access-reader.test.ts`
 - **Deps:** Phase 2 (AccessLogEntry type exists in access-log.ts)
 - **Spec:**
 
   ```typescript
-  import type { AccessLogEntry } from './access-log.js'
+  import type { AccessLogEntry } from "./access-log.js";
 
   export interface AccessLogReadResult {
-    logs: AccessLogEntry[]
-    total: number
-    limit: number
-    offset: number
+    logs: AccessLogEntry[];
+    total: number;
+    limit: number;
+    offset: number;
   }
 
   export interface AccessLogReader {
-    read(options?: { limit?: number; offset?: number }): Promise<AccessLogReadResult>
+    read(options?: {
+      limit?: number;
+      offset?: number;
+    }): Promise<AccessLogReadResult>;
   }
 
   /** Reads all access-*.log files, merges, sorts by timestamp DESC, paginates. */
-  export function createAccessLogReader(logsDir: string): AccessLogReader
+  export function createAccessLogReader(logsDir: string): AccessLogReader;
   ```
 
   Implementation:
@@ -161,36 +172,39 @@ Layer 5 (final):
 ### Layer 1: Gateway + Middleware + Index Extensions
 
 #### Task 1.1: GatewayClient expansion
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/gateway/client.ts` (modify), `packages/core/src/gateway/client.test.ts` (modify)
 - **Deps:** Phase 2 GatewayClient (client.ts exists with isRegisteredBuilder, getBuilder, getGrant)
 - **Spec:**
 
   Add types:
+
   ```typescript
   export interface Schema {
-    schemaId: string
-    scope: string
-    url: string          // IPFS CID URL for schema definition
+    schemaId: string;
+    scope: string;
+    url: string; // IPFS CID URL for schema definition
   }
 
   export interface ServerInfo {
-    address: string
-    endpoint: string
-    registered: boolean
-    trusted: boolean
+    address: string;
+    endpoint: string;
+    registered: boolean;
+    trusted: boolean;
   }
 
   export interface GrantListItem {
-    grantId: string
-    builder: string
-    scopes: string[]
-    expiresAt: number
-    createdAt: string
+    grantId: string;
+    builder: string;
+    scopes: string[];
+    expiresAt: number;
+    createdAt: string;
   }
   ```
 
   Add methods to `GatewayClient` interface:
+
   ```typescript
   listGrantsByUser(userAddress: string): Promise<GrantListItem[]>
   getSchemaForScope(scope: string): Promise<Schema | null>
@@ -215,14 +229,15 @@ Layer 5 (final):
 ---
 
 #### Task 1.2: Owner-check middleware
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/middleware/owner-check.ts`, `packages/server/src/middleware/owner-check.test.ts`
 - **Deps:** Phase 2 (web3-auth middleware sets c.get('auth'))
 - **Spec:**
 
   ```typescript
-  import type { MiddlewareHandler } from 'hono'
-  import { NotOwnerError } from '@personal-server/core/errors'
+  import type { MiddlewareHandler } from "hono";
+  import { NotOwnerError } from "@personal-server/core/errors";
 
   /**
    * Verifies the authenticated signer is the server owner.
@@ -231,7 +246,7 @@ Layer 5 (final):
    */
   export function createOwnerCheckMiddleware(
     serverOwner: `0x${string}`,
-  ): MiddlewareHandler
+  ): MiddlewareHandler;
   ```
 
   Implementation:
@@ -249,18 +264,21 @@ Layer 5 (final):
 ---
 
 #### Task 1.3: IndexManager — add deleteByScope()
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/storage/index/manager.ts` (modify), `packages/core/src/storage/index/manager.test.ts` (modify)
 - **Deps:** Phase 2 IndexManager
 - **Spec:**
 
   Add to `IndexManager` interface:
+
   ```typescript
   /** Deletes all index entries for a scope. Returns count of deleted rows. */
   deleteByScope(scope: string): number
   ```
 
   Implementation:
+
   ```typescript
   const deleteByScopeStmt = db.prepare<{ scope: string }>(
     'DELETE FROM data_files WHERE scope = @scope',
@@ -283,15 +301,17 @@ Layer 5 (final):
 ### Layer 2: Hierarchy Delete + Grant Verify + Schema Update
 
 #### Task 2.1: Hierarchy manager — deleteAllForScope()
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/storage/hierarchy/manager.ts` (modify), `packages/core/src/storage/hierarchy/manager.test.ts` (modify), `packages/core/src/storage/hierarchy/index.ts` (modify — re-export)
 - **Deps:** Phase 2 hierarchy manager
 - **Spec:**
 
   Add function:
+
   ```typescript
-  import { rm } from 'node:fs/promises'
-  import { buildScopeDir } from './paths.js'
+  import { rm } from "node:fs/promises";
+  import { buildScopeDir } from "./paths.js";
 
   /**
    * Delete all files for a scope by removing the scope directory recursively.
@@ -301,8 +321,8 @@ Layer 5 (final):
     options: HierarchyManagerOptions,
     scope: string,
   ): Promise<void> {
-    const scopeDir = buildScopeDir(options.dataDir, scope)
-    await rm(scopeDir, { recursive: true, force: true })
+    const scopeDir = buildScopeDir(options.dataDir, scope);
+    await rm(scopeDir, { recursive: true, force: true });
   }
   ```
 
@@ -318,23 +338,24 @@ Layer 5 (final):
 ---
 
 #### Task 2.2: POST /v1/grants/verify route
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/routes/grants.ts` (new), `packages/server/src/routes/grants.test.ts` (new)
 - **Deps:** Phase 2 (grants/verify.ts, grants/types.ts, eip712.ts)
 - **Spec:**
 
   ```typescript
-  import { Hono } from 'hono'
-  import type { Logger } from 'pino'
-  import type { GatewayClient } from '@personal-server/core/gateway'
+  import { Hono } from "hono";
+  import type { Logger } from "pino";
+  import type { GatewayClient } from "@personal-server/core/gateway";
 
   export interface GrantsRouteDeps {
-    logger: Logger
-    gateway: GatewayClient
-    serverOwner: `0x${string}`
+    logger: Logger;
+    gateway: GatewayClient;
+    serverOwner: `0x${string}`;
   }
 
-  export function grantsRoutes(deps: GrantsRouteDeps): Hono
+  export function grantsRoutes(deps: GrantsRouteDeps): Hono;
   ```
 
   `POST /verify` handler:
@@ -360,37 +381,40 @@ Layer 5 (final):
 ---
 
 #### Task 2.3: DataFileEnvelope — add optional $schema field
+
 - **Status:** `[x]`
 - **Files:** `packages/core/src/schemas/data-file.ts` (modify), `packages/core/src/schemas/data-file.test.ts` (modify)
 - **Deps:** Phase 2 (DataFileEnvelopeSchema exists)
 - **Spec:**
 
   Update schema:
+
   ```typescript
   export const DataFileEnvelopeSchema = z.object({
-    $schema: z.string().url().optional(),   // NEW: schema URL from registry
-    version: z.literal('1.0'),
+    $schema: z.string().url().optional(), // NEW: schema URL from registry
+    version: z.literal("1.0"),
     scope: z.string(),
     collectedAt: z.string().datetime(),
     data: z.record(z.unknown()),
-  })
+  });
   ```
 
   Update `createDataFileEnvelope`:
+
   ```typescript
   export function createDataFileEnvelope(
     scope: string,
     collectedAt: string,
     data: Record<string, unknown>,
-    schemaUrl?: string,               // NEW optional parameter
+    schemaUrl?: string, // NEW optional parameter
   ): DataFileEnvelope {
     return {
       ...(schemaUrl !== undefined && { $schema: schemaUrl }),
-      version: '1.0',
+      version: "1.0",
       scope,
       collectedAt,
       data,
-    }
+    };
   }
   ```
 
@@ -405,12 +429,14 @@ Layer 5 (final):
 ### Layer 3: Routes
 
 #### Task 3.1: DELETE /v1/data/:scope route
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/routes/data.ts` (modify), `packages/server/src/routes/data.test.ts` (modify)
 - **Deps:** 1.2, 1.3, 2.1
 - **Spec:**
 
   Add DELETE handler in `dataRoutes`:
+
   ```typescript
   app.delete('/:scope', async (c) => {
     // 1. Validate scope
@@ -447,18 +473,20 @@ Layer 5 (final):
 ---
 
 #### Task 3.2: GET /v1/grants route
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/routes/grants.ts` (modify — add GET), `packages/server/src/routes/grants.test.ts` (modify)
 - **Deps:** 1.1, 1.2
 - **Spec:**
 
   Add `GET /` handler in `grantsRoutes`:
+
   ```typescript
-  app.get('/', async (c) => {
+  app.get("/", async (c) => {
     // Owner auth enforced by middleware (wired in Task 4.1)
-    const grants = await deps.gateway.listGrantsByUser(deps.serverOwner)
-    return c.json({ grants })
-  })
+    const grants = await deps.gateway.listGrantsByUser(deps.serverOwner);
+    return c.json({ grants });
+  });
   ```
 
   Response: `{ grants: [{ grantId, builder, scopes, expiresAt, createdAt }] }`
@@ -472,22 +500,23 @@ Layer 5 (final):
 ---
 
 #### Task 3.3: GET /v1/access-logs route
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/routes/access-logs.ts` (new), `packages/server/src/routes/access-logs.test.ts` (new)
 - **Deps:** 0.3, 1.2
 - **Spec:**
 
   ```typescript
-  import { Hono } from 'hono'
-  import type { AccessLogReader } from '@personal-server/core/logging/access-reader'
-  import type { Logger } from 'pino'
+  import { Hono } from "hono";
+  import type { AccessLogReader } from "@personal-server/core/logging/access-reader";
+  import type { Logger } from "pino";
 
   export interface AccessLogsRouteDeps {
-    logger: Logger
-    accessLogReader: AccessLogReader
+    logger: Logger;
+    accessLogReader: AccessLogReader;
   }
 
-  export function accessLogsRoutes(deps: AccessLogsRouteDeps): Hono
+  export function accessLogsRoutes(deps: AccessLogsRouteDeps): Hono;
   ```
 
   `GET /` handler:
@@ -505,51 +534,55 @@ Layer 5 (final):
 ---
 
 #### Task 3.4: Sync stub routes
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/routes/sync.ts` (new), `packages/server/src/routes/sync.test.ts` (new)
 - **Deps:** 1.2
 - **Spec:**
 
   ```typescript
-  import { Hono } from 'hono'
-  import type { Logger } from 'pino'
+  import { Hono } from "hono";
+  import type { Logger } from "pino";
 
   export interface SyncRouteDeps {
-    logger: Logger
+    logger: Logger;
   }
 
-  export function syncRoutes(deps: SyncRouteDeps): Hono
+  export function syncRoutes(deps: SyncRouteDeps): Hono;
   ```
 
   Three stub endpoints (owner auth wired in Task 4.1):
 
   `POST /trigger`:
+
   ```typescript
-  app.post('/trigger', async (c) => {
-    deps.logger.info('Sync trigger requested (stub)')
-    return c.json({ status: 'started', message: 'Sync triggered' }, 202)
-  })
+  app.post("/trigger", async (c) => {
+    deps.logger.info("Sync trigger requested (stub)");
+    return c.json({ status: "started", message: "Sync triggered" }, 202);
+  });
   ```
 
   `GET /status`:
+
   ```typescript
-  app.get('/status', async (c) => {
+  app.get("/status", async (c) => {
     return c.json({
       lastSync: null,
       lastProcessedTimestamp: null,
       pendingFiles: 0,
       errors: [],
-    })
-  })
+    });
+  });
   ```
 
   `POST /file/:fileId`:
+
   ```typescript
-  app.post('/file/:fileId', async (c) => {
-    const fileId = c.req.param('fileId')
-    deps.logger.info({ fileId }, 'File sync requested (stub)')
-    return c.json({ fileId, status: 'started' }, 202)
-  })
+  app.post("/file/:fileId", async (c) => {
+    const fileId = c.req.param("fileId");
+    deps.logger.info({ fileId }, "File sync requested (stub)");
+    return c.json({ fileId, status: "started" }, 202);
+  });
   ```
 
 - **Tests (3 cases):**
@@ -561,46 +594,52 @@ Layer 5 (final):
 ---
 
 #### Task 3.5: POST /v1/data/:scope — schema enforcement
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/routes/data.ts` (modify POST handler), `packages/server/src/routes/data.test.ts` (modify)
 - **Deps:** 1.1, 2.3
 - **Spec:**
 
   Update `DataRouteDeps` (if not already updated by Phase 2 Task 4.1 — the gateway field should already be present):
+
   ```typescript
   export interface DataRouteDeps {
-    indexManager: IndexManager
-    hierarchyOptions: HierarchyManagerOptions
-    logger: Logger
+    indexManager: IndexManager;
+    hierarchyOptions: HierarchyManagerOptions;
+    logger: Logger;
     // These should already exist from Phase 2 Task 4.1:
-    serverOrigin: string
-    serverOwner: `0x${string}`
-    gateway: GatewayClient
-    accessLogWriter: AccessLogWriter
+    serverOrigin: string;
+    serverOwner: `0x${string}`;
+    gateway: GatewayClient;
+    accessLogWriter: AccessLogWriter;
   }
   ```
 
   Modify POST `/:scope` handler — add schema lookup before envelope creation:
+
   ```typescript
   // After scope validation, before generating collectedAt:
 
   // Look up schema via Gateway (STRICT: reject if not found)
-  let schemaUrl: string | undefined
+  let schemaUrl: string | undefined;
   try {
-    const schema = await deps.gateway.getSchemaForScope(scope)
+    const schema = await deps.gateway.getSchemaForScope(scope);
     if (!schema) {
       return c.json(
-        { error: 'NO_SCHEMA', message: `No schema registered for scope: ${scope}` },
+        {
+          error: "NO_SCHEMA",
+          message: `No schema registered for scope: ${scope}`,
+        },
         400,
-      )
+      );
     }
-    schemaUrl = schema.url
+    schemaUrl = schema.url;
   } catch (err) {
-    deps.logger.error({ err, scope }, 'Gateway schema lookup failed')
+    deps.logger.error({ err, scope }, "Gateway schema lookup failed");
     return c.json(
-      { error: 'GATEWAY_ERROR', message: 'Failed to look up schema for scope' },
+      { error: "GATEWAY_ERROR", message: "Failed to look up schema for scope" },
       502,
-    )
+    );
   }
 
   // Then: generateCollectedAt, createDataFileEnvelope(scope, collectedAt, body, schemaUrl), ...
@@ -618,70 +657,79 @@ Layer 5 (final):
 ### Layer 4: Integration
 
 #### Task 4.1: Update app.ts + bootstrap.ts + config schema
+
 - **Status:** `[x]`
 - **Files:** `packages/server/src/app.ts` (modify), `packages/server/src/bootstrap.ts` (modify), `packages/server/src/app.test.ts` (modify), `packages/server/src/bootstrap.test.ts` (modify), `packages/core/src/schemas/server-config.ts` (modify)
 - **Deps:** All previous tasks
 - **Spec:**
 
   **bootstrap.ts** additions:
+
   ```typescript
-  import { createAccessLogReader } from '@personal-server/core/logging/access-reader'
-  import type { AccessLogReader } from '@personal-server/core/logging/access-reader'
+  import { createAccessLogReader } from "@personal-server/core/logging/access-reader";
+  import type { AccessLogReader } from "@personal-server/core/logging/access-reader";
 
   export interface ServerContext {
-    app: Hono
-    logger: Logger
-    config: ServerConfig
-    startedAt: Date
-    indexManager: IndexManager
+    app: Hono;
+    logger: Logger;
+    config: ServerConfig;
+    startedAt: Date;
+    indexManager: IndexManager;
     // Phase 2 already provides:
     // gatewayClient: GatewayClient
     // Phase 3 adds:
-    accessLogReader: AccessLogReader
-    cleanup: () => void
+    accessLogReader: AccessLogReader;
+    cleanup: () => void;
   }
 
   // In createServer():
-  const logsDir = join(configDir, 'logs')
-  const accessLogReader = createAccessLogReader(logsDir)
+  const logsDir = join(configDir, "logs");
+  const accessLogReader = createAccessLogReader(logsDir);
 
   // Pass accessLogReader to createApp() and return in context
   ```
 
   **app.ts** additions — mount new routes with auth middleware:
+
   ```typescript
-  import { createOwnerCheckMiddleware } from './middleware/owner-check.js'
-  import { grantsRoutes } from './routes/grants.js'
-  import { accessLogsRoutes } from './routes/access-logs.js'
-  import { syncRoutes } from './routes/sync.js'
+  import { createOwnerCheckMiddleware } from "./middleware/owner-check.js";
+  import { grantsRoutes } from "./routes/grants.js";
+  import { accessLogsRoutes } from "./routes/access-logs.js";
+  import { syncRoutes } from "./routes/sync.js";
 
   export interface AppDeps {
     // ... existing Phase 2 deps ...
-    accessLogReader: AccessLogReader  // NEW
+    accessLogReader: AccessLogReader; // NEW
   }
 
   // In createApp():
-  const ownerCheck = createOwnerCheckMiddleware(deps.serverOwner)
-  const web3Auth = createWeb3AuthMiddleware(deps.serverOrigin)
+  const ownerCheck = createOwnerCheckMiddleware(deps.serverOwner);
+  const web3Auth = createWeb3AuthMiddleware(deps.serverOrigin);
 
   // Owner-auth middleware for DELETE /v1/data/:scope
   // (Applied per-route, not globally, since POST /v1/data/:scope has different auth)
 
   // Mount grants: POST /verify is public, GET / needs owner auth
-  app.route('/v1/grants', grantsRoutes({
-    logger: deps.logger,
-    gateway: deps.gateway,
-    serverOwner: deps.serverOwner,
-  }))
+  app.route(
+    "/v1/grants",
+    grantsRoutes({
+      logger: deps.logger,
+      gateway: deps.gateway,
+      serverOwner: deps.serverOwner,
+    }),
+  );
 
   // Mount access-logs: all owner auth
-  app.route('/v1/access-logs', accessLogsRoutes({
-    logger: deps.logger,
-    accessLogReader: deps.accessLogReader,
-  }))
+  app.route(
+    "/v1/access-logs",
+    accessLogsRoutes({
+      logger: deps.logger,
+      accessLogReader: deps.accessLogReader,
+    }),
+  );
 
   // Mount sync: all owner auth
-  app.route('/v1/sync', syncRoutes({ logger: deps.logger }))
+  app.route("/v1/sync", syncRoutes({ logger: deps.logger }));
   ```
 
   **Middleware wiring strategy for owner-only routes:**
@@ -715,6 +763,7 @@ Layer 5 (final):
 ### Layer 5: Final Verification
 
 #### Task 5.1: Install, build, test
+
 - **Status:** `[x]`
 - **Deps:** all previous
 - **Steps:**
@@ -736,41 +785,41 @@ Layer 5 (final):
 
 ## File Inventory (28 file operations)
 
-| Task | File | New/Modified |
-|------|------|-------------|
-| 0.1 | `packages/core/package.json` | Modified |
-| 0.2 | `packages/core/src/keys/derive.ts` | New |
-| 0.2 | `packages/core/src/keys/derive.test.ts` | New |
-| 0.2 | `packages/core/src/keys/index.ts` | New |
-| 0.3 | `packages/core/src/logging/access-reader.ts` | New |
-| 0.3 | `packages/core/src/logging/access-reader.test.ts` | New |
-| 1.1 | `packages/core/src/gateway/client.ts` | Modified |
-| 1.1 | `packages/core/src/gateway/client.test.ts` | Modified |
-| 1.2 | `packages/server/src/middleware/owner-check.ts` | New |
-| 1.2 | `packages/server/src/middleware/owner-check.test.ts` | New |
-| 1.3 | `packages/core/src/storage/index/manager.ts` | Modified |
-| 1.3 | `packages/core/src/storage/index/manager.test.ts` | Modified |
-| 2.1 | `packages/core/src/storage/hierarchy/manager.ts` | Modified |
-| 2.1 | `packages/core/src/storage/hierarchy/manager.test.ts` | Modified |
-| 2.1 | `packages/core/src/storage/hierarchy/index.ts` | Modified |
-| 2.2 | `packages/server/src/routes/grants.ts` | New |
-| 2.2 | `packages/server/src/routes/grants.test.ts` | New |
-| 2.3 | `packages/core/src/schemas/data-file.ts` | Modified |
-| 2.3 | `packages/core/src/schemas/data-file.test.ts` | Modified |
-| 3.1 | `packages/server/src/routes/data.ts` | Modified |
-| 3.1 | `packages/server/src/routes/data.test.ts` | Modified |
-| 3.2 | `packages/server/src/routes/grants.ts` | Modified |
-| 3.2 | `packages/server/src/routes/grants.test.ts` | Modified |
-| 3.3 | `packages/server/src/routes/access-logs.ts` | New |
-| 3.3 | `packages/server/src/routes/access-logs.test.ts` | New |
-| 3.4 | `packages/server/src/routes/sync.ts` | New |
-| 3.4 | `packages/server/src/routes/sync.test.ts` | New |
-| 3.5 | `packages/server/src/routes/data.ts` | Modified (same file as 3.1) |
-| 3.5 | `packages/server/src/routes/data.test.ts` | Modified (same file as 3.1) |
-| 4.1 | `packages/server/src/app.ts` | Modified |
-| 4.1 | `packages/server/src/app.test.ts` | Modified |
-| 4.1 | `packages/server/src/bootstrap.ts` | Modified |
-| 4.1 | `packages/server/src/bootstrap.test.ts` | Modified |
+| Task | File                                                  | New/Modified                |
+| ---- | ----------------------------------------------------- | --------------------------- |
+| 0.1  | `packages/core/package.json`                          | Modified                    |
+| 0.2  | `packages/core/src/keys/derive.ts`                    | New                         |
+| 0.2  | `packages/core/src/keys/derive.test.ts`               | New                         |
+| 0.2  | `packages/core/src/keys/index.ts`                     | New                         |
+| 0.3  | `packages/core/src/logging/access-reader.ts`          | New                         |
+| 0.3  | `packages/core/src/logging/access-reader.test.ts`     | New                         |
+| 1.1  | `packages/core/src/gateway/client.ts`                 | Modified                    |
+| 1.1  | `packages/core/src/gateway/client.test.ts`            | Modified                    |
+| 1.2  | `packages/server/src/middleware/owner-check.ts`       | New                         |
+| 1.2  | `packages/server/src/middleware/owner-check.test.ts`  | New                         |
+| 1.3  | `packages/core/src/storage/index/manager.ts`          | Modified                    |
+| 1.3  | `packages/core/src/storage/index/manager.test.ts`     | Modified                    |
+| 2.1  | `packages/core/src/storage/hierarchy/manager.ts`      | Modified                    |
+| 2.1  | `packages/core/src/storage/hierarchy/manager.test.ts` | Modified                    |
+| 2.1  | `packages/core/src/storage/hierarchy/index.ts`        | Modified                    |
+| 2.2  | `packages/server/src/routes/grants.ts`                | New                         |
+| 2.2  | `packages/server/src/routes/grants.test.ts`           | New                         |
+| 2.3  | `packages/core/src/schemas/data-file.ts`              | Modified                    |
+| 2.3  | `packages/core/src/schemas/data-file.test.ts`         | Modified                    |
+| 3.1  | `packages/server/src/routes/data.ts`                  | Modified                    |
+| 3.1  | `packages/server/src/routes/data.test.ts`             | Modified                    |
+| 3.2  | `packages/server/src/routes/grants.ts`                | Modified                    |
+| 3.2  | `packages/server/src/routes/grants.test.ts`           | Modified                    |
+| 3.3  | `packages/server/src/routes/access-logs.ts`           | New                         |
+| 3.3  | `packages/server/src/routes/access-logs.test.ts`      | New                         |
+| 3.4  | `packages/server/src/routes/sync.ts`                  | New                         |
+| 3.4  | `packages/server/src/routes/sync.test.ts`             | New                         |
+| 3.5  | `packages/server/src/routes/data.ts`                  | Modified (same file as 3.1) |
+| 3.5  | `packages/server/src/routes/data.test.ts`             | Modified (same file as 3.1) |
+| 4.1  | `packages/server/src/app.ts`                          | Modified                    |
+| 4.1  | `packages/server/src/app.test.ts`                     | Modified                    |
+| 4.1  | `packages/server/src/bootstrap.ts`                    | Modified                    |
+| 4.1  | `packages/server/src/bootstrap.test.ts`               | Modified                    |
 
 **Unique files: 13 new, 12 modified = 25 distinct files**
 
@@ -778,14 +827,14 @@ Layer 5 (final):
 
 ## Agent Parallelism Strategy
 
-| Batch | Tasks | Agents | Notes |
-|-------|-------|--------|-------|
-| 1 | 0.1, 0.2, 0.3 | 3 parallel | All independent |
-| 2 | 1.1, 1.2, 1.3 | 3 parallel | Each extends a different Phase 2 module |
-| 3 | 2.1, 2.2, 2.3 | 3 parallel | Independent modifications |
-| 4 | 3.1, 3.2, 3.3, 3.4, 3.5 | 5 parallel | All routes, independent of each other |
-| 5 | 4.1 | 1 | Integration wiring (touches shared files) |
-| 6 | 5.1 | 1 | Verification only |
+| Batch | Tasks                   | Agents     | Notes                                     |
+| ----- | ----------------------- | ---------- | ----------------------------------------- |
+| 1     | 0.1, 0.2, 0.3           | 3 parallel | All independent                           |
+| 2     | 1.1, 1.2, 1.3           | 3 parallel | Each extends a different Phase 2 module   |
+| 3     | 2.1, 2.2, 2.3           | 3 parallel | Independent modifications                 |
+| 4     | 3.1, 3.2, 3.3, 3.4, 3.5 | 5 parallel | All routes, independent of each other     |
+| 5     | 4.1                     | 1          | Integration wiring (touches shared files) |
+| 6     | 5.1                     | 1          | Verification only                         |
 
 ---
 

@@ -3,8 +3,8 @@
  * Provides deterministic wallets and header builders for integration tests.
  */
 
-import { privateKeyToAccount } from 'viem/accounts';
-import type { PrivateKeyAccount } from 'viem';
+import { privateKeyToAccount } from "viem/accounts";
+import type { PrivateKeyAccount } from "viem";
 
 export interface TestWallet {
   address: `0x${string}`;
@@ -25,7 +25,7 @@ export interface TestWallet {
 export function createTestWallet(seed: number = 0): TestWallet {
   // Derive a deterministic private key from the seed.
   // Pad the (seed + 1) value to 32 bytes hex.
-  const keyValue = (seed + 1).toString(16).padStart(64, '0');
+  const keyValue = (seed + 1).toString(16).padStart(64, "0");
   const privateKey = `0x${keyValue}` as `0x${string}`;
   const account: PrivateKeyAccount = privateKeyToAccount(privateKey);
 
@@ -37,8 +37,12 @@ export function createTestWallet(seed: number = 0): TestWallet {
     },
     async signTypedData(params): Promise<`0x${string}`> {
       return account.signTypedData({
-        domain: params.domain as Parameters<typeof account.signTypedData>[0]['domain'],
-        types: params.types as Parameters<typeof account.signTypedData>[0]['types'],
+        domain: params.domain as Parameters<
+          typeof account.signTypedData
+        >[0]["domain"],
+        types: params.types as Parameters<
+          typeof account.signTypedData
+        >[0]["types"],
         primaryType: params.primaryType,
         message: params.message,
       });
@@ -48,11 +52,11 @@ export function createTestWallet(seed: number = 0): TestWallet {
 
 /** Base64url encode a string (no padding). */
 function base64urlEncode(input: string): string {
-  return Buffer.from(input, 'utf-8')
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+  return Buffer.from(input, "utf-8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 /**
@@ -74,7 +78,7 @@ export async function buildWeb3SignedHeader(params: {
   const now = Math.floor(Date.now() / 1000);
   const payload: Record<string, unknown> = {
     aud: params.aud,
-    bodyHash: params.bodyHash ?? '',
+    bodyHash: params.bodyHash ?? "",
     exp: params.exp ?? now + 300,
     iat: params.iat ?? now,
     method: params.method,
@@ -82,7 +86,7 @@ export async function buildWeb3SignedHeader(params: {
   };
 
   if (params.grantId !== undefined) {
-    payload['grantId'] = params.grantId;
+    payload["grantId"] = params.grantId;
   }
 
   // Sort keys for deterministic serialization

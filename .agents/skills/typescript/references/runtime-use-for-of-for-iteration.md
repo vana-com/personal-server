@@ -13,16 +13,16 @@ tags: runtime, loops, iteration, for-of, readability
 
 ```typescript
 function calculateTotal(orders: Order[]): number {
-  let total = 0
+  let total = 0;
   for (let i = 0; i < orders.length; i++) {
-    total += orders[i].amount
+    total += orders[i].amount;
   }
-  return total
+  return total;
 }
 
 function processUsers(users: User[]): void {
   for (let i = 0; i < users.length; i++) {
-    sendNotification(users[i])
+    sendNotification(users[i]);
   }
 }
 ```
@@ -31,16 +31,16 @@ function processUsers(users: User[]): void {
 
 ```typescript
 function calculateTotal(orders: Order[]): number {
-  let total = 0
+  let total = 0;
   for (const order of orders) {
-    total += order.amount
+    total += order.amount;
   }
-  return total
+  return total;
 }
 
 function processUsers(users: User[]): void {
   for (const user of users) {
-    sendNotification(user)
+    sendNotification(user);
   }
 }
 ```
@@ -50,28 +50,28 @@ function processUsers(users: User[]): void {
 ```typescript
 // for-of: when you only need values
 for (const item of items) {
-  process(item)
+  process(item);
 }
 
 // forEach: when you want functional style (but can't break/return)
-items.forEach(item => process(item))
+items.forEach((item) => process(item));
 
 // for-in: only for object keys (never for arrays)
 for (const key in config) {
-  console.log(key, config[key])
+  console.log(key, config[key]);
 }
 
 // Traditional for: when you need index, or need to modify loop
 for (let i = 0; i < items.length; i++) {
   if (items[i].id === targetId) {
-    items[i] = updatedItem  // Modifying array
-    break  // Early exit
+    items[i] = updatedItem; // Modifying array
+    break; // Early exit
   }
 }
 
 // entries(): when you need both index and value
 for (const [index, item] of items.entries()) {
-  console.log(`${index}: ${item.name}`)
+  console.log(`${index}: ${item.name}`);
 }
 ```
 

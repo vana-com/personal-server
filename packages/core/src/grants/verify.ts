@@ -3,17 +3,17 @@
  * No network calls; operates entirely on the provided GrantWithSignature.
  */
 
-import { verifyTypedData } from 'viem';
+import { verifyTypedData } from "viem";
 
 import {
   InvalidSignatureError,
   GrantExpiredError,
   ScopeMismatchError,
-} from '../errors/catalog.js';
-import { scopeCoveredByGrant } from '../scopes/match.js';
+} from "../errors/catalog.js";
+import { scopeCoveredByGrant } from "../scopes/match.js";
 
-import { GRANT_DOMAIN, GRANT_TYPES, grantToEip712Message } from './eip712.js';
-import type { GrantPayload, GrantWithSignature } from './types.js';
+import { GRANT_DOMAIN, GRANT_TYPES } from "./eip712.js";
+import type { GrantPayload, GrantWithSignature } from "./types.js";
 
 export interface GrantVerificationResult {
   valid: true;
@@ -44,7 +44,7 @@ export async function verifyGrantLocal(params: {
       address: expectedOwner,
       domain: GRANT_DOMAIN,
       types: GRANT_TYPES,
-      primaryType: 'Grant' as const,
+      primaryType: "Grant" as const,
       message: {
         user: payload.user,
         builder: payload.builder,
@@ -55,11 +55,15 @@ export async function verifyGrantLocal(params: {
       signature,
     });
   } catch {
-    throw new InvalidSignatureError({ reason: 'EIP-712 signature verification failed' });
+    throw new InvalidSignatureError({
+      reason: "EIP-712 signature verification failed",
+    });
   }
 
   if (!valid) {
-    throw new InvalidSignatureError({ reason: 'Grant signature does not match expected owner' });
+    throw new InvalidSignatureError({
+      reason: "Grant signature does not match expected owner",
+    });
   }
 
   // 2. Check expiry (0n = no expiry)
@@ -81,7 +85,7 @@ export async function verifyGrantLocal(params: {
   // 4. Check request signer is the grant's builder
   if (requestSigner.toLowerCase() !== payload.builder.toLowerCase()) {
     throw new InvalidSignatureError({
-      reason: 'Request signer is not the grant builder',
+      reason: "Request signer is not the grant builder",
       expected: payload.builder,
       actual: requestSigner,
     });
