@@ -1,5 +1,5 @@
-import { hkdf } from "@noble/hashes/hkdf";
-import { sha256 } from "@noble/hashes/sha256";
+import { hkdf } from "@noble/hashes/hkdf.js";
+import { sha256 } from "@noble/hashes/sha2.js";
 
 /**
  * Extracts master key material from EIP-191 signature over "vana-master-key-v1".

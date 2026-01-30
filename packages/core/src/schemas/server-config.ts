@@ -20,14 +20,14 @@ export const ServerConfigSchema = z.object({
       address: z.string().optional(),
       origin: z.string().url().optional(),
     })
-    .default({}),
+    .default({ port: 8080 }),
   gatewayUrl: z.string().url().default("https://rpc.vana.org"),
-  logging: LoggingConfigSchema.default({}),
+  logging: LoggingConfigSchema.default({ level: "info", pretty: false }),
   storage: z
     .object({
       backend: StorageBackend.default("local"),
     })
-    .default({}),
+    .default({ backend: "local" }),
 });
 
 export type ServerConfig = z.infer<typeof ServerConfigSchema>;
