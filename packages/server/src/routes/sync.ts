@@ -11,7 +11,7 @@ import { createOwnerCheckMiddleware } from "../middleware/owner-check.js";
 export interface SyncRouteDeps {
   logger: Logger;
   serverOrigin: string;
-  serverOwner: `0x${string}`;
+  serverOwner?: `0x${string}`;
   devToken?: string;
 }
 

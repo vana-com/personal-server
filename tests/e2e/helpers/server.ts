@@ -34,7 +34,7 @@ export async function startTestServer(options?: {
     logging: { level: "fatal" },
   });
 
-  const context = createServer(config, { configDir });
+  const context = await createServer(config, { configDir });
 
   const server: ServerType = serve({
     fetch: context.app.fetch,

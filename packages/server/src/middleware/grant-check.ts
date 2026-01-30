@@ -41,7 +41,7 @@ function parseGrantPayload(grantString: string): {
  */
 export function createGrantCheckMiddleware(params: {
   gateway: GatewayClient;
-  serverOwner: `0x${string}`;
+  serverOwner?: `0x${string}`;
 }): MiddlewareHandler {
   const { gateway } = params;
 

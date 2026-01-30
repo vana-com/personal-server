@@ -13,6 +13,10 @@ import type { GatewayClient } from "@personal-server/core/gateway";
 import { createAccessLogWriter } from "@personal-server/core/logging/access-log";
 import { createAccessLogReader } from "@personal-server/core/logging/access-reader";
 import type { AccessLogReader } from "@personal-server/core/logging/access-reader";
+import {
+  deriveMasterKey,
+  recoverServerOwner,
+} from "@personal-server/core/keys";
 import type { Hono } from "hono";
 import { createApp } from "./app.js";
 import { generateDevToken } from "./dev-token.js";
@@ -33,10 +37,10 @@ export interface CreateServerOptions {
   configDir?: string;
 }
 
-export function createServer(
+export async function createServer(
   config: ServerConfig,
   options?: CreateServerOptions,
-): ServerContext {
+): Promise<ServerContext> {
   const logger = createLogger(config.logging);
   const startedAt = new Date();
 
@@ -53,8 +57,22 @@ export function createServer(
 
   const serverPort = config.server.port;
   const serverOrigin = config.server.origin ?? `http://localhost:${serverPort}`;
-  const serverOwner = (config.server.address ??
-    "0x0000000000000000000000000000000000000000") as `0x${string}`;
+
+  // Derive server owner from VANA_MASTER_KEY_SIGNATURE env var
+  const masterKeySignature = process.env.VANA_MASTER_KEY_SIGNATURE as
+    | `0x${string}`
+    | undefined;
+  let serverOwner: `0x${string}` | undefined;
+
+  if (masterKeySignature) {
+    serverOwner = await recoverServerOwner(masterKeySignature);
+    deriveMasterKey(masterKeySignature); // validate signature format
+    logger.info({ owner: serverOwner }, "Server owner derived from master key");
+  } else {
+    logger.warn(
+      "VANA_MASTER_KEY_SIGNATURE not set — owner-restricted endpoints will return 500",
+    );
+  }
 
   const logsDir = join(configDir, "logs");
   const accessLogWriter = createAccessLogWriter(logsDir);

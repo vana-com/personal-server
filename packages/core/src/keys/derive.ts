@@ -1,5 +1,6 @@
 import { hkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
+import { recoverMessageAddress } from "viem";
 
 /**
  * Extracts master key material from EIP-191 signature over "vana-master-key-v1".
@@ -25,6 +26,19 @@ export function deriveMasterKey(signature: `0x${string}`): Uint8Array {
     bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
   }
   return bytes;
+}
+
+/**
+ * Recovers the server owner address from a master key signature.
+ * Uses EIP-191 recovery over the canonical message "vana-master-key-v1".
+ */
+export async function recoverServerOwner(
+  masterKeySignature: `0x${string}`,
+): Promise<`0x${string}`> {
+  return recoverMessageAddress({
+    message: "vana-master-key-v1",
+    signature: masterKeySignature,
+  });
 }
 
 /**

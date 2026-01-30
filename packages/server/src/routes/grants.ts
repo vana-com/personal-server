@@ -14,7 +14,7 @@ import { createOwnerCheckMiddleware } from "../middleware/owner-check.js";
 export interface GrantsRouteDeps {
   logger: Logger;
   gateway: GatewayClient;
-  serverOwner: `0x${string}`;
+  serverOwner?: `0x${string}`;
   serverOrigin: string;
   devToken?: string;
 }
@@ -71,6 +71,19 @@ export function grantsRoutes(deps: GrantsRouteDeps): Hono {
 
   // GET / — list all grants for the server owner (owner auth required)
   app.get("/", web3Auth, ownerCheck, async (c) => {
+    if (!deps.serverOwner) {
+      return c.json(
+        {
+          error: {
+            code: 500,
+            errorCode: "SERVER_NOT_CONFIGURED",
+            message:
+              "Server owner address not configured. Set VANA_MASTER_KEY_SIGNATURE environment variable.",
+          },
+        },
+        500,
+      );
+    }
     const grants = await deps.gateway.listGrantsByUser(deps.serverOwner);
     return c.json({ grants });
   });

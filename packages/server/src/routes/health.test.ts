@@ -14,7 +14,7 @@ describe("healthRoute", () => {
     expect(res.status).toBe(200);
   });
 
-  it("body has status, version, and uptime", async () => {
+  it("body has status, version, uptime, and owner", async () => {
     const app = createApp();
     const res = await app.request("/health");
     const body = await res.json();
@@ -23,6 +23,27 @@ describe("healthRoute", () => {
     expect(body.version).toBe("0.0.1");
     expect(typeof body.uptime).toBe("number");
     expect(body.uptime).toBeGreaterThanOrEqual(0);
+    expect(body.owner).toBeNull();
+  });
+
+  it("includes owner when serverOwner is set", async () => {
+    const app = healthRoute({
+      version: "0.0.1",
+      startedAt: new Date(),
+      serverOwner: "0x1234567890abcdef1234567890abcdef12345678",
+    });
+    const res = await app.request("/health");
+    const body = await res.json();
+
+    expect(body.owner).toBe("0x1234567890abcdef1234567890abcdef12345678");
+  });
+
+  it("owner is null when serverOwner is not set", async () => {
+    const app = healthRoute({ version: "0.0.1", startedAt: new Date() });
+    const res = await app.request("/health");
+    const body = await res.json();
+
+    expect(body.owner).toBeNull();
   });
 
   it("uptime increases over time", async () => {

@@ -1,1 +1,5 @@
-export { deriveMasterKey, deriveScopeKey } from "./derive.js";
+export {
+  deriveMasterKey,
+  deriveScopeKey,
+  recoverServerOwner,
+} from "./derive.js";

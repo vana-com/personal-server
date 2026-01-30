@@ -25,6 +25,7 @@ Data lives in `~/.vana/` — decrypted files in `data/`, local file index at `in
 ```bash
 node -v  # >= 20
 npm install
+cp .env.example .env   # dev/test master key — see file for details
 npm run build
 ```
 

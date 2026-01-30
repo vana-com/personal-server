@@ -27,7 +27,7 @@ export interface DataRouteDeps {
   hierarchyOptions: HierarchyManagerOptions;
   logger: Logger;
   serverOrigin: string;
-  serverOwner: `0x${string}`;
+  serverOwner?: `0x${string}`;
   gateway: GatewayClient;
   accessLogWriter: AccessLogWriter;
   devToken?: string;

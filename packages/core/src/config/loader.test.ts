@@ -34,7 +34,7 @@ describe("loadConfig", () => {
       await writeFile(
         configPath,
         JSON.stringify({
-          server: { port: 3000, address: "0xabc" },
+          server: { port: 3000 },
           gatewayUrl: "https://custom.rpc.org",
           logging: { level: "debug", pretty: true },
           storage: { backend: "vana" },
@@ -44,7 +44,6 @@ describe("loadConfig", () => {
       const config = await loadConfig({ configPath });
 
       expect(config.server.port).toBe(3000);
-      expect(config.server.address).toBe("0xabc");
       expect(config.gatewayUrl).toBe("https://custom.rpc.org");
       expect(config.logging.level).toBe("debug");
       expect(config.logging.pretty).toBe(true);

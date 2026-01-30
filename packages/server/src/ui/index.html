@@ -435,6 +435,7 @@ async function loadHealth() {
       ["status", d.status, d.status === "healthy" ? "ok" : "err"],
       ["version", d.version, ""],
       ["uptime", formatUptime(d.uptime), ""],
+      ["owner", d.owner ?? "not configured", d.owner ? "ok" : "err"],
     ];
     for (var i = 0; i < items.length; i++) {
       var lbl = createEl("span", { class: "label" });

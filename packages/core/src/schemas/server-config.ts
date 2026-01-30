@@ -21,7 +21,6 @@ export const ServerConfigSchema = z.object({
   server: z
     .object({
       port: z.number().int().min(1).max(65535).default(8080),
-      address: z.string().optional(),
       origin: z.string().url().optional(),
     })
     .default({ port: 8080 }),

@@ -6,7 +6,7 @@ const DRAIN_TIMEOUT_MS = 5_000;
 
 async function main(): Promise<void> {
   const config = await loadConfig();
-  const { app, logger, devToken } = createServer(config);
+  const { app, logger, devToken } = await createServer(config);
 
   const server = serve(
     { fetch: app.fetch, port: config.server.port },

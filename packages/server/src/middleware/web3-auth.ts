@@ -29,10 +29,21 @@ export function createWeb3AuthMiddleware(
     if (deps.devToken) {
       const authHeader = c.req.header("authorization");
       if (authHeader === `Bearer ${deps.devToken}`) {
-        const ownerAddress =
-          deps.serverOwner ?? "0x0000000000000000000000000000000000000000";
+        if (!deps.serverOwner) {
+          return c.json(
+            {
+              error: {
+                code: 500,
+                errorCode: "SERVER_NOT_CONFIGURED",
+                message:
+                  "Server owner address not configured. Set VANA_MASTER_KEY_SIGNATURE environment variable.",
+              },
+            },
+            500,
+          );
+        }
         c.set("auth", {
-          signer: ownerAddress,
+          signer: deps.serverOwner,
           payload: {},
         });
         c.set("devBypass", true);

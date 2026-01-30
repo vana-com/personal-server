@@ -13,7 +13,7 @@ export interface AccessLogsRouteDeps {
   logger: Logger;
   accessLogReader: AccessLogReader;
   serverOrigin: string;
-  serverOwner: `0x${string}`;
+  serverOwner?: `0x${string}`;
   devToken?: string;
 }
 

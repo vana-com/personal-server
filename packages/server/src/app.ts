@@ -21,7 +21,7 @@ export interface AppDeps {
   indexManager: IndexManager;
   hierarchyOptions: HierarchyManagerOptions;
   serverOrigin: string;
-  serverOwner: `0x${string}`;
+  serverOwner?: `0x${string}`;
   gateway: GatewayClient;
   accessLogWriter: AccessLogWriter;
   accessLogReader: AccessLogReader;
@@ -35,7 +35,11 @@ export function createApp(deps: AppDeps): Hono {
   // Mount health route
   app.route(
     "/",
-    healthRoute({ version: deps.version, startedAt: deps.startedAt }),
+    healthRoute({
+      version: deps.version,
+      startedAt: deps.startedAt,
+      serverOwner: deps.serverOwner,
+    }),
   );
 
   // Mount data routes (ingest + read + delete)

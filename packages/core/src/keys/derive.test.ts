@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { deriveMasterKey, deriveScopeKey } from "./derive.js";
+import {
+  deriveMasterKey,
+  deriveScopeKey,
+  recoverServerOwner,
+} from "./derive.js";
+import { createTestWallet } from "../test-utils/wallet.js";
 
 // A valid 65-byte (130 hex char) signature for testing
 const VALID_SIG = `0x${"ab".repeat(65)}` as `0x${string}`;
@@ -19,6 +24,34 @@ describe("deriveMasterKey", () => {
   it("throws on wrong length (too short)", () => {
     const shortSig = `0x${"ab".repeat(30)}` as `0x${string}`;
     expect(() => deriveMasterKey(shortSig)).toThrow("Invalid signature length");
+  });
+});
+
+describe("recoverServerOwner", () => {
+  it("recovers known address from known signature", async () => {
+    const sig =
+      "0xedbb7743cce459345238442dcfb291f234a321d253485eaa58251aa0f28ea8f1410ab988bae2657b689cd24417b41e315efc22ba333024f4a6269c424ded8d361b" as `0x${string}`;
+    const owner = await recoverServerOwner(sig);
+    expect(owner.toLowerCase()).toBe(
+      "0x2ac93684679a5bda03c6160def908cdb8d46792f",
+    );
+  });
+
+  it("recovers the correct address from a master key signature", async () => {
+    const wallet = createTestWallet(0);
+    const signature = await wallet.signMessage("vana-master-key-v1");
+    const owner = await recoverServerOwner(signature);
+    expect(owner.toLowerCase()).toBe(wallet.address.toLowerCase());
+  });
+
+  it("recovers different addresses for different wallets", async () => {
+    const wallet1 = createTestWallet(0);
+    const wallet2 = createTestWallet(1);
+    const sig1 = await wallet1.signMessage("vana-master-key-v1");
+    const sig2 = await wallet2.signMessage("vana-master-key-v1");
+    const owner1 = await recoverServerOwner(sig1);
+    const owner2 = await recoverServerOwner(sig2);
+    expect(owner1.toLowerCase()).not.toBe(owner2.toLowerCase());
   });
 });
 
