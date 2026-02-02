@@ -91,6 +91,7 @@
   "dependencies": {
     "@noble/hashes": "^2.0.1",
     "better-sqlite3": "^12.6.2",
+    "openpgp": "^6.3.0",
     "pino": "^10.3.0",
     "pino-pretty": "^13.0.0",
     "viem": "^2.45.1",

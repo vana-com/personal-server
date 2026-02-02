@@ -199,7 +199,7 @@ Layer 5 (final):
 
 #### Task 0.3: OpenPGP password-based encryption/decryption (vana-sdk format)
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/storage/encryption/encrypt.ts` (new), `packages/core/src/storage/encryption/decrypt.ts` (new), `packages/core/src/storage/encryption/index.ts` (new), `packages/core/src/storage/encryption/encrypt.test.ts` (new), `packages/core/package.json` (modify — add `openpgp` dependency)
 - **Deps:** Phase 3 (keys/derive.ts provides `deriveScopeKey`)
 - **Spec:**
