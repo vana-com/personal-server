@@ -65,6 +65,27 @@ export interface GrantListItem {
   revocationSignature: string | null;
 }
 
+export interface RegisterFileParams {
+  ownerAddress: string;
+  url: string;
+  schemaId: string;
+  signature: string;
+}
+
+export interface CreateGrantParams {
+  grantorAddress: string;
+  granteeId: string;
+  grant: string;
+  fileIds: string[];
+  signature: string;
+}
+
+export interface RevokeGrantParams {
+  grantId: string;
+  grantorAddress: string;
+  signature: string;
+}
+
 export interface GatewayClient {
   isRegisteredBuilder(address: string): Promise<boolean>;
   getBuilder(address: string): Promise<Builder | null>;
@@ -72,6 +93,9 @@ export interface GatewayClient {
   listGrantsByUser(userAddress: string): Promise<GrantListItem[]>;
   getSchemaForScope(scope: string): Promise<Schema | null>;
   getServer(address: string): Promise<ServerInfo | null>;
+  registerFile(params: RegisterFileParams): Promise<{ fileId?: string }>;
+  createGrant(params: CreateGrantParams): Promise<{ grantId?: string }>;
+  revokeGrant(params: RevokeGrantParams): Promise<void>;
 }
 
 export function createGatewayClient(baseUrl: string): GatewayClient {
@@ -133,6 +157,91 @@ export function createGatewayClient(baseUrl: string): GatewayClient {
         throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
       }
       return unwrapEnvelope<ServerInfo>(res);
+    },
+
+    async registerFile(
+      params: RegisterFileParams,
+    ): Promise<{ fileId?: string }> {
+      const res = await fetch(`${base}/v1/files`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Web3Signed ${params.signature}`,
+        },
+        body: JSON.stringify({
+          ownerAddress: params.ownerAddress,
+          url: params.url,
+          schemaId: params.schemaId,
+        }),
+      });
+      // 409 = already registered, treat as success (idempotent)
+      if (res.status === 409) {
+        const body = await res.json().catch(() => ({}));
+        return {
+          fileId: (body as Record<string, unknown>).fileId as
+            | string
+            | undefined,
+        };
+      }
+      if (!res.ok) {
+        throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
+      }
+      const body = await res.json();
+      return {
+        fileId: (body as Record<string, unknown>).fileId as string | undefined,
+      };
+    },
+
+    async createGrant(
+      params: CreateGrantParams,
+    ): Promise<{ grantId?: string }> {
+      const res = await fetch(`${base}/v1/grants`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Web3Signed ${params.signature}`,
+        },
+        body: JSON.stringify({
+          grantorAddress: params.grantorAddress,
+          granteeId: params.granteeId,
+          grant: params.grant,
+          fileIds: params.fileIds,
+        }),
+      });
+      if (res.status === 409) {
+        const body = await res.json().catch(() => ({}));
+        return {
+          grantId: (body as Record<string, unknown>).grantId as
+            | string
+            | undefined,
+        };
+      }
+      if (!res.ok) {
+        throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
+      }
+      const body = await res.json();
+      return {
+        grantId: (body as Record<string, unknown>).grantId as
+          | string
+          | undefined,
+      };
+    },
+
+    async revokeGrant(params: RevokeGrantParams): Promise<void> {
+      const res = await fetch(`${base}/v1/grants/${params.grantId}/revoke`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Web3Signed ${params.signature}`,
+        },
+        body: JSON.stringify({
+          grantorAddress: params.grantorAddress,
+        }),
+      });
+      if (res.status === 409) return; // already revoked
+      if (!res.ok) {
+        throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
+      }
     },
   };
 }

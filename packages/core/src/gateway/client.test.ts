@@ -245,6 +245,247 @@ describe("GatewayClient", () => {
     });
   });
 
+  describe("registerFile", () => {
+    it("sends POST with Web3Signed auth header and returns fileId", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, { fileId: "file-123" });
+      const result = await client.registerFile({
+        ownerAddress: "0xOwner",
+        url: "https://storage.example.com/file.json",
+        schemaId: "0xschema",
+        signature: "0xsig",
+      });
+      expect(result).toEqual({ fileId: "file-123" });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      expect(fetchCall[0]).toBe(`${BASE_URL}/v1/files`);
+      expect(fetchCall[1].method).toBe("POST");
+      expect(fetchCall[1].headers.Authorization).toBe("Web3Signed 0xsig");
+    });
+
+    it("sends body with ownerAddress, url, schemaId (not signature)", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, { fileId: "file-123" });
+      await client.registerFile({
+        ownerAddress: "0xOwner",
+        url: "https://storage.example.com/file.json",
+        schemaId: "0xschema",
+        signature: "0xsig",
+      });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      expect(body).toEqual({
+        ownerAddress: "0xOwner",
+        url: "https://storage.example.com/file.json",
+        schemaId: "0xschema",
+      });
+      expect(body).not.toHaveProperty("signature");
+    });
+
+    it("sends Content-Type application/json header", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, { fileId: "file-123" });
+      await client.registerFile({
+        ownerAddress: "0xOwner",
+        url: "https://storage.example.com/file.json",
+        schemaId: "0xschema",
+        signature: "0xsig",
+      });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      expect(fetchCall[1].headers["Content-Type"]).toBe("application/json");
+    });
+
+    it("treats 409 as success (idempotent)", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(409, { fileId: "file-123" });
+      const result = await client.registerFile({
+        ownerAddress: "0xOwner",
+        url: "https://storage.example.com/file.json",
+        schemaId: "0xschema",
+        signature: "0xsig",
+      });
+      expect(result).toEqual({ fileId: "file-123" });
+    });
+
+    it("throws on non-200/409 errors", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(500);
+      await expect(
+        client.registerFile({
+          ownerAddress: "0xOwner",
+          url: "url",
+          schemaId: "0x",
+          signature: "0xsig",
+        }),
+      ).rejects.toThrow("Gateway error: 500");
+    });
+
+    it("throws on network error", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetchError(new Error("Network failure"));
+      await expect(
+        client.registerFile({
+          ownerAddress: "0xOwner",
+          url: "url",
+          schemaId: "0x",
+          signature: "0xsig",
+        }),
+      ).rejects.toThrow("Network failure");
+    });
+  });
+
+  describe("createGrant", () => {
+    it("sends POST with Web3Signed auth header and returns grantId", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, { grantId: "grant-123" });
+      const result = await client.createGrant({
+        grantorAddress: "0xGrantor",
+        granteeId: "0xGrantee",
+        grant: '{"scopes":["*"]}',
+        fileIds: ["1", "2"],
+        signature: "0xsig",
+      });
+      expect(result).toEqual({ grantId: "grant-123" });
+    });
+
+    it("sends body with grantorAddress, granteeId, grant, fileIds (not signature)", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, { grantId: "grant-123" });
+      await client.createGrant({
+        grantorAddress: "0xGrantor",
+        granteeId: "0xGrantee",
+        grant: '{"scopes":["*"]}',
+        fileIds: ["1", "2"],
+        signature: "0xsig",
+      });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      expect(body).toEqual({
+        grantorAddress: "0xGrantor",
+        granteeId: "0xGrantee",
+        grant: '{"scopes":["*"]}',
+        fileIds: ["1", "2"],
+      });
+      expect(body).not.toHaveProperty("signature");
+    });
+
+    it("sends Content-Type application/json header", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, { grantId: "grant-123" });
+      await client.createGrant({
+        grantorAddress: "0xGrantor",
+        granteeId: "0xGrantee",
+        grant: '{"scopes":["*"]}',
+        fileIds: [],
+        signature: "0xsig",
+      });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      expect(fetchCall[1].headers["Content-Type"]).toBe("application/json");
+    });
+
+    it("treats 409 as success (idempotent)", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(409, { grantId: "grant-123" });
+      const result = await client.createGrant({
+        grantorAddress: "0xGrantor",
+        granteeId: "0xGrantee",
+        grant: '{"scopes":["*"]}',
+        fileIds: [],
+        signature: "0xsig",
+      });
+      expect(result).toEqual({ grantId: "grant-123" });
+    });
+
+    it("throws on non-200/409 errors", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(500);
+      await expect(
+        client.createGrant({
+          grantorAddress: "0xGrantor",
+          granteeId: "0xGrantee",
+          grant: '{"scopes":["*"]}',
+          fileIds: [],
+          signature: "0xsig",
+        }),
+      ).rejects.toThrow("Gateway error: 500");
+    });
+
+    it("throws on network error", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetchError(new Error("Network failure"));
+      await expect(
+        client.createGrant({
+          grantorAddress: "0xGrantor",
+          granteeId: "0xGrantee",
+          grant: '{"scopes":["*"]}',
+          fileIds: [],
+          signature: "0xsig",
+        }),
+      ).rejects.toThrow("Network failure");
+    });
+  });
+
+  describe("revokeGrant", () => {
+    it("sends POST to revoke endpoint", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, {});
+      await client.revokeGrant({
+        grantId: "grant-123",
+        grantorAddress: "0xGrantor",
+        signature: "0xsig",
+      });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      expect(fetchCall[0]).toBe(`${BASE_URL}/v1/grants/grant-123/revoke`);
+      expect(fetchCall[1].method).toBe("POST");
+      expect(fetchCall[1].headers.Authorization).toBe("Web3Signed 0xsig");
+    });
+
+    it("sends body with grantorAddress only (not signature or grantId)", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, {});
+      await client.revokeGrant({
+        grantId: "grant-123",
+        grantorAddress: "0xGrantor",
+        signature: "0xsig",
+      });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      expect(body).toEqual({ grantorAddress: "0xGrantor" });
+      expect(body).not.toHaveProperty("signature");
+      expect(body).not.toHaveProperty("grantId");
+    });
+
+    it("treats 409 as success (already revoked)", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(409, {});
+      await expect(
+        client.revokeGrant({
+          grantId: "grant-123",
+          grantorAddress: "0xGrantor",
+          signature: "0xsig",
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    it("throws on non-200/409 errors", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(500);
+      await expect(
+        client.revokeGrant({
+          grantId: "grant-123",
+          grantorAddress: "0xGrantor",
+          signature: "0xsig",
+        }),
+      ).rejects.toThrow("Gateway error: 500");
+    });
+  });
+
   describe("error handling for new methods", () => {
     it("all throw on non-404 errors", async () => {
       const client = createGatewayClient(BASE_URL);

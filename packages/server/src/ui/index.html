@@ -152,6 +152,9 @@
       .kv-grid .value.err {
         color: var(--error);
       }
+      .kv-grid .value.warn {
+        color: var(--warn);
+      }
 
       textarea,
       input,
@@ -580,6 +583,22 @@
             ["uptime", formatUptime(d.uptime), ""],
             ["owner", d.owner ?? "not configured", d.owner ? "ok" : "err"],
           ];
+          if (d.identity) {
+            var registered = d.identity.serverId !== null;
+            items.push([
+              "address",
+              d.identity.address,
+              registered ? "ok" : "warn",
+            ]);
+            items.push(["publicKey", truncAddr(d.identity.publicKey), ""]);
+            items.push([
+              "identity",
+              registered ? "registered" : "not registered",
+              registered ? "ok" : "warn",
+            ]);
+          } else {
+            items.push(["identity", "not configured", ""]);
+          }
           for (var i = 0; i < items.length; i++) {
             var lbl = createEl("span", { class: "label" });
             lbl.textContent = items[i][0];
@@ -587,8 +606,37 @@
               class: "value" + (items[i][2] ? " " + items[i][2] : ""),
             });
             val.textContent = items[i][1];
+            // Copy-on-click for publicKey and serverAddress
+            if (items[i][0] === "publicKey" && d.identity) {
+              val.style.cursor = "pointer";
+              val.title = "Click to copy full public key";
+              val.addEventListener(
+                "click",
+                (function (fullKey) {
+                  return function () {
+                    navigator.clipboard.writeText(fullKey);
+                    val.textContent = "copied!";
+                    setTimeout(function () {
+                      val.textContent = truncAddr(fullKey);
+                    }, 1200);
+                  };
+                })(d.identity.publicKey),
+              );
+            }
             container.appendChild(lbl);
             container.appendChild(val);
+          }
+          if (d.identity && d.identity.serverId === null) {
+            var noteEl = createEl("span", {
+              class: "label",
+              style: { gridColumn: "1 / -1", marginTop: "8px" },
+            });
+            noteEl.textContent =
+              "Register this server via Data Connect. The Desktop App signs a ServerRegistration message with the owner\u2019s wallet, binding this serverAddress to the owner.";
+            noteEl.style.color = "var(--text-dim)";
+            noteEl.style.fontSize = "11px";
+            noteEl.style.fontStyle = "italic";
+            container.appendChild(noteEl);
           }
         } catch (e) {
           clearChildren(container);

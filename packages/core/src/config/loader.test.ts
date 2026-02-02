@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";
-import { access, mkdtemp, writeFile, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { loadConfig } from "./loader.js";
 
@@ -16,11 +16,11 @@ async function withTempDir(fn: (dir: string) => Promise<void>): Promise<void> {
 describe("loadConfig", () => {
   it("returns defaults when file is missing", async () => {
     const config = await loadConfig({
-      configPath: "/tmp/nonexistent-config-path/server.json",
+      configPath: "/tmp/nonexistent-config-path/config.json",
     });
 
     expect(config.server.port).toBe(8080);
-    expect(config.gatewayUrl).toBe(
+    expect(config.gateway.url).toBe(
       "https://data-gateway-env-dev-opendatalabs.vercel.app",
     );
     expect(config.logging.level).toBe("info");
@@ -30,12 +30,12 @@ describe("loadConfig", () => {
 
   it("parses valid config", async () => {
     await withTempDir(async (dir) => {
-      const configPath = join(dir, "server.json");
+      const configPath = join(dir, "config.json");
       await writeFile(
         configPath,
         JSON.stringify({
           server: { port: 3000 },
-          gatewayUrl: "https://custom.rpc.org",
+          gateway: { url: "https://custom.rpc.org" },
           logging: { level: "debug", pretty: true },
           storage: { backend: "vana" },
         }),
@@ -44,7 +44,7 @@ describe("loadConfig", () => {
       const config = await loadConfig({ configPath });
 
       expect(config.server.port).toBe(3000);
-      expect(config.gatewayUrl).toBe("https://custom.rpc.org");
+      expect(config.gateway.url).toBe("https://custom.rpc.org");
       expect(config.logging.level).toBe("debug");
       expect(config.logging.pretty).toBe(true);
       expect(config.storage.backend).toBe("vana");
@@ -53,7 +53,7 @@ describe("loadConfig", () => {
 
   it("merges partial config with defaults", async () => {
     await withTempDir(async (dir) => {
-      const configPath = join(dir, "server.json");
+      const configPath = join(dir, "config.json");
       await writeFile(
         configPath,
         JSON.stringify({
@@ -65,7 +65,7 @@ describe("loadConfig", () => {
 
       expect(config.server.port).toBe(9090);
       // Defaults fill in the rest
-      expect(config.gatewayUrl).toBe(
+      expect(config.gateway.url).toBe(
         "https://data-gateway-env-dev-opendatalabs.vercel.app",
       );
       expect(config.logging.level).toBe("info");
@@ -75,7 +75,7 @@ describe("loadConfig", () => {
 
   it("throws ZodError for invalid config", async () => {
     await withTempDir(async (dir) => {
-      const configPath = join(dir, "server.json");
+      const configPath = join(dir, "config.json");
       await writeFile(
         configPath,
         JSON.stringify({
@@ -89,19 +89,60 @@ describe("loadConfig", () => {
 
   it("throws for malformed JSON", async () => {
     await withTempDir(async (dir) => {
-      const configPath = join(dir, "server.json");
+      const configPath = join(dir, "config.json");
       await writeFile(configPath, "{ invalid json }}}");
 
       await expect(loadConfig({ configPath })).rejects.toThrow(SyntaxError);
     });
   });
 
-  it("does not write config file for custom configPath", async () => {
+  it("writes defaults to disk when file is missing", async () => {
     await withTempDir(async (dir) => {
-      const configPath = join(dir, "subdir", "server.json");
+      const configPath = join(dir, "subdir", "config.json");
       await loadConfig({ configPath });
 
-      await expect(access(configPath)).rejects.toThrow();
+      // File should now exist with defaults
+      await expect(access(configPath)).resolves.toBeUndefined();
+      const contents = JSON.parse(await readFile(configPath, "utf-8"));
+      expect(contents.server.port).toBe(8080);
+      expect(contents.gateway.url).toBe(
+        "https://data-gateway-env-dev-opendatalabs.vercel.app",
+      );
+    });
+  });
+
+  it("writes missing defaults back to existing partial file", async () => {
+    await withTempDir(async (dir) => {
+      const configPath = join(dir, "config.json");
+      await writeFile(configPath, JSON.stringify({ server: { port: 9090 } }));
+
+      await loadConfig({ configPath });
+
+      const onDisk = JSON.parse(await readFile(configPath, "utf-8"));
+      // User's value preserved
+      expect(onDisk.server.port).toBe(9090);
+      // Defaults filled in
+      expect(onDisk.gateway.url).toBe(
+        "https://data-gateway-env-dev-opendatalabs.vercel.app",
+      );
+      expect(onDisk.logging.level).toBe("info");
+      expect(onDisk.storage.backend).toBe("local");
+    });
+  });
+
+  it("does not rewrite file when config already has all defaults", async () => {
+    await withTempDir(async (dir) => {
+      const configPath = join(dir, "config.json");
+
+      // First load writes defaults
+      await loadConfig({ configPath });
+      const firstWrite = await readFile(configPath, "utf-8");
+
+      // Second load should not rewrite (content identical)
+      await loadConfig({ configPath });
+      const secondRead = await readFile(configPath, "utf-8");
+
+      expect(secondRead).toBe(firstWrite);
     });
   });
 

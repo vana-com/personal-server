@@ -18,7 +18,7 @@ NPM workspaces monorepo with three packages:
 | `packages/server` | Hono HTTP server — routes, middleware, composition root              |
 | `packages/cli`    | CLI entry point (placeholder)                                        |
 
-Data lives in `~/.vana/` — decrypted files in `data/`, local file index at `index.db`, config in `server.json`.
+Data lives in `~/.vana/data/`. Server config and state live in `~/.vana/server/` — local file index at `index.db`, config in `config.json`, server keypair in `key.json`.
 
 ## Setup
 
@@ -36,11 +36,11 @@ npm start             # build + start server
 npm run dev           # run from source (no build step)
 ```
 
-The server starts on the port defined in `~/.vana/server.json` (default: 8080). Health check at `GET /health`.
+The server starts on the port defined in `~/.vana/server/config.json` (default: 8080). Health check at `GET /health`.
 
 ## Configuration
 
-The server reads `~/.vana/server.json` on startup (created with defaults if missing).
+The server reads `~/.vana/server/config.json` on startup (created with defaults if missing).
 
 ```json
 {
@@ -58,6 +58,18 @@ The server reads `~/.vana/server.json` on startup (created with defaults if miss
 ```
 
 Set `"pretty": true` for human-readable logs during development.
+
+### Server Registration
+
+Register your server with the Vana Gateway so it can participate in the data portability network:
+
+```bash
+export VANA_OWNER_PRIVATE_KEY=0x...        # your owner wallet private key
+npm run register-server                     # uses server.origin from config
+npm run register-server https://my.server   # override server URL
+```
+
+The script signs an EIP-712 `ServerRegistration` message with the owner key and POSTs it to the gateway. Once registered, `GET /health` will show `delegation.registered: true`.
 
 ## Test
 

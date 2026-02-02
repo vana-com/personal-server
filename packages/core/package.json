@@ -70,6 +70,10 @@
       "types": "./dist/logging/access-reader.d.ts",
       "import": "./dist/logging/access-reader.js"
     },
+    "./signing": {
+      "types": "./dist/signing/index.d.ts",
+      "import": "./dist/signing/index.js"
+    },
     "./test-utils": {
       "types": "./dist/test-utils/index.d.ts",
       "import": "./dist/test-utils/index.js"

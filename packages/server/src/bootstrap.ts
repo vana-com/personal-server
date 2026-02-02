@@ -1,6 +1,9 @@
 import { join } from "node:path";
 import type { ServerConfig } from "@personal-server/core/schemas";
-import { DEFAULT_CONFIG_DIR } from "@personal-server/core/config";
+import {
+  DEFAULT_SERVER_DIR,
+  DEFAULT_DATA_DIR,
+} from "@personal-server/core/config";
 import { createLogger, type Logger } from "@personal-server/core/logger";
 import {
   initializeDatabase,
@@ -16,9 +19,13 @@ import type { AccessLogReader } from "@personal-server/core/logging/access-reade
 import {
   deriveMasterKey,
   recoverServerOwner,
+  loadOrCreateServerAccount,
 } from "@personal-server/core/keys";
+import type { ServerAccount } from "@personal-server/core/keys";
+import { createServerSigner } from "@personal-server/core/signing";
+import type { ServerSigner } from "@personal-server/core/signing";
 import type { Hono } from "hono";
-import { createApp } from "./app.js";
+import { createApp, type IdentityInfo } from "./app.js";
 import { generateDevToken } from "./dev-token.js";
 
 export interface ServerContext {
@@ -29,12 +36,15 @@ export interface ServerContext {
   indexManager: IndexManager;
   gatewayClient: GatewayClient;
   accessLogReader: AccessLogReader;
+  serverAccount?: ServerAccount;
+  serverSigner?: ServerSigner;
   devToken?: string;
   cleanup: () => void;
 }
 
 export interface CreateServerOptions {
-  configDir?: string;
+  serverDir?: string;
+  dataDir?: string;
 }
 
 export async function createServer(
@@ -44,19 +54,18 @@ export async function createServer(
   const logger = createLogger(config.logging);
   const startedAt = new Date();
 
-  const configDir = options?.configDir ?? DEFAULT_CONFIG_DIR;
-  const dataDir = join(configDir, "data");
-  const indexPath = join(configDir, "index.db");
-  const configPath = join(configDir, "server.json");
+  const serverDir = options?.serverDir ?? DEFAULT_SERVER_DIR;
+  const dataDir = options?.dataDir ?? DEFAULT_DATA_DIR;
+  const indexPath = join(serverDir, "index.db");
+  const configPath = join(serverDir, "config.json");
 
   const db = initializeDatabase(indexPath);
   const indexManager = createIndexManager(db);
   const hierarchyOptions: HierarchyManagerOptions = { dataDir };
 
-  const gatewayClient = createGatewayClient(config.gatewayUrl);
+  const gatewayClient = createGatewayClient(config.gateway.url);
 
-  const serverPort = config.server.port;
-  const serverOrigin = config.server.origin ?? `http://localhost:${serverPort}`;
+  const serverOrigin = config.server.origin;
 
   // Derive server owner from VANA_MASTER_KEY_SIGNATURE env var
   const masterKeySignature = process.env.VANA_MASTER_KEY_SIGNATURE as
@@ -64,17 +73,61 @@ export async function createServer(
     | undefined;
   let serverOwner: `0x${string}` | undefined;
 
+  let serverAccount: ServerAccount | undefined;
+  let serverSigner: ServerSigner | undefined;
+  let identity: IdentityInfo | undefined;
+
   if (masterKeySignature) {
     serverOwner = await recoverServerOwner(masterKeySignature);
     deriveMasterKey(masterKeySignature); // validate signature format
     logger.info({ owner: serverOwner }, "Server owner derived from master key");
+
+    // Load or create server keypair from disk
+    const keyPath = join(serverDir, "key.json");
+    serverAccount = loadOrCreateServerAccount(keyPath);
+    logger.info(
+      { owner: serverOwner, serverAddress: serverAccount.address },
+      "Server signing account loaded",
+    );
+
+    serverSigner = createServerSigner(serverAccount, {
+      chainId: config.gateway.chainId,
+      contracts: config.gateway.contracts,
+    });
+
+    // Check registration (Data Connect handles actual registration)
+    let serverId: string | null = null;
+    try {
+      const serverInfo = await gatewayClient.getServer(serverAccount.address);
+      serverId = serverInfo?.id ?? null;
+    } catch {
+      // Gateway unreachable — assume not registered
+    }
+
+    if (serverId) {
+      logger.info("Server registered with gateway — signing delegation active");
+    } else {
+      logger.warn(
+        {
+          serverAddress: serverAccount.address,
+          publicKey: serverAccount.publicKey,
+        },
+        "Server not registered. Register personal server with the gateway to enable delegation.",
+      );
+    }
+
+    identity = {
+      address: serverAccount.address,
+      publicKey: serverAccount.publicKey,
+      serverId,
+    };
   } else {
     logger.warn(
       "VANA_MASTER_KEY_SIGNATURE not set — owner-restricted endpoints will return 500",
     );
   }
 
-  const logsDir = join(configDir, "logs");
+  const logsDir = join(serverDir, "logs");
   const accessLogWriter = createAccessLogWriter(logsDir);
   const accessLogReader = createAccessLogReader(logsDir);
 
@@ -89,6 +142,7 @@ export async function createServer(
     hierarchyOptions,
     serverOrigin,
     serverOwner,
+    identity,
     gateway: gatewayClient,
     accessLogWriter,
     accessLogReader,
@@ -108,6 +162,8 @@ export async function createServer(
     indexManager,
     gatewayClient,
     accessLogReader,
+    serverAccount,
+    serverSigner,
     devToken,
     cleanup,
   };

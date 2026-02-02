@@ -15,29 +15,29 @@ export async function loadConfig(
 ): Promise<ServerConfig> {
   const configPath = options?.configPath ?? DEFAULT_CONFIG_PATH;
 
-  let raw: unknown = {};
-  let fileMissing = false;
+  let raw: string | undefined;
   try {
-    const contents = await readFile(configPath, "utf-8");
-    raw = JSON.parse(contents);
+    raw = await readFile(configPath, "utf-8");
   } catch (err: unknown) {
     if (
       err instanceof Error &&
       "code" in err &&
       (err as NodeJS.ErrnoException).code === "ENOENT"
     ) {
-      fileMissing = true;
-      raw = {};
+      // File doesn't exist — will use empty object for defaults
     } else {
       throw err;
     }
   }
 
-  const config = ServerConfigSchema.parse(raw);
+  const parsed = raw !== undefined ? JSON.parse(raw) : {};
+  const config = ServerConfigSchema.parse(parsed);
 
-  if (fileMissing && configPath === DEFAULT_CONFIG_PATH) {
+  // Write back so that defaults are visible and editable in config.json
+  const serialized = JSON.stringify(config, null, 2) + "\n";
+  if (serialized !== raw) {
     await mkdir(dirname(configPath), { recursive: true });
-    await writeFile(configPath, JSON.stringify(config, null, 2) + "\n");
+    await writeFile(configPath, serialized);
   }
 
   return config;

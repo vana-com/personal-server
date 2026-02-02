@@ -14,6 +14,12 @@ import { uiConfigRoutes } from "./routes/ui-config.js";
 import { uiRoute } from "./routes/ui.js";
 import type { Logger } from "pino";
 
+export interface IdentityInfo {
+  address: `0x${string}`;
+  publicKey: `0x${string}`;
+  serverId: string | null;
+}
+
 export interface AppDeps {
   logger: Logger;
   version: string;
@@ -22,6 +28,7 @@ export interface AppDeps {
   hierarchyOptions: HierarchyManagerOptions;
   serverOrigin: string;
   serverOwner?: `0x${string}`;
+  identity?: IdentityInfo;
   gateway: GatewayClient;
   accessLogWriter: AccessLogWriter;
   accessLogReader: AccessLogReader;
@@ -39,6 +46,7 @@ export function createApp(deps: AppDeps): Hono {
       version: deps.version,
       startedAt: deps.startedAt,
       serverOwner: deps.serverOwner,
+      identity: deps.identity,
     }),
   );
 

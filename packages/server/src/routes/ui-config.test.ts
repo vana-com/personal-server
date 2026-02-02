@@ -14,7 +14,7 @@ describe("uiConfigRoutes", () => {
   beforeEach(async () => {
     tmpDir = join(tmpdir(), `ui-config-test-${randomUUID()}`);
     await mkdir(tmpDir, { recursive: true });
-    configPath = join(tmpDir, "server.json");
+    configPath = join(tmpDir, "config.json");
   });
 
   afterEach(async () => {
@@ -75,7 +75,7 @@ describe("uiConfigRoutes", () => {
       const app = createApp();
       const newConfig = {
         server: { port: 3000 },
-        gatewayUrl: "https://rpc.vana.org",
+        gateway: { url: "https://rpc.vana.org" },
       };
 
       const res = await app.request("/config", {
