@@ -80,6 +80,10 @@
       "types": "./dist/signing/index.d.ts",
       "import": "./dist/signing/index.js"
     },
+    "./sync": {
+      "types": "./dist/sync/index.d.ts",
+      "import": "./dist/sync/index.js"
+    },
     "./test-utils": {
       "types": "./dist/test-utils/index.d.ts",
       "import": "./dist/test-utils/index.js"

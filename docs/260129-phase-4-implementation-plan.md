@@ -950,7 +950,7 @@ Layer 5 (final):
 
 #### Task 3.2: Replace sync stub routes with real implementations
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/routes/sync.ts` (modify), `packages/server/src/routes/sync.test.ts` (modify)
 - **Deps:** 3.1
 - **Spec:**
