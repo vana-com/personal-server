@@ -419,7 +419,7 @@ Layer 5 (final):
 
 #### Task 1.1: Vana Storage adapter (real API)
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/storage/adapters/vana.ts` (new), `packages/core/src/storage/adapters/vana.test.ts` (new)
 - **Deps:** 0.4
 - **Spec:**
