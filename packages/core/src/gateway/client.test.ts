@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import type { GatewayGrantResponse } from "../grants/types.js";
 
+import type { FileRecord, FileListResult } from "../sync/types.js";
 import type { GrantListItem, Schema, ServerInfo, Builder } from "./client.js";
 import { createGatewayClient } from "./client.js";
 
@@ -483,6 +484,102 @@ describe("GatewayClient", () => {
           signature: "0xsig",
         }),
       ).rejects.toThrow("Gateway error: 500");
+    });
+  });
+
+  describe("getFile", () => {
+    it("unwraps envelope and returns FileRecord on 200", async () => {
+      const client = createGatewayClient(BASE_URL);
+      const fileRecord: FileRecord = {
+        fileId: "file-123",
+        owner: "0xOwner",
+        url: "https://storage.vana.com/v1/blobs/0xOwner/instagram.profile/2026-01-21T10-00-00Z",
+        schemaId: "0xschema1",
+        createdAt: "2026-01-21T10:00:00.000Z",
+      };
+      mockFetch(200, envelope(fileRecord));
+      const result = await client.getFile("file-123");
+      expect(result).toEqual(fileRecord);
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        `${BASE_URL}/v1/files/file-123`,
+      );
+    });
+
+    it("returns null on 404", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(404);
+      const result = await client.getFile("nonexistent");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("listFilesSince", () => {
+    it("includes since query param when cursor is provided", async () => {
+      const client = createGatewayClient(BASE_URL);
+      const fileList: FileListResult = {
+        files: [
+          {
+            fileId: "file-1",
+            owner: "0xOwner",
+            url: "https://storage.vana.com/v1/blobs/0xOwner/scope/ts1",
+            schemaId: "0xschema1",
+            createdAt: "2026-01-21T10:00:00.000Z",
+          },
+        ],
+        cursor: "2026-01-22T10:00:00.000Z",
+      };
+      mockFetch(200, envelope(fileList));
+      const result = await client.listFilesSince(
+        "0xOwner",
+        "2026-01-21T10:00:00.000Z",
+      );
+      expect(result).toEqual(fileList);
+      const fetchUrl = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as string;
+      expect(fetchUrl).toContain("owner=0xOwner");
+      expect(fetchUrl).toContain("since=2026-01-21T10%3A00%3A00.000Z");
+    });
+
+    it("omits since param when cursor is null", async () => {
+      const client = createGatewayClient(BASE_URL);
+      const fileList: FileListResult = {
+        files: [],
+        cursor: null,
+      };
+      mockFetch(200, envelope(fileList));
+      const result = await client.listFilesSince("0xOwner", null);
+      expect(result).toEqual(fileList);
+      const fetchUrl = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as string;
+      expect(fetchUrl).toContain("owner=0xOwner");
+      expect(fetchUrl).not.toContain("since=");
+    });
+  });
+
+  describe("getSchema", () => {
+    it("unwraps envelope and returns Schema on 200", async () => {
+      const client = createGatewayClient(BASE_URL);
+      const schema: Schema = {
+        id: "0xschema1",
+        ownerAddress: "0xOwner",
+        name: "instagram.profile",
+        definitionUrl: "https://ipfs.io/ipfs/Qm123",
+        scope: "instagram.profile",
+        addedAt: "2026-01-21T10:00:00.000Z",
+      };
+      mockFetch(200, envelope(schema));
+      const result = await client.getSchema("0xschema1");
+      expect(result).toEqual(schema);
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        `${BASE_URL}/v1/schemas/0xschema1`,
+      );
+    });
+
+    it("returns null on 404", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(404);
+      const result = await client.getSchema("nonexistent");
+      expect(result).toBeNull();
     });
   });
 

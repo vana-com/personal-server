@@ -352,7 +352,7 @@ Layer 5 (final):
 
 #### Task 0.5: GatewayClient — add registerFile, getFile, listFilesSince, getSchema
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/gateway/client.ts` (modify), `packages/core/src/gateway/client.test.ts` (modify)
 - **Deps:** 0.1 (uses `FileRecord`, `FileListResult`, `RegisterFileParams`, `FileRegistration` types)
 - **Spec:**
