@@ -637,7 +637,7 @@ Layer 5 (final):
 
 #### Task 1.3: Sync cursor
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/sync/cursor.ts` (new), `packages/core/src/sync/cursor.test.ts` (new)
 - **Deps:** 0.2 (saveConfig, loadConfig, sync.lastProcessedTimestamp)
 - **Spec:**
