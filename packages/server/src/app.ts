@@ -47,6 +47,8 @@ export function createApp(deps: AppDeps): Hono {
       startedAt: deps.startedAt,
       serverOwner: deps.serverOwner,
       identity: deps.identity,
+      gateway: deps.gateway,
+      logger: deps.logger,
     }),
   );
 

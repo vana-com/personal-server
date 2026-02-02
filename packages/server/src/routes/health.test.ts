@@ -1,8 +1,26 @@
-import { describe, it, expect } from "vitest";
+import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
+import { describe, it, expect, vi } from "vitest";
 import { healthRoute } from "./health.js";
 
 describe("healthRoute", () => {
   const deps = { version: "0.0.1", startedAt: new Date() };
+
+  function createMockGateway(
+    overrides?: Partial<GatewayClient>,
+  ): GatewayClient {
+    return {
+      isRegisteredBuilder: vi.fn().mockResolvedValue(true),
+      getBuilder: vi.fn().mockResolvedValue(null),
+      getGrant: vi.fn().mockResolvedValue(null),
+      listGrantsByUser: vi.fn().mockResolvedValue([]),
+      getSchemaForScope: vi.fn().mockResolvedValue(null),
+      getServer: vi.fn().mockResolvedValue(null),
+      registerFile: vi.fn().mockResolvedValue({}),
+      createGrant: vi.fn().mockResolvedValue({}),
+      revokeGrant: vi.fn().mockResolvedValue(undefined),
+      ...overrides,
+    };
+  }
 
   function createApp() {
     return healthRoute(deps);
@@ -102,5 +120,42 @@ describe("healthRoute", () => {
     const body = await res.json();
 
     expect(body.identity.serverId).toBeNull();
+  });
+
+  it("re-checks gateway registration on every /health call", async () => {
+    const getServer = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: "0xlive-server",
+        ownerAddress: "0xOwner",
+        serverAddress: "0xServerAddr",
+        publicKey: "0x04PubKey",
+        serverUrl: "https://example.com",
+        addedAt: "2026-01-21T10:00:00.000Z",
+      });
+
+    const gateway = createMockGateway({ getServer });
+
+    const app = healthRoute({
+      version: "0.0.1",
+      startedAt: new Date(),
+      identity: {
+        address: "0xServerAddr",
+        publicKey: "0x04PubKey",
+        serverId: null,
+      },
+      gateway,
+    });
+
+    const first = await app.request("/health");
+    const firstBody = await first.json();
+    expect(firstBody.identity.serverId).toBeNull();
+
+    const second = await app.request("/health");
+    const secondBody = await second.json();
+    expect(secondBody.identity.serverId).toBe("0xlive-server");
+    expect(getServer).toHaveBeenCalledTimes(2);
+    expect(getServer).toHaveBeenCalledWith("0xServerAddr");
   });
 });
