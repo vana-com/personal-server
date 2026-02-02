@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
-import { verifyWeb3Signed } from "@personal-server/core/auth";
-import { ProtocolError } from "@personal-server/core/errors";
+import { verifyWeb3Signed } from "@opendatalabs/personal-server-ts-core/auth";
+import { ProtocolError } from "@opendatalabs/personal-server-ts-core/errors";
 
 export interface Web3AuthMiddlewareDeps {
   serverOrigin: string;

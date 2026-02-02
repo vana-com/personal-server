@@ -1,7 +1,7 @@
 {
   "name": "@opendatalabs/personal-server-ts",
   "version": "0.0.1",
-  "description": "CLI entry point for the Vana Personal Server",
+  "description": "Facade package for integrating the Vana Personal Server",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -31,7 +31,7 @@
     "build": "tsc --build"
   },
   "dependencies": {
-    "@personal-server/core": "*",
-    "@personal-server/server": "*"
+    "@opendatalabs/personal-server-ts-core": "*",
+    "@opendatalabs/personal-server-ts-server": "*"
   }
 }

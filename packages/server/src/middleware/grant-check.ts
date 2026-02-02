@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from "hono";
-import type { GatewayClient } from "@personal-server/core/gateway";
-import type { VerifiedAuth } from "@personal-server/core/auth";
-import { scopeCoveredByGrant } from "@personal-server/core/scopes";
+import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
+import type { VerifiedAuth } from "@opendatalabs/personal-server-ts-core/auth";
+import { scopeCoveredByGrant } from "@opendatalabs/personal-server-ts-core/scopes";
 import {
   GrantRequiredError,
   GrantRevokedError,
@@ -9,7 +9,7 @@ import {
   ScopeMismatchError,
   InvalidSignatureError,
   ProtocolError,
-} from "@personal-server/core/errors";
+} from "@opendatalabs/personal-server-ts-core/errors";
 
 /**
  * Parse the opaque `grant` string from the gateway response.

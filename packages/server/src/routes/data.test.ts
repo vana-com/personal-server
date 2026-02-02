@@ -6,20 +6,23 @@ import { pino } from "pino";
 import {
   initializeDatabase,
   createIndexManager,
-} from "@personal-server/core/storage/index";
-import type { IndexManager } from "@personal-server/core/storage/index";
-import type { HierarchyManagerOptions } from "@personal-server/core/storage/hierarchy";
+} from "@opendatalabs/personal-server-ts-core/storage/index";
+import type { IndexManager } from "@opendatalabs/personal-server-ts-core/storage/index";
+import type { HierarchyManagerOptions } from "@opendatalabs/personal-server-ts-core/storage/hierarchy";
 import {
   buildDataFilePath,
   buildScopeDir,
-} from "@personal-server/core/storage/hierarchy";
-import type { GatewayClient, Builder } from "@personal-server/core/gateway";
-import type { GatewayGrantResponse } from "@personal-server/core/grants";
-import type { AccessLogWriter } from "@personal-server/core/logging/access-log";
+} from "@opendatalabs/personal-server-ts-core/storage/hierarchy";
+import type {
+  GatewayClient,
+  Builder,
+} from "@opendatalabs/personal-server-ts-core/gateway";
+import type { GatewayGrantResponse } from "@opendatalabs/personal-server-ts-core/grants";
+import type { AccessLogWriter } from "@opendatalabs/personal-server-ts-core/logging/access-log";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
 import { dataRoutes } from "./data.js";
 import type { DataRouteDeps } from "./data.js";
 

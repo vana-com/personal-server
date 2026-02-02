@@ -1,17 +1,20 @@
 import { describe, it, expect, vi } from "vitest";
 import { pino } from "pino";
-import type { GatewayClient, Builder } from "@personal-server/core/gateway";
-import type { GrantListItem } from "@personal-server/core/gateway";
+import type {
+  GatewayClient,
+  Builder,
+} from "@opendatalabs/personal-server-ts-core/gateway";
+import type { GrantListItem } from "@opendatalabs/personal-server-ts-core/gateway";
 import {
   GRANT_DOMAIN,
   GRANT_TYPES,
   grantToEip712Message,
-} from "@personal-server/core/grants";
-import type { GrantPayload } from "@personal-server/core/grants";
+} from "@opendatalabs/personal-server-ts-core/grants";
+import type { GrantPayload } from "@opendatalabs/personal-server-ts-core/grants";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
 import { grantsRoutes } from "./grants.js";
 
 const logger = pino({ level: "silent" });

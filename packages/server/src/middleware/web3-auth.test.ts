@@ -4,8 +4,8 @@ import { createWeb3AuthMiddleware } from "./web3-auth.js";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
-import type { VerifiedAuth } from "@personal-server/core/auth";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
+import type { VerifiedAuth } from "@opendatalabs/personal-server-ts-core/auth";
 
 const SERVER_ORIGIN = "http://localhost:8080";
 const wallet = createTestWallet(0);

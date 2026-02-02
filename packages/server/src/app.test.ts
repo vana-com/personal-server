@@ -3,19 +3,19 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createApp } from "./app.js";
-import { MissingAuthError } from "@personal-server/core/errors";
+import { MissingAuthError } from "@opendatalabs/personal-server-ts-core/errors";
 import {
   initializeDatabase,
   createIndexManager,
   type IndexManager,
-} from "@personal-server/core/storage/index";
-import type { GatewayClient } from "@personal-server/core/gateway";
-import type { AccessLogWriter } from "@personal-server/core/logging/access-log";
-import type { AccessLogReader } from "@personal-server/core/logging/access-reader";
+} from "@opendatalabs/personal-server-ts-core/storage/index";
+import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
+import type { AccessLogWriter } from "@opendatalabs/personal-server-ts-core/logging/access-log";
+import type { AccessLogReader } from "@opendatalabs/personal-server-ts-core/logging/access-reader";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
 import pino from "pino";
 
 const SERVER_ORIGIN = "http://localhost:8080";

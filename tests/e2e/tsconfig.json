@@ -2,8 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "paths": {
-      "@personal-server/core/*": ["../../packages/core/src/*"],
-      "@personal-server/server/*": ["../../packages/server/src/*"]
+      "@opendatalabs/personal-server-ts-core/*": ["../../packages/core/src/*"],
+      "@opendatalabs/personal-server-ts-server/*": [
+        "../../packages/server/src/*"
+      ]
     }
   },
   "include": ["**/*.ts"],

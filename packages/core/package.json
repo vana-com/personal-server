@@ -1,5 +1,5 @@
 {
-  "name": "@personal-server/core",
+  "name": "@opendatalabs/personal-server-ts-core",
   "version": "0.0.1",
   "description": "Protocol logic for the Vana Personal Server — auth, grants, scopes, storage, keys",
   "license": "MIT",
@@ -13,6 +13,12 @@
     "url": "https://github.com/vana-com/personal-server-ts/issues"
   },
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
   "exports": {
     "./config": {
       "types": "./dist/config/index.d.ts",

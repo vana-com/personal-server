@@ -26,9 +26,44 @@ jobs:
           SHORT_SHA=$(git rev-parse --short HEAD)
           CANARY_VERSION="${BASE_VERSION}-canary.${SHORT_SHA}"
           echo "CANARY_VERSION=${CANARY_VERSION}" >> "$GITHUB_ENV"
-          cd packages/cli
-          npm version "$CANARY_VERSION" --no-git-tag-version
-      - name: Publish canary
+          CANARY_VERSION="$CANARY_VERSION" node - <<'EOF'
+          const fs = require("node:fs");
+
+          const canaryVersion = process.env.CANARY_VERSION;
+          const packageFiles = [
+            "packages/core/package.json",
+            "packages/server/package.json",
+            "packages/cli/package.json",
+          ];
+
+          for (const path of packageFiles) {
+            const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
+            pkg.version = canaryVersion;
+
+            if (path === "packages/server/package.json") {
+              pkg.dependencies["@opendatalabs/personal-server-ts-core"] =
+                canaryVersion;
+            }
+
+            if (path === "packages/cli/package.json") {
+              pkg.dependencies["@opendatalabs/personal-server-ts-core"] =
+                canaryVersion;
+              pkg.dependencies["@opendatalabs/personal-server-ts-server"] =
+                canaryVersion;
+            }
+
+            fs.writeFileSync(path, `${JSON.stringify(pkg, null, 2)}\n`);
+          }
+          EOF
+      - name: Publish core canary
+        run: cd packages/core && npm publish --tag canary --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish server canary
+        run: cd packages/server && npm publish --tag canary --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish facade canary
         run: cd packages/cli && npm publish --tag canary --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

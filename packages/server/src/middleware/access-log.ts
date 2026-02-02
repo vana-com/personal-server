@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { MiddlewareHandler } from "hono";
-import type { AccessLogWriter } from "@personal-server/core/logging/access-log";
-import type { VerifiedAuth } from "@personal-server/core/auth";
-import type { GatewayGrantResponse } from "@personal-server/core/grants";
+import type { AccessLogWriter } from "@opendatalabs/personal-server-ts-core/logging/access-log";
+import type { VerifiedAuth } from "@opendatalabs/personal-server-ts-core/auth";
+import type { GatewayGrantResponse } from "@opendatalabs/personal-server-ts-core/grants";
 
 /**
  * Logs builder data access AFTER successful response (2xx).

@@ -5,7 +5,7 @@ import { createWeb3AuthMiddleware } from "./web3-auth.js";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
 
 const SERVER_ORIGIN = "http://localhost:8080";
 const ownerWallet = createTestWallet(0);

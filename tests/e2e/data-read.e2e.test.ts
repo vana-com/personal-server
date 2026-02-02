@@ -4,7 +4,7 @@ import { startMockGateway, type MockGateway } from "./helpers/mock-gateway.js";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
 
 const wallet = createTestWallet(0);
 

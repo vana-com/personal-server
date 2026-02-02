@@ -5,9 +5,12 @@ import { createGrantCheckMiddleware } from "./grant-check.js";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
-import type { GatewayClient, Builder } from "@personal-server/core/gateway";
-import type { GatewayGrantResponse } from "@personal-server/core/grants";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
+import type {
+  GatewayClient,
+  Builder,
+} from "@opendatalabs/personal-server-ts-core/gateway";
+import type { GatewayGrantResponse } from "@opendatalabs/personal-server-ts-core/grants";
 
 const SERVER_ORIGIN = "http://localhost:8080";
 const wallet = createTestWallet(0);

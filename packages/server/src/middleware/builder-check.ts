@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from "hono";
-import type { GatewayClient } from "@personal-server/core/gateway";
-import type { VerifiedAuth } from "@personal-server/core/auth";
-import { UnregisteredBuilderError } from "@personal-server/core/errors";
+import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
+import type { VerifiedAuth } from "@opendatalabs/personal-server-ts-core/auth";
+import { UnregisteredBuilderError } from "@opendatalabs/personal-server-ts-core/errors";
 
 /**
  * Verifies authenticated signer is a registered builder via Gateway.

@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { Hono } from "hono";
 import type { MiddlewareHandler } from "hono";
-import { ServerConfigSchema } from "@personal-server/core/schemas";
+import { ServerConfigSchema } from "@opendatalabs/personal-server-ts-core/schemas";
 
 export interface UiConfigRouteDeps {
   devToken: string;
