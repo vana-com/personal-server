@@ -282,7 +282,7 @@ Layer 5 (final):
 
 #### Task 0.4: StorageAdapter interface
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/storage/adapters/interface.ts` (new), `packages/core/src/storage/adapters/index.ts` (new)
 - **Deps:** Phase 3 complete
 - **Spec:**
