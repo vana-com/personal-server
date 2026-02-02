@@ -26,7 +26,7 @@ jobs:
           SHORT_SHA=$(git rev-parse --short HEAD)
           CANARY_VERSION="${BASE_VERSION}-canary.${SHORT_SHA}"
           echo "CANARY_VERSION=${CANARY_VERSION}" >> "$GITHUB_ENV"
-          node - <<'EOF'
+          CANARY_VERSION="$CANARY_VERSION" node - <<'EOF'
           const fs = require("node:fs");
 
           const canaryVersion = process.env.CANARY_VERSION;
