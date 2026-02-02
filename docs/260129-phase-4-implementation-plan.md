@@ -690,7 +690,7 @@ Layer 5 (final):
 
 #### Task 2.1: Upload worker
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/sync/workers/upload.ts` (new), `packages/core/src/sync/workers/upload.test.ts` (new)
 - **Deps:** 0.3, 0.5, 1.1, 1.2
 - **Spec:**
