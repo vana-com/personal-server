@@ -1,29 +1,32 @@
 import { join } from "node:path";
-import type { ServerConfig } from "@personal-server/core/schemas";
+import type { ServerConfig } from "@opendatalabs/personal-server-ts-core/schemas";
 import {
   DEFAULT_SERVER_DIR,
   DEFAULT_DATA_DIR,
-} from "@personal-server/core/config";
-import { createLogger, type Logger } from "@personal-server/core/logger";
+} from "@opendatalabs/personal-server-ts-core/config";
+import {
+  createLogger,
+  type Logger,
+} from "@opendatalabs/personal-server-ts-core/logger";
 import {
   initializeDatabase,
   createIndexManager,
   type IndexManager,
-} from "@personal-server/core/storage/index";
-import type { HierarchyManagerOptions } from "@personal-server/core/storage/hierarchy";
-import { createGatewayClient } from "@personal-server/core/gateway";
-import type { GatewayClient } from "@personal-server/core/gateway";
-import { createAccessLogWriter } from "@personal-server/core/logging/access-log";
-import { createAccessLogReader } from "@personal-server/core/logging/access-reader";
-import type { AccessLogReader } from "@personal-server/core/logging/access-reader";
+} from "@opendatalabs/personal-server-ts-core/storage/index";
+import type { HierarchyManagerOptions } from "@opendatalabs/personal-server-ts-core/storage/hierarchy";
+import { createGatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
+import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
+import { createAccessLogWriter } from "@opendatalabs/personal-server-ts-core/logging/access-log";
+import { createAccessLogReader } from "@opendatalabs/personal-server-ts-core/logging/access-reader";
+import type { AccessLogReader } from "@opendatalabs/personal-server-ts-core/logging/access-reader";
 import {
   deriveMasterKey,
   recoverServerOwner,
   loadOrCreateServerAccount,
-} from "@personal-server/core/keys";
-import type { ServerAccount } from "@personal-server/core/keys";
-import { createServerSigner } from "@personal-server/core/signing";
-import type { ServerSigner } from "@personal-server/core/signing";
+} from "@opendatalabs/personal-server-ts-core/keys";
+import type { ServerAccount } from "@opendatalabs/personal-server-ts-core/keys";
+import { createServerSigner } from "@opendatalabs/personal-server-ts-core/signing";
+import type { ServerSigner } from "@opendatalabs/personal-server-ts-core/signing";
 import type { Hono } from "hono";
 import { createApp, type IdentityInfo } from "./app.js";
 import { generateDevToken } from "./dev-token.js";

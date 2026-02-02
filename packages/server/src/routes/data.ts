@@ -1,16 +1,16 @@
 import { Hono } from "hono";
-import { ScopeSchema } from "@personal-server/core/scopes";
-import { createDataFileEnvelope } from "@personal-server/core/schemas/data-file";
+import { ScopeSchema } from "@opendatalabs/personal-server-ts-core/scopes";
+import { createDataFileEnvelope } from "@opendatalabs/personal-server-ts-core/schemas/data-file";
 import {
   generateCollectedAt,
   writeDataFile,
   readDataFile,
   deleteAllForScope,
-} from "@personal-server/core/storage/hierarchy";
-import type { HierarchyManagerOptions } from "@personal-server/core/storage/hierarchy";
-import type { IndexManager } from "@personal-server/core/storage/index";
-import type { GatewayClient } from "@personal-server/core/gateway";
-import type { AccessLogWriter } from "@personal-server/core/logging/access-log";
+} from "@opendatalabs/personal-server-ts-core/storage/hierarchy";
+import type { HierarchyManagerOptions } from "@opendatalabs/personal-server-ts-core/storage/hierarchy";
+import type { IndexManager } from "@opendatalabs/personal-server-ts-core/storage/index";
+import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
+import type { AccessLogWriter } from "@opendatalabs/personal-server-ts-core/logging/access-log";
 import type { Logger } from "pino";
 import {
   createBodyLimit,

@@ -6,8 +6,11 @@
 import { Hono } from "hono";
 import type { Logger } from "pino";
 import { verifyTypedData } from "viem";
-import type { GatewayClient } from "@personal-server/core/gateway";
-import { GRANT_DOMAIN, GRANT_TYPES } from "@personal-server/core/grants";
+import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
+import {
+  GRANT_DOMAIN,
+  GRANT_TYPES,
+} from "@opendatalabs/personal-server-ts-core/grants";
 import { createWeb3AuthMiddleware } from "../middleware/web3-auth.js";
 import { createOwnerCheckMiddleware } from "../middleware/owner-check.js";
 

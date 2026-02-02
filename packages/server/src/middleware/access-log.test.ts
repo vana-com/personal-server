@@ -4,9 +4,9 @@ import { createAccessLogMiddleware } from "./access-log.js";
 import type {
   AccessLogWriter,
   AccessLogEntry,
-} from "@personal-server/core/logging/access-log";
-import type { VerifiedAuth } from "@personal-server/core/auth";
-import type { GatewayGrantResponse } from "@personal-server/core/grants";
+} from "@opendatalabs/personal-server-ts-core/logging/access-log";
+import type { VerifiedAuth } from "@opendatalabs/personal-server-ts-core/auth";
+import type { GatewayGrantResponse } from "@opendatalabs/personal-server-ts-core/grants";
 
 function createMockWriter(
   overrides: Partial<AccessLogWriter> = {},

@@ -12,11 +12,11 @@ TypeScript implementation of the Vana Data Portability Protocol's Personal Serve
 
 NPM workspaces monorepo with three packages:
 
-| Package           | Purpose                                                              |
-| ----------------- | -------------------------------------------------------------------- |
-| `packages/core`   | Protocol logic — auth, grants, scopes, storage, keys, gateway client |
-| `packages/server` | Hono HTTP server — routes, middleware, composition root              |
-| `packages/cli`    | CLI entry point (placeholder)                                        |
+| Package           | Purpose                                                                |
+| ----------------- | ---------------------------------------------------------------------- |
+| `packages/core`   | Protocol logic — auth, grants, scopes, storage, keys, gateway client   |
+| `packages/server` | Hono HTTP server — routes, middleware, composition root                |
+| `packages/cli`    | Facade package for external tools (`@opendatalabs/personal-server-ts`) |
 
 Data lives in `~/.vana/data/`. Server config and state live in `~/.vana/server/` — local file index at `index.db`, config in `config.json`, server keypair in `key.json`.
 

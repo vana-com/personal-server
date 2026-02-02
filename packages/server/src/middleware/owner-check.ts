@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
-import { NotOwnerError } from "@personal-server/core/errors";
-import type { VerifiedAuth } from "@personal-server/core/auth";
+import { NotOwnerError } from "@opendatalabs/personal-server-ts-core/errors";
+import type { VerifiedAuth } from "@opendatalabs/personal-server-ts-core/auth";
 
 /**
  * Verifies the authenticated signer is the server owner.

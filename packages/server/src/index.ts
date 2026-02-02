@@ -1,5 +1,5 @@
 import { serve } from "@hono/node-server";
-import { loadConfig } from "@personal-server/core/config";
+import { loadConfig } from "@opendatalabs/personal-server-ts-core/config";
 import { createServer } from "./bootstrap.js";
 
 const DRAIN_TIMEOUT_MS = 5_000;

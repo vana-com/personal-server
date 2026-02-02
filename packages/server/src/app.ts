@@ -1,10 +1,10 @@
 import { Hono } from "hono";
-import { ProtocolError } from "@personal-server/core/errors";
-import type { IndexManager } from "@personal-server/core/storage/index";
-import type { HierarchyManagerOptions } from "@personal-server/core/storage/hierarchy";
-import type { GatewayClient } from "@personal-server/core/gateway";
-import type { AccessLogWriter } from "@personal-server/core/logging/access-log";
-import type { AccessLogReader } from "@personal-server/core/logging/access-reader";
+import { ProtocolError } from "@opendatalabs/personal-server-ts-core/errors";
+import type { IndexManager } from "@opendatalabs/personal-server-ts-core/storage/index";
+import type { HierarchyManagerOptions } from "@opendatalabs/personal-server-ts-core/storage/hierarchy";
+import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
+import type { AccessLogWriter } from "@opendatalabs/personal-server-ts-core/logging/access-log";
+import type { AccessLogReader } from "@opendatalabs/personal-server-ts-core/logging/access-reader";
 import { healthRoute } from "./routes/health.js";
 import { dataRoutes } from "./routes/data.js";
 import { grantsRoutes } from "./routes/grants.js";

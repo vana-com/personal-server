@@ -5,7 +5,7 @@
 
 import { Hono } from "hono";
 import type { Logger } from "pino";
-import type { AccessLogReader } from "@personal-server/core/logging/access-reader";
+import type { AccessLogReader } from "@opendatalabs/personal-server-ts-core/logging/access-reader";
 import { createWeb3AuthMiddleware } from "../middleware/web3-auth.js";
 import { createOwnerCheckMiddleware } from "../middleware/owner-check.js";
 

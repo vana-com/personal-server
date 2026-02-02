@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createServer } from "./bootstrap.js";
-import { ServerConfigSchema } from "@personal-server/core/schemas";
+import { ServerConfigSchema } from "@opendatalabs/personal-server-ts-core/schemas";
 
 function makeDefaultConfig() {
   return ServerConfigSchema.parse({});
