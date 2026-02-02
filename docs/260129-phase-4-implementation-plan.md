@@ -780,7 +780,7 @@ Layer 5 (final):
 
 #### Task 2.2: Download worker
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/sync/workers/download.ts` (new), `packages/core/src/sync/workers/download.test.ts` (new)
 - **Deps:** 0.3, 0.5, 1.1, 1.2, 1.3
 - **Spec:**
