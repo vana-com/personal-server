@@ -13,7 +13,7 @@ Deliver the sync engine: OpenPGP password-based encryption/decryption (vana-sdk 
 ## Scope Decisions
 
 - **Vana Storage only** — no GDrive, Dropbox, or IPFS adapters. `StorageBackend` enum already exists but only `vana` is implemented.
-- **Placeholder REST API** for Vana Storage — `PUT`/`GET`/`DELETE`/`HEAD` against a configurable `apiUrl`. Real API will be swapped in later.
+- **Real Vana Storage API** at `storage.vana.com` — `PUT`/`GET`/`DELETE`/`HEAD` against `{apiUrl}/v1/blobs/{ownerAddress}/{key}` with `Web3Signed` auth. Vana Storage service is defined in `docs/vana-storage-design.md` and built in a separate repo.
 - **Adds `openpgp` dependency** — for OpenPGP password-based encryption (vana-sdk format compatible). Produces the same binary format as vana-sdk, enabling cross-tool interop.
 - **Layer 1 (symmetric) only** — ECIES key wrapping for recipient sharing deferred to a future phase.
 - **Per-scope HKDF-derived key used as OpenPGP password** — `hex(deriveScopeKey(masterKey, scope))` is the password passed to OpenPGP (protocol spec §2.3). vana-sdk can be updated to accept custom keys for interop.
@@ -32,7 +32,7 @@ Layer 0 (all parallel, no deps beyond Phase 3):
   0.5  GatewayClient: add registerFile, getFile, listFilesSince, getSchema
 
 Layer 1 (after Layer 0):
-  1.1  Vana Storage adapter (placeholder REST)            (after 0.4)
+  1.1  Vana Storage adapter (real API)                     (after 0.4)
   1.2  IndexManager: add findUnsynced, updateFileId       (after 0.1)
   1.3  Sync cursor (read/write lastProcessedTimestamp)    (after 0.2)
 
@@ -62,7 +62,7 @@ Layer 5 (final):
 
 #### Task 0.1: Sync types
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/sync/types.ts` (new), `packages/core/src/sync/index.ts` (new)
 - **Deps:** Phase 3 complete
 - **Spec:**
@@ -74,7 +74,7 @@ Layer 5 (final):
   export interface FileRecord {
     fileId: string;
     owner: string;
-    url: string; // e.g. "vana://storage/{userId}/{fileId}"
+    url: string; // e.g. "https://storage.vana.com/v1/blobs/{ownerAddress}/{scope}/{collectedAt}"
     schemaId: string;
     createdAt: string; // ISO 8601
   }
@@ -136,7 +136,7 @@ Layer 5 (final):
 
   ```typescript
   export const VanaStorageConfigSchema = z.object({
-    apiUrl: z.string().url().default("https://storage.vana.org"),
+    apiUrl: z.string().url().default("https://storage.vana.com"),
   });
 
   export const ServerConfigSchema = z.object({
@@ -190,7 +190,7 @@ Layer 5 (final):
   1. Default config has `sync.enabled: false`, `sync.lastProcessedTimestamp: null`
   2. `sync.enabled: true` parses correctly
   3. `sync.lastProcessedTimestamp: "2026-01-21T10:00:00Z"` parses correctly
-  4. `storage.config.vana.apiUrl` defaults to `https://storage.vana.org`
+  4. `storage.config.vana.apiUrl` defaults to `https://storage.vana.com`
   5. `saveConfig` writes JSON file, `loadConfig` reads it back identically
   6. `saveConfig` creates parent directory if missing
 - **Verify:** `npx vitest run packages/core/src/schemas/server-config && npx vitest run packages/core/src/config/`
@@ -293,7 +293,7 @@ Layer 5 (final):
   /**
    * Abstract storage backend adapter.
    * All methods operate on encrypted binary blobs.
-   * Keys are opaque strings (e.g., "vana://storage/{userId}/{fileId}").
+   * Keys are opaque strings (e.g., "{scope}/{collectedAt}").
    */
   export interface StorageAdapter {
     /**
@@ -325,6 +325,21 @@ Layer 5 (final):
      * @returns true if blob exists
      */
     exists(url: string): Promise<boolean>;
+
+    /**
+     * Bulk delete all blobs for a scope.
+     * Optional — not all backends support bulk delete.
+     * @param scope - scope identifier (dot notation)
+     * @returns count of blobs deleted
+     */
+    deleteScope?(scope: string): Promise<number>;
+
+    /**
+     * Delete all blobs for the owner.
+     * Optional — not all backends support bulk delete.
+     * @returns count of blobs deleted
+     */
+    deleteAll?(): Promise<number>;
   }
   ```
 
@@ -402,56 +417,82 @@ Layer 5 (final):
 
 ### Layer 1: Implementations
 
-#### Task 1.1: Vana Storage adapter (placeholder REST)
+#### Task 1.1: Vana Storage adapter (real API)
 
 - **Status:** `[ ]`
 - **Files:** `packages/core/src/storage/adapters/vana.ts` (new), `packages/core/src/storage/adapters/vana.test.ts` (new)
 - **Deps:** 0.4
 - **Spec:**
 
+  Targets the real Vana Storage API at `storage.vana.com` (see `docs/vana-storage-design.md` Section 7 for delta details).
+
   ```typescript
   import type { StorageAdapter } from "./interface.js";
+  import type { ServerSigner } from "../../identity/index.js";
 
   export interface VanaStorageOptions {
-    apiUrl: string; // e.g. "https://storage.vana.org"
-    userId: string; // owner address
+    apiUrl: string; // e.g. "https://storage.vana.com"
+    ownerAddress: string; // owner Ethereum address
+    signer: ServerSigner; // for Web3Signed auth headers
   }
 
   /**
-   * Placeholder Vana Storage adapter.
-   * Uses simple REST: PUT/GET/DELETE/HEAD against {apiUrl}/v1/blobs/{key}
-   * Real API will be swapped in when Vana Storage is available.
+   * Vana Storage adapter.
+   * Uses REST: PUT/GET/DELETE/HEAD against {apiUrl}/v1/blobs/{ownerAddress}/{key}
+   * Auth: Web3Signed header on all requests (see design doc Section 3).
+   * URL format: full HTTPS URL (no vana:// scheme).
    */
   export function createVanaStorageAdapter(
     options: VanaStorageOptions,
   ): StorageAdapter {
     const base = options.apiUrl.replace(/\/+$/, "");
+    const { ownerAddress, signer } = options;
 
     function blobUrl(key: string): string {
-      return `${base}/v1/blobs/${encodeURIComponent(key)}`;
+      return `${base}/v1/blobs/${ownerAddress}/${key}`;
+    }
+
+    async function authHeaders(
+      method: string,
+      uri: string,
+      body?: Uint8Array,
+    ): Promise<Record<string, string>> {
+      const header = await signer.signRequest({
+        aud: options.apiUrl,
+        method,
+        uri,
+        body,
+      });
+      return { Authorization: header };
     }
 
     return {
       async upload(key, data) {
         const url = blobUrl(key);
+        const uri = `/v1/blobs/${ownerAddress}/${key}`;
+        const auth = await authHeaders("PUT", uri, data);
         const res = await fetch(url, {
           method: "PUT",
           body: data,
-          headers: { "Content-Type": "application/octet-stream" },
+          headers: {
+            "Content-Type": "application/octet-stream",
+            ...auth,
+          },
         });
         if (!res.ok) {
           throw new Error(
             `Vana Storage upload failed: ${res.status} ${res.statusText}`,
           );
         }
-        return `vana://storage/${options.userId}/${key}`;
+        // Return full HTTPS URL (registered with Gateway as-is)
+        return url;
       },
 
       async download(storageUrl) {
-        // Parse vana:// URL to extract key, then fetch from REST API
-        const key = storageUrl.replace(`vana://storage/${options.userId}/`, "");
-        const url = blobUrl(key);
-        const res = await fetch(url);
+        // storageUrl is a full HTTPS URL from DataRegistry
+        const uri = new URL(storageUrl).pathname;
+        const auth = await authHeaders("GET", uri);
+        const res = await fetch(storageUrl, { headers: auth });
         if (res.status === 404) {
           throw new Error(`Blob not found: ${storageUrl}`);
         }
@@ -464,9 +505,12 @@ Layer 5 (final):
       },
 
       async delete(storageUrl) {
-        const key = storageUrl.replace(`vana://storage/${options.userId}/`, "");
-        const url = blobUrl(key);
-        const res = await fetch(url, { method: "DELETE" });
+        const uri = new URL(storageUrl).pathname;
+        const auth = await authHeaders("DELETE", uri);
+        const res = await fetch(storageUrl, {
+          method: "DELETE",
+          headers: auth,
+        });
         if (res.status === 404) return false;
         if (!res.ok) {
           throw new Error(
@@ -477,23 +521,54 @@ Layer 5 (final):
       },
 
       async exists(storageUrl) {
-        const key = storageUrl.replace(`vana://storage/${options.userId}/`, "");
-        const url = blobUrl(key);
-        const res = await fetch(url, { method: "HEAD" });
+        const uri = new URL(storageUrl).pathname;
+        const auth = await authHeaders("HEAD", uri);
+        const res = await fetch(storageUrl, { method: "HEAD", headers: auth });
         return res.ok;
+      },
+
+      async deleteScope(scope) {
+        const url = `${base}/v1/blobs/${ownerAddress}/${scope}`;
+        const uri = `/v1/blobs/${ownerAddress}/${scope}`;
+        const auth = await authHeaders("DELETE", uri);
+        const res = await fetch(url, { method: "DELETE", headers: auth });
+        if (!res.ok) {
+          throw new Error(
+            `Vana Storage deleteScope failed: ${res.status} ${res.statusText}`,
+          );
+        }
+        const body = await res.json();
+        return body.count ?? 0;
+      },
+
+      async deleteAll() {
+        const url = `${base}/v1/blobs/${ownerAddress}`;
+        const uri = `/v1/blobs/${ownerAddress}`;
+        const auth = await authHeaders("DELETE", uri);
+        const res = await fetch(url, { method: "DELETE", headers: auth });
+        if (!res.ok) {
+          throw new Error(
+            `Vana Storage deleteAll failed: ${res.status} ${res.statusText}`,
+          );
+        }
+        const body = await res.json();
+        return body.count ?? 0;
       },
     };
   }
   ```
 
-- **Tests (7 cases)** using mocked fetch:
-  1. `upload` sends PUT with octet-stream body, returns `vana://` URL
+- **Tests (10 cases)** using mocked fetch:
+  1. `upload` sends PUT with octet-stream body and Web3Signed auth, returns full HTTPS URL
   2. `upload` throws on non-OK response
-  3. `download` fetches blob, returns Uint8Array
+  3. `download` fetches blob with auth header, returns Uint8Array
   4. `download` throws on 404
-  5. `delete` returns true on success, false on 404
-  6. `exists` returns true on 200, false on 404
-  7. URL encoding: key with special characters is encoded correctly
+  5. `delete` returns true on success, false on 404, includes auth header
+  6. `exists` returns true on 200, false on 404, includes auth header
+  7. URL format: `upload("instagram.profile/2026-01-21T10-00-00Z")` returns `https://storage.vana.com/v1/blobs/{ownerAddress}/instagram.profile/2026-01-21T10-00-00Z`
+  8. `download`/`delete`/`exists` parse full HTTPS URLs correctly
+  9. `deleteScope("instagram.profile")` calls DELETE on scope path, returns count
+  10. `deleteAll()` calls DELETE on owner path, returns count
 - **Verify:** `npx vitest run packages/core/src/storage/adapters/`
 
 ---
@@ -1057,11 +1132,13 @@ Layer 5 (final):
     const masterKey = deriveMasterKey(masterKeySig as `0x${string}`);
 
     const vanaConfig = config.storage.config.vana ?? {
-      apiUrl: "https://storage.vana.org",
+      apiUrl: "https://storage.vana.com",
     };
+    const signer = createServerSigner(serverKeypair); // ServerSigner from identity module
     const storageAdapter = createVanaStorageAdapter({
       apiUrl: vanaConfig.apiUrl,
-      userId: serverOwner,
+      ownerAddress: serverOwner,
+      signer,
     });
 
     const cursor = createSyncCursor(join(configDir, "server.json"));
@@ -1245,7 +1322,7 @@ Layer 5 (final):
 
 - **Sync cursor persisted in `server.json`** — The `lastProcessedTimestamp` is the only recovery checkpoint (spec §4.1.7). File writes are atomic (Phase 1 design). On crash, the server resumes from the last written cursor position and re-processes any in-flight files idempotently.
 
-- **Storage key format: `{scope}/{collectedAt}`** — Deterministic key derived from the data file's scope and collectedAt timestamp. Enables idempotent re-upload (same key = same blob overwritten). Matches the local hierarchy path convention.
+- **Storage key format: `{scope}/{collectedAt}`** — Deterministic key derived from the data file's scope and collectedAt timestamp. Enables idempotent re-upload (same key = same blob overwritten). Matches the local hierarchy path convention. The adapter prepends `{ownerAddress}/` to form the full R2 key and returns full HTTPS URLs (see `docs/vana-storage-design.md` Sections 4 and 7 for URL format and auth details).
 
 - **Sequential upload processing** — `uploadAll` processes entries sequentially (not parallel) to avoid overwhelming the storage backend and to maintain deterministic ordering. Download similarly processes sequentially. The background loop runs every 60s by default.
 
