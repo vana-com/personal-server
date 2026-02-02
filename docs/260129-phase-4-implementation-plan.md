@@ -1224,7 +1224,7 @@ Layer 5 (final):
 
 #### Task 5.1: Install, build, test
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Deps:** all previous
 - **Steps:**
   1. `npm install` — installs `openpgp` dependency added in Task 0.3
