@@ -84,6 +84,14 @@
       "types": "./dist/sync/index.d.ts",
       "import": "./dist/sync/index.js"
     },
+    "./storage/encryption": {
+      "types": "./dist/storage/encryption/index.d.ts",
+      "import": "./dist/storage/encryption/index.js"
+    },
+    "./storage/adapters": {
+      "types": "./dist/storage/adapters/index.d.ts",
+      "import": "./dist/storage/adapters/index.js"
+    },
     "./test-utils": {
       "types": "./dist/test-utils/index.d.ts",
       "import": "./dist/test-utils/index.js"

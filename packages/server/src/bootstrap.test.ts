@@ -249,6 +249,79 @@ describe("createServer", () => {
     vi.unstubAllEnvs();
   });
 
+  describe("sync manager wiring", () => {
+    const knownSig =
+      "0xedbb7743cce459345238442dcfb291f234a321d253485eaa58251aa0f28ea8f1410ab988bae2657b689cd24417b41e315efc22ba333024f4a6269c424ded8d361b";
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("ServerContext has syncManager property (null when disabled)", async () => {
+      const config = makeDefaultConfig();
+      const ctx = await createServer(config, {
+        serverDir: tempDir,
+        dataDir: join(tempDir, "data"),
+      });
+
+      expect(ctx).toHaveProperty("syncManager");
+      expect(ctx.syncManager).toBeNull();
+      ctx.cleanup();
+    });
+
+    it("syncManager is null when sync.enabled is false", async () => {
+      vi.stubEnv("VANA_MASTER_KEY_SIGNATURE", knownSig);
+      const config = ServerConfigSchema.parse({ sync: { enabled: false } });
+      const ctx = await createServer(config, {
+        serverDir: tempDir,
+        dataDir: join(tempDir, "data"),
+      });
+
+      expect(ctx.syncManager).toBeNull();
+      ctx.cleanup();
+    });
+
+    it("syncManager is null when VANA_MASTER_KEY_SIGNATURE not set even if sync.enabled", async () => {
+      const config = ServerConfigSchema.parse({ sync: { enabled: true } });
+      const ctx = await createServer(config, {
+        serverDir: tempDir,
+        dataDir: join(tempDir, "data"),
+      });
+
+      expect(ctx.syncManager).toBeNull();
+      ctx.cleanup();
+    });
+
+    it("syncManager is created when sync.enabled and master key set", async () => {
+      vi.stubEnv("VANA_MASTER_KEY_SIGNATURE", knownSig);
+      const config = ServerConfigSchema.parse({ sync: { enabled: true } });
+      const ctx = await createServer(config, {
+        serverDir: tempDir,
+        dataDir: join(tempDir, "data"),
+      });
+
+      expect(ctx.syncManager).not.toBeNull();
+      expect(ctx.syncManager!.running).toBe(true);
+      ctx.cleanup();
+    });
+
+    it("cleanup stops syncManager when enabled", async () => {
+      vi.stubEnv("VANA_MASTER_KEY_SIGNATURE", knownSig);
+      const config = ServerConfigSchema.parse({ sync: { enabled: true } });
+      const ctx = await createServer(config, {
+        serverDir: tempDir,
+        dataDir: join(tempDir, "data"),
+      });
+
+      expect(ctx.syncManager!.running).toBe(true);
+      ctx.cleanup();
+      // stop() is async but cleanup fires it; running should reflect stop was called
+      // Give it a tick to settle
+      await new Promise((r) => setTimeout(r, 50));
+      expect(ctx.syncManager!.running).toBe(false);
+    });
+  });
+
   describe("identity setup", () => {
     const knownSig =
       "0xedbb7743cce459345238442dcfb291f234a321d253485eaa58251aa0f28ea8f1410ab988bae2657b689cd24417b41e315efc22ba333024f4a6269c424ded8d361b";

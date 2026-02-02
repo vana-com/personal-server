@@ -66,6 +66,7 @@ export function createApp(deps: AppDeps): Hono {
       gateway: deps.gateway,
       accessLogWriter: deps.accessLogWriter,
       devToken: deps.devToken,
+      syncManager: deps.syncManager ?? null,
     }),
   );
 

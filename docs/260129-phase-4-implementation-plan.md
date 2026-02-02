@@ -1078,7 +1078,7 @@ Layer 5 (final):
 
 #### Task 4.2: Wire sync into bootstrap.ts, app.ts, ServerContext, package.json exports
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/bootstrap.ts` (modify), `packages/server/src/app.ts` (modify), `packages/server/src/bootstrap.test.ts` (modify), `packages/server/src/app.test.ts` (modify), `packages/core/package.json` (modify)
 - **Deps:** 3.1, 3.2, 4.1
 - **Spec:**
