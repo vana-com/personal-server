@@ -1037,7 +1037,7 @@ Layer 5 (final):
 
 #### Task 4.1: POST /v1/data/:scope triggers async upload
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/server/src/routes/data.ts` (modify), `packages/server/src/routes/data.test.ts` (modify)
 - **Deps:** 3.1
 - **Spec:**

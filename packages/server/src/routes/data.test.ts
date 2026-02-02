@@ -23,6 +23,7 @@ import {
   createTestWallet,
   buildWeb3SignedHeader,
 } from "@opendatalabs/personal-server-ts-core/test-utils";
+import type { SyncManager } from "@opendatalabs/personal-server-ts-core/sync";
 import { dataRoutes } from "./data.js";
 import type { DataRouteDeps } from "./data.js";
 
@@ -323,6 +324,104 @@ describe("POST /v1/data/:scope", () => {
     const schema = await gateway.getSchemaForScope("instagram.profile");
     expect(schema).toBeDefined();
     expect(schema!.definitionUrl).toBe("https://ipfs.io/ipfs/QmTestSchema");
+  });
+
+  it("returns status 'syncing' when syncManager is provided", async () => {
+    const db2 = initializeDatabase(":memory:");
+    const indexManager2 = createIndexManager(db2);
+    const mockSyncManager = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      trigger: vi.fn(),
+      getStatus: vi.fn(),
+      notifyNewData: vi.fn(),
+      running: false,
+    } satisfies SyncManager;
+
+    const localApp = dataRoutes({
+      indexManager: indexManager2,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: "0xOwnerAddress" as `0x${string}`,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      syncManager: mockSyncManager,
+    });
+
+    const res = await localApp.request("/instagram.profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "test" }),
+    });
+    expect(res.status).toBe(201);
+
+    const json = await res.json();
+    expect(json.status).toBe("syncing");
+
+    indexManager2.close();
+  });
+
+  it("returns status 'stored' when syncManager is null", async () => {
+    const db2 = initializeDatabase(":memory:");
+    const indexManager2 = createIndexManager(db2);
+
+    const localApp = dataRoutes({
+      indexManager: indexManager2,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: "0xOwnerAddress" as `0x${string}`,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      syncManager: null,
+    });
+
+    const res = await localApp.request("/instagram.profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "test" }),
+    });
+    expect(res.status).toBe(201);
+
+    const json = await res.json();
+    expect(json.status).toBe("stored");
+
+    indexManager2.close();
+  });
+
+  it("calls notifyNewData on syncManager when provided", async () => {
+    const db2 = initializeDatabase(":memory:");
+    const indexManager2 = createIndexManager(db2);
+    const mockSyncManager = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      trigger: vi.fn(),
+      getStatus: vi.fn(),
+      notifyNewData: vi.fn(),
+      running: false,
+    } satisfies SyncManager;
+
+    const localApp = dataRoutes({
+      indexManager: indexManager2,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: "0xOwnerAddress" as `0x${string}`,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      syncManager: mockSyncManager,
+    });
+
+    await localApp.request("/instagram.profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "test" }),
+    });
+
+    expect(mockSyncManager.notifyNewData).toHaveBeenCalledOnce();
+
+    indexManager2.close();
   });
 
   it("creates two separate versions for same scope", async () => {
