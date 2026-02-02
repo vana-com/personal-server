@@ -15,6 +15,16 @@ export interface IndexManager {
   }): { scopes: ScopeSummary[]; total: number };
   findClosestByScope(scope: string, at: string): IndexEntry | undefined;
   findByFileId(fileId: string): IndexEntry | undefined;
+  /**
+   * Find all index entries where fileId is null (not yet synced to storage backend).
+   * Returns entries ordered by created_at ASC (oldest first).
+   */
+  findUnsynced(options?: { limit?: number }): IndexEntry[];
+  /**
+   * Update the fileId for an index entry (after successful upload + on-chain registration).
+   * @returns true if row was updated, false if path not found
+   */
+  updateFileId(path: string, fileId: string): boolean;
   /** Deletes all index entries for a scope. Returns count of deleted rows. */
   deleteByScope(scope: string): number;
   close(): void;
@@ -76,6 +86,18 @@ export function createIndexManager(db: Database.Database): IndexManager {
 
   const findByFileIdStmt = db.prepare<{ file_id: string }>(
     "SELECT * FROM data_files WHERE file_id = @file_id",
+  );
+
+  const findUnsyncedStmt = db.prepare(
+    "SELECT * FROM data_files WHERE file_id IS NULL ORDER BY created_at ASC",
+  );
+
+  const findUnsyncedLimitStmt = db.prepare<{ limit: number }>(
+    "SELECT * FROM data_files WHERE file_id IS NULL ORDER BY created_at ASC LIMIT @limit",
+  );
+
+  const updateFileIdStmt = db.prepare<{ file_id: string; path: string }>(
+    "UPDATE data_files SET file_id = @file_id WHERE path = @path",
   );
 
   const deleteByScopeStmt = db.prepare<{ scope: string }>(
@@ -195,6 +217,22 @@ export function createIndexManager(db: Database.Database): IndexManager {
         | RawRow
         | undefined;
       return row ? rowToEntry(row) : undefined;
+    },
+
+    findUnsynced(options) {
+      if (options?.limit !== undefined) {
+        const rows = findUnsyncedLimitStmt.all({
+          limit: options.limit,
+        }) as RawRow[];
+        return rows.map(rowToEntry);
+      }
+      const rows = findUnsyncedStmt.all() as RawRow[];
+      return rows.map(rowToEntry);
+    },
+
+    updateFileId(path, fileId) {
+      const result = updateFileIdStmt.run({ file_id: fileId, path });
+      return result.changes > 0;
     },
 
     deleteByScope(scope) {

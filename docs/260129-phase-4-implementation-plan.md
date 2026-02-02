@@ -575,7 +575,7 @@ Layer 5 (final):
 
 #### Task 1.2: IndexManager — add findUnsynced + updateFileId
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/storage/index/manager.ts` (modify), `packages/core/src/storage/index/manager.test.ts` (modify)
 - **Deps:** Phase 3 IndexManager
 - **Spec:**
