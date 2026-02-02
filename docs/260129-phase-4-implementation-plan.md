@@ -877,7 +877,7 @@ Layer 5 (final):
 
 #### Task 3.1: SyncManager (background loop, upload queue, crash recovery)
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/sync/engine/sync-manager.ts` (new), `packages/core/src/sync/engine/sync-manager.test.ts` (new)
 - **Deps:** 2.1, 2.2, 1.3
 - **Spec:**
