@@ -127,7 +127,7 @@ Layer 5 (final):
 
 #### Task 0.2: Config schema — add sync + saveConfig
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Files:** `packages/core/src/schemas/server-config.ts` (modify), `packages/core/src/config/loader.ts` (modify), `packages/core/src/config/index.ts` (modify), `packages/core/src/schemas/server-config.test.ts` (new)
 - **Deps:** Phase 3 complete
 - **Spec:**
