@@ -31,7 +31,7 @@ describe("createServer", () => {
     expect(ctx).toHaveProperty("logger");
     expect(ctx).toHaveProperty("config");
     expect(ctx).toHaveProperty("startedAt");
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("app responds to GET /health", async () => {
@@ -46,7 +46,7 @@ describe("createServer", () => {
 
     const body = await res.json();
     expect(body.status).toBe("healthy");
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("logger is a valid pino instance", async () => {
@@ -60,7 +60,7 @@ describe("createServer", () => {
     expect(typeof ctx.logger.error).toBe("function");
     expect(typeof ctx.logger.warn).toBe("function");
     expect(typeof ctx.logger.debug).toBe("function");
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("startedAt is a reasonable timestamp", async () => {
@@ -74,7 +74,7 @@ describe("createServer", () => {
 
     expect(ctx.startedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
     expect(ctx.startedAt.getTime()).toBeLessThanOrEqual(after.getTime());
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("ServerContext has indexManager property", async () => {
@@ -88,7 +88,7 @@ describe("createServer", () => {
     expect(typeof ctx.indexManager.insert).toBe("function");
     expect(typeof ctx.indexManager.findByPath).toBe("function");
     expect(typeof ctx.indexManager.close).toBe("function");
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("ServerContext has cleanup function", async () => {
@@ -99,7 +99,7 @@ describe("createServer", () => {
     });
 
     expect(typeof ctx.cleanup).toBe("function");
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("POST /v1/data/test.scope returns 400 NO_SCHEMA or 502 GATEWAY_ERROR (schema enforcement)", async () => {
@@ -119,7 +119,7 @@ describe("createServer", () => {
 
     const body = await res.json();
     expect(["NO_SCHEMA", "GATEWAY_ERROR"]).toContain(body.error);
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("cleanup() can be called without error", async () => {
@@ -129,7 +129,7 @@ describe("createServer", () => {
       dataDir: join(tempDir, "data"),
     });
 
-    expect(() => ctx.cleanup()).not.toThrow();
+    await expect(ctx.cleanup()).resolves.toBeUndefined();
   });
 
   it("ServerContext has gatewayClient property", async () => {
@@ -142,7 +142,7 @@ describe("createServer", () => {
     expect(ctx).toHaveProperty("gatewayClient");
     expect(typeof ctx.gatewayClient.isRegisteredBuilder).toBe("function");
     expect(typeof ctx.gatewayClient.getGrant).toBe("function");
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("GET /v1/data returns 401 (auth middleware wired)", async () => {
@@ -157,7 +157,7 @@ describe("createServer", () => {
 
     const body = await res.json();
     expect(body.error.errorCode).toBe("MISSING_AUTH");
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("GET /v1/data/instagram.profile returns 401 (auth middleware wired)", async () => {
@@ -172,7 +172,7 @@ describe("createServer", () => {
 
     const body = await res.json();
     expect(body.error.errorCode).toBe("MISSING_AUTH");
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("GET /v1/data/instagram.profile/versions returns 401 (auth middleware wired)", async () => {
@@ -187,7 +187,7 @@ describe("createServer", () => {
 
     const body = await res.json();
     expect(body.error.errorCode).toBe("MISSING_AUTH");
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("POST /v1/data/:scope does not require auth (schema enforcement may reject)", async () => {
@@ -205,7 +205,7 @@ describe("createServer", () => {
     // No auth required: does NOT return 401. Returns 400 (NO_SCHEMA) or 502 (gateway error).
     expect(res.status).not.toBe(401);
     expect([400, 502]).toContain(res.status);
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("config schema accepts server.origin", () => {
@@ -224,7 +224,7 @@ describe("createServer", () => {
 
     expect(ctx).toHaveProperty("accessLogReader");
     expect(typeof ctx.accessLogReader.read).toBe("function");
-    ctx.cleanup();
+    await ctx.cleanup();
   });
 
   it("derives correct owner when VANA_MASTER_KEY_SIGNATURE is set", async () => {
@@ -245,7 +245,7 @@ describe("createServer", () => {
       "0x2ac93684679a5bda03c6160def908cdb8d46792f",
     );
 
-    ctx.cleanup();
+    await ctx.cleanup();
     vi.unstubAllEnvs();
   });
 
@@ -266,7 +266,7 @@ describe("createServer", () => {
 
       expect(ctx).toHaveProperty("syncManager");
       expect(ctx.syncManager).toBeNull();
-      ctx.cleanup();
+      await ctx.cleanup();
     });
 
     it("syncManager is null when sync.enabled is false", async () => {
@@ -278,7 +278,7 @@ describe("createServer", () => {
       });
 
       expect(ctx.syncManager).toBeNull();
-      ctx.cleanup();
+      await ctx.cleanup();
     });
 
     it("syncManager is null when VANA_MASTER_KEY_SIGNATURE not set even if sync.enabled", async () => {
@@ -289,7 +289,7 @@ describe("createServer", () => {
       });
 
       expect(ctx.syncManager).toBeNull();
-      ctx.cleanup();
+      await ctx.cleanup();
     });
 
     it("syncManager is created when sync.enabled and master key set", async () => {
@@ -302,7 +302,7 @@ describe("createServer", () => {
 
       expect(ctx.syncManager).not.toBeNull();
       expect(ctx.syncManager!.running).toBe(true);
-      ctx.cleanup();
+      await ctx.cleanup();
     });
 
     it("cleanup stops syncManager when enabled", async () => {
@@ -314,7 +314,7 @@ describe("createServer", () => {
       });
 
       expect(ctx.syncManager!.running).toBe(true);
-      ctx.cleanup();
+      await ctx.cleanup();
       // stop() is async but cleanup fires it; running should reflect stop was called
       // Give it a tick to settle
       await new Promise((r) => setTimeout(r, 50));
@@ -354,7 +354,7 @@ describe("createServer", () => {
       expect(ctx.serverAccount!.publicKey).toMatch(/^0x04/);
       expect(ctx.serverSigner).toBeDefined();
 
-      ctx.cleanup();
+      await ctx.cleanup();
     });
 
     it("serverAccount is undefined when master key is not set", async () => {
@@ -371,7 +371,7 @@ describe("createServer", () => {
       expect(ctx.serverAccount).toBeUndefined();
       expect(ctx.serverSigner).toBeUndefined();
 
-      ctx.cleanup();
+      await ctx.cleanup();
     });
 
     it("health endpoint exposes identity info with just master key", async () => {
@@ -392,7 +392,7 @@ describe("createServer", () => {
       // Gateway unreachable in tests, so serverId should be null
       expect(body.identity.serverId).toBeNull();
 
-      ctx.cleanup();
+      await ctx.cleanup();
     });
 
     it("health endpoint has identity: null without master key", async () => {
@@ -407,7 +407,7 @@ describe("createServer", () => {
 
       expect(body.identity).toBeNull();
 
-      ctx.cleanup();
+      await ctx.cleanup();
     });
   });
 });

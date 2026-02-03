@@ -52,7 +52,7 @@ export interface ServerContext {
   serverSigner?: ServerSigner;
   syncManager: SyncManager | null;
   devToken?: string;
-  cleanup: () => void;
+  cleanup: () => Promise<void>;
 }
 
 export interface CreateServerOptions {
@@ -220,9 +220,9 @@ export async function createServer(
     syncManager,
   });
 
-  const cleanup = () => {
+  const cleanup = async () => {
     if (syncManager) {
-      syncManager.stop();
+      await syncManager.stop();
     }
     indexManager.close();
   };
