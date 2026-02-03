@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { ProtocolError } from "@opendatalabs/personal-server-ts-core/errors";
 import type { IndexManager } from "@opendatalabs/personal-server-ts-core/storage/index";
 import type { HierarchyManagerOptions } from "@opendatalabs/personal-server-ts-core/storage/hierarchy";
@@ -38,6 +39,17 @@ export interface AppDeps {
 
 export function createApp(deps: AppDeps): Hono {
   const app = new Hono();
+
+  // CORS — allow all origins for browser-based clients
+  app.use(
+    "*",
+    cors({
+      origin: "*",
+      allowHeaders: ["Content-Type", "Authorization"],
+      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      maxAge: 86400,
+    }),
+  );
 
   // Mount health route
   app.route(
