@@ -32,53 +32,6 @@ jobs:
             ${{ github.event.pull_request.base.ref }} \
             +refs/pull/${{ github.event.pull_request.number }}/head
 
-      - name: Diagnose OpenAI API access (sanitized)
-        if: ${{ env.OPENAI_API_KEY != '' }}
-        shell: bash
-        run: |
-          set +e
-
-          diagnose_endpoint() {
-            local label="$1"
-            local body="$2"
-            local status
-            local out_file
-
-            out_file="$(mktemp)"
-            status="$(curl -sS -o "$out_file" -w "%{http_code}" \
-              -H "Authorization: Bearer $OPENAI_API_KEY" \
-              -H "Content-Type: application/json" \
-              -d "$body" \
-              "https://api.openai.com/v1/responses" || echo "000")"
-
-            echo "$label status: $status"
-            if [ "$status" -ge 400 ]; then
-              echo "$label error body:"
-              cat "$out_file"
-              echo
-            fi
-          }
-
-          models_out="$(mktemp)"
-          models_status="$(curl -sS -o "$models_out" -w "%{http_code}" \
-            -H "Authorization: Bearer $OPENAI_API_KEY" \
-            "https://api.openai.com/v1/models" || echo "000")"
-
-          echo "List models status: $models_status"
-          if [ "$models_status" -ge 400 ]; then
-            echo "List models error body:"
-            cat "$models_out"
-            echo
-          fi
-
-          diagnose_endpoint \
-            "Responses probe (gpt-4o-mini)" \
-            '{"model":"gpt-4o-mini","input":"ping","max_output_tokens":16}'
-
-          diagnose_endpoint \
-            "Responses probe (gpt-5.2-codex)" \
-            '{"model":"gpt-5.2-codex","input":"ping","max_output_tokens":16}'
-
       - name: Run Codex
         if: ${{ env.OPENAI_API_KEY != '' }}
         uses: openai/codex-action@v1
