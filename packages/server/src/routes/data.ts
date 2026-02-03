@@ -11,6 +11,7 @@ import type { HierarchyManagerOptions } from "@opendatalabs/personal-server-ts-c
 import type { IndexManager } from "@opendatalabs/personal-server-ts-core/storage/index";
 import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
 import type { AccessLogWriter } from "@opendatalabs/personal-server-ts-core/logging/access-log";
+import type { SyncManager } from "@opendatalabs/personal-server-ts-core/sync";
 import type { Logger } from "pino";
 import {
   createBodyLimit,
@@ -30,6 +31,7 @@ export interface DataRouteDeps {
   serverOwner?: `0x${string}`;
   gateway: GatewayClient;
   accessLogWriter: AccessLogWriter;
+  syncManager?: SyncManager | null;
   devToken?: string;
 }
 
@@ -266,8 +268,15 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
       "Data file ingested",
     );
 
-    // 8. Return 201
-    return c.json({ scope, collectedAt, status: "stored" as const }, 201);
+    // 8. Notify sync manager of new data (if enabled)
+    let status: "stored" | "syncing" = "stored";
+    if (deps.syncManager) {
+      deps.syncManager.notifyNewData();
+      status = "syncing";
+    }
+
+    // 9. Return 201
+    return c.json({ scope, collectedAt, status }, 201);
   });
 
   // Owner-check middleware (web3-auth + owner-check)

@@ -11,6 +11,11 @@ export const DEFAULTS = {
   },
   storage: {
     backend: "local" as const,
+    config: {
+      vana: {
+        apiUrl: "https://storage.vana.com",
+      },
+    },
   },
   gateway: {
     url: "https://data-gateway-env-dev-opendatalabs.vercel.app",
@@ -24,6 +29,10 @@ export const DEFAULTS = {
   devUi: {
     enabled: true,
   },
+  sync: {
+    enabled: false,
+    lastProcessedTimestamp: null,
+  },
 };
 
 export const StorageBackend = z.enum([
@@ -33,6 +42,10 @@ export const StorageBackend = z.enum([
   "gdrive",
   "dropbox",
 ]);
+
+export const VanaStorageConfigSchema = z.object({
+  apiUrl: z.url().default(DEFAULTS.storage.config.vana.apiUrl),
+});
 
 export const ServerConfigSchema = z.object({
   server: z
@@ -52,6 +65,11 @@ export const ServerConfigSchema = z.object({
   storage: z
     .object({
       backend: StorageBackend.default(DEFAULTS.storage.backend),
+      config: z
+        .object({
+          vana: VanaStorageConfigSchema.optional(),
+        })
+        .default({}),
     })
     .default(DEFAULTS.storage),
   gateway: z
@@ -81,6 +99,16 @@ export const ServerConfigSchema = z.object({
       enabled: z.boolean().default(DEFAULTS.devUi.enabled),
     })
     .default(DEFAULTS.devUi),
+  sync: z
+    .object({
+      enabled: z.boolean().default(DEFAULTS.sync.enabled),
+      lastProcessedTimestamp: z
+        .string()
+        .datetime()
+        .nullable()
+        .default(DEFAULTS.sync.lastProcessedTimestamp),
+    })
+    .default(DEFAULTS.sync),
 });
 
 export type ServerConfig = z.infer<typeof ServerConfigSchema>;

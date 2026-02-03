@@ -8,6 +8,7 @@
  */
 
 import type { GatewayGrantResponse } from "../grants/types.js";
+import type { FileRecord, FileListResult } from "../sync/types.js";
 
 /** Gateway response envelope wrapping all GET responses */
 export interface GatewayEnvelope<T> {
@@ -93,6 +94,9 @@ export interface GatewayClient {
   listGrantsByUser(userAddress: string): Promise<GrantListItem[]>;
   getSchemaForScope(scope: string): Promise<Schema | null>;
   getServer(address: string): Promise<ServerInfo | null>;
+  getFile(fileId: string): Promise<FileRecord | null>;
+  listFilesSince(owner: string, cursor: string | null): Promise<FileListResult>;
+  getSchema(schemaId: string): Promise<Schema | null>;
   registerFile(params: RegisterFileParams): Promise<{ fileId?: string }>;
   createGrant(params: CreateGrantParams): Promise<{ grantId?: string }>;
   revokeGrant(params: RevokeGrantParams): Promise<void>;
@@ -157,6 +161,39 @@ export function createGatewayClient(baseUrl: string): GatewayClient {
         throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
       }
       return unwrapEnvelope<ServerInfo>(res);
+    },
+
+    async getFile(fileId: string): Promise<FileRecord | null> {
+      const res = await fetch(`${base}/v1/files/${fileId}`);
+      if (res.status === 404) return null;
+      if (!res.ok) {
+        throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
+      }
+      return unwrapEnvelope<FileRecord>(res);
+    },
+
+    async listFilesSince(
+      owner: string,
+      cursor: string | null,
+    ): Promise<FileListResult> {
+      const params = new URLSearchParams({ owner });
+      if (cursor !== null) {
+        params.set("since", cursor);
+      }
+      const res = await fetch(`${base}/v1/files?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
+      }
+      return unwrapEnvelope<FileListResult>(res);
+    },
+
+    async getSchema(schemaId: string): Promise<Schema | null> {
+      const res = await fetch(`${base}/v1/schemas/${schemaId}`);
+      if (res.status === 404) return null;
+      if (!res.ok) {
+        throw new Error(`Gateway error: ${res.status} ${res.statusText}`);
+      }
+      return unwrapEnvelope<Schema>(res);
     },
 
     async registerFile(
@@ -228,8 +265,8 @@ export function createGatewayClient(baseUrl: string): GatewayClient {
     },
 
     async revokeGrant(params: RevokeGrantParams): Promise<void> {
-      const res = await fetch(`${base}/v1/grants/${params.grantId}/revoke`, {
-        method: "POST",
+      const res = await fetch(`${base}/v1/grants/${params.grantId}`, {
+        method: "DELETE",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Web3Signed ${params.signature}`,

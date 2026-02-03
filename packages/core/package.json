@@ -80,6 +80,18 @@
       "types": "./dist/signing/index.d.ts",
       "import": "./dist/signing/index.js"
     },
+    "./sync": {
+      "types": "./dist/sync/index.d.ts",
+      "import": "./dist/sync/index.js"
+    },
+    "./storage/encryption": {
+      "types": "./dist/storage/encryption/index.d.ts",
+      "import": "./dist/storage/encryption/index.js"
+    },
+    "./storage/adapters": {
+      "types": "./dist/storage/adapters/index.d.ts",
+      "import": "./dist/storage/adapters/index.js"
+    },
     "./test-utils": {
       "types": "./dist/test-utils/index.d.ts",
       "import": "./dist/test-utils/index.js"
@@ -91,6 +103,7 @@
   "dependencies": {
     "@noble/hashes": "^2.0.1",
     "better-sqlite3": "^12.6.2",
+    "openpgp": "^6.3.0",
     "pino": "^10.3.0",
     "pino-pretty": "^13.0.0",
     "viem": "^2.45.1",

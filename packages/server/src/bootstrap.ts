@@ -25,8 +25,17 @@ import {
   loadOrCreateServerAccount,
 } from "@opendatalabs/personal-server-ts-core/keys";
 import type { ServerAccount } from "@opendatalabs/personal-server-ts-core/keys";
-import { createServerSigner } from "@opendatalabs/personal-server-ts-core/signing";
+import {
+  createServerSigner,
+  createRequestSigner,
+} from "@opendatalabs/personal-server-ts-core/signing";
 import type { ServerSigner } from "@opendatalabs/personal-server-ts-core/signing";
+import {
+  createSyncCursor,
+  createSyncManager,
+  type SyncManager,
+} from "@opendatalabs/personal-server-ts-core/sync";
+import { createVanaStorageAdapter } from "@opendatalabs/personal-server-ts-core/storage/adapters";
 import type { Hono } from "hono";
 import { createApp, type IdentityInfo } from "./app.js";
 import { generateDevToken } from "./dev-token.js";
@@ -41,8 +50,9 @@ export interface ServerContext {
   accessLogReader: AccessLogReader;
   serverAccount?: ServerAccount;
   serverSigner?: ServerSigner;
+  syncManager: SyncManager | null;
   devToken?: string;
-  cleanup: () => void;
+  cleanup: () => Promise<void>;
 }
 
 export interface CreateServerOptions {
@@ -130,6 +140,62 @@ export async function createServer(
     );
   }
 
+  // --- Sync engine setup ---
+  let syncManager: SyncManager | null = null;
+
+  if (
+    config.sync.enabled &&
+    masterKeySignature &&
+    serverOwner &&
+    serverAccount &&
+    serverSigner
+  ) {
+    const masterKey = deriveMasterKey(masterKeySignature);
+
+    const vanaConfig = config.storage.config.vana ?? {
+      apiUrl: "https://storage.vana.com",
+    };
+    const requestSigner = createRequestSigner(serverAccount);
+    const storageAdapter = createVanaStorageAdapter({
+      apiUrl: vanaConfig.apiUrl,
+      ownerAddress: serverOwner,
+      signer: requestSigner,
+    });
+
+    const configPath_ = join(serverDir, "server.json");
+    const cursor = createSyncCursor(configPath_);
+
+    const uploadDeps = {
+      indexManager,
+      hierarchyOptions,
+      storageAdapter,
+      gateway: gatewayClient,
+      signer: serverSigner,
+      masterKey,
+      serverOwner,
+      logger,
+    };
+
+    const downloadDeps = {
+      indexManager,
+      hierarchyOptions,
+      storageAdapter,
+      gateway: gatewayClient,
+      cursor,
+      masterKey,
+      serverOwner,
+      logger,
+    };
+
+    syncManager = createSyncManager(uploadDeps, downloadDeps);
+    syncManager.start();
+    logger.info("Sync engine started");
+  } else if (config.sync.enabled) {
+    logger.warn(
+      "Sync enabled in config but VANA_MASTER_KEY_SIGNATURE not set — sync disabled",
+    );
+  }
+
   const logsDir = join(serverDir, "logs");
   const accessLogWriter = createAccessLogWriter(logsDir);
   const accessLogReader = createAccessLogReader(logsDir);
@@ -151,9 +217,13 @@ export async function createServer(
     accessLogReader,
     devToken,
     configPath,
+    syncManager,
   });
 
-  const cleanup = () => {
+  const cleanup = async () => {
+    if (syncManager) {
+      await syncManager.stop();
+    }
     indexManager.close();
   };
 
@@ -167,6 +237,7 @@ export async function createServer(
     accessLogReader,
     serverAccount,
     serverSigner,
+    syncManager,
     devToken,
     cleanup,
   };

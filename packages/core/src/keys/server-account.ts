@@ -20,6 +20,8 @@ export interface ServerAccount {
   /** Uncompressed public key (65 bytes, 0x04 prefix). */
   publicKey: `0x${string}`;
   signTypedData(params: SignTypedDataParams): Promise<`0x${string}`>;
+  /** Sign a personal message (EIP-191). */
+  signMessage(message: string): Promise<`0x${string}`>;
 }
 
 interface KeyFileData {
@@ -70,6 +72,9 @@ export function loadOrCreateServerAccount(keyPath: string): ServerAccount {
         primaryType: params.primaryType,
         message: params.message,
       });
+    },
+    async signMessage(message: string): Promise<`0x${string}`> {
+      return account.signMessage({ message });
     },
   };
 }

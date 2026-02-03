@@ -79,7 +79,7 @@ export async function startTestServer(options?: {
       await new Promise<void>((resolve, reject) => {
         server.close((err) => (err ? reject(err) : resolve()));
       });
-      context.cleanup();
+      await context.cleanup();
       // Only remove serverDir if we created it (not externally provided)
       if (!options?.serverDir) {
         await rm(serverDir, { recursive: true, force: true });

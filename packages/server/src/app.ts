@@ -13,6 +13,7 @@ import { accessLogsRoutes } from "./routes/access-logs.js";
 import { syncRoutes } from "./routes/sync.js";
 import { uiConfigRoutes } from "./routes/ui-config.js";
 import { uiRoute } from "./routes/ui.js";
+import type { SyncManager } from "@opendatalabs/personal-server-ts-core/sync";
 import type { Logger } from "pino";
 
 export interface IdentityInfo {
@@ -35,6 +36,7 @@ export interface AppDeps {
   accessLogReader: AccessLogReader;
   devToken?: string;
   configPath?: string;
+  syncManager?: SyncManager | null;
 }
 
 export function createApp(deps: AppDeps): Hono {
@@ -76,6 +78,7 @@ export function createApp(deps: AppDeps): Hono {
       gateway: deps.gateway,
       accessLogWriter: deps.accessLogWriter,
       devToken: deps.devToken,
+      syncManager: deps.syncManager ?? null,
     }),
   );
 
@@ -111,6 +114,7 @@ export function createApp(deps: AppDeps): Hono {
       serverOrigin: deps.serverOrigin,
       serverOwner: deps.serverOwner,
       devToken: deps.devToken,
+      syncManager: deps.syncManager ?? null,
     }),
   );
 

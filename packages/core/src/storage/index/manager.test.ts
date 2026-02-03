@@ -422,6 +422,99 @@ describe("IndexManager", () => {
     expect(twEntries).toHaveLength(1);
   });
 
+  // --- findUnsynced ---
+
+  it("findUnsynced returns entries with fileId === null", () => {
+    manager.insert({
+      fileId: null,
+      path: "ig/profile/2026-01-01T00-00-00Z.json",
+      scope: "instagram.profile",
+      collectedAt: "2026-01-01T00:00:00Z",
+      sizeBytes: 100,
+    });
+    manager.insert({
+      fileId: null,
+      path: "ig/profile/2026-01-02T00-00-00Z.json",
+      scope: "instagram.profile",
+      collectedAt: "2026-01-02T00:00:00Z",
+      sizeBytes: 200,
+    });
+
+    const unsynced = manager.findUnsynced();
+    expect(unsynced).toHaveLength(2);
+    expect(unsynced[0]!.fileId).toBeNull();
+    expect(unsynced[1]!.fileId).toBeNull();
+    // Ordered by created_at ASC (oldest first)
+    expect(unsynced[0]!.collectedAt).toBe("2026-01-01T00:00:00Z");
+    expect(unsynced[1]!.collectedAt).toBe("2026-01-02T00:00:00Z");
+  });
+
+  it("findUnsynced excludes entries with fileId !== null", () => {
+    manager.insert({
+      fileId: null,
+      path: "ig/profile/2026-01-01T00-00-00Z.json",
+      scope: "instagram.profile",
+      collectedAt: "2026-01-01T00:00:00Z",
+      sizeBytes: 100,
+    });
+    manager.insert({
+      fileId: "file-synced-123",
+      path: "ig/profile/2026-01-02T00-00-00Z.json",
+      scope: "instagram.profile",
+      collectedAt: "2026-01-02T00:00:00Z",
+      sizeBytes: 200,
+    });
+
+    const unsynced = manager.findUnsynced();
+    expect(unsynced).toHaveLength(1);
+    expect(unsynced[0]!.path).toBe("ig/profile/2026-01-01T00-00-00Z.json");
+  });
+
+  it("findUnsynced with limit returns at most N entries", () => {
+    for (let i = 1; i <= 5; i++) {
+      manager.insert({
+        fileId: null,
+        path: `ig/profile/2026-01-0${i}T00-00-00Z.json`,
+        scope: "instagram.profile",
+        collectedAt: `2026-01-0${i}T00:00:00Z`,
+        sizeBytes: 100,
+      });
+    }
+
+    const limited = manager.findUnsynced({ limit: 2 });
+    expect(limited).toHaveLength(2);
+  });
+
+  // --- updateFileId ---
+
+  it("updateFileId sets fileId, entry no longer appears in findUnsynced", () => {
+    manager.insert({
+      fileId: null,
+      path: "ig/profile/2026-01-01T00-00-00Z.json",
+      scope: "instagram.profile",
+      collectedAt: "2026-01-01T00:00:00Z",
+      sizeBytes: 100,
+    });
+
+    const updated = manager.updateFileId(
+      "ig/profile/2026-01-01T00-00-00Z.json",
+      "file-abc-456",
+    );
+    expect(updated).toBe(true);
+
+    const entry = manager.findByPath("ig/profile/2026-01-01T00-00-00Z.json");
+    expect(entry).toBeDefined();
+    expect(entry!.fileId).toBe("file-abc-456");
+
+    const unsynced = manager.findUnsynced();
+    expect(unsynced).toHaveLength(0);
+  });
+
+  it("updateFileId returns false for nonexistent path", () => {
+    const updated = manager.updateFileId("nonexistent/path.json", "file-xyz");
+    expect(updated).toBe(false);
+  });
+
   it("deleteByPath returns true when exists, false otherwise", () => {
     manager.insert({
       fileId: null,

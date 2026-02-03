@@ -42,3 +42,12 @@ export async function loadConfig(
 
   return config;
 }
+
+export async function saveConfig(
+  config: ServerConfig,
+  options?: { configPath?: string },
+): Promise<void> {
+  const configPath = options?.configPath ?? DEFAULT_CONFIG_PATH;
+  await mkdir(dirname(configPath), { recursive: true });
+  await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+}

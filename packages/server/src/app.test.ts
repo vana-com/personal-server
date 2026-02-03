@@ -16,11 +16,30 @@ import {
   createTestWallet,
   buildWeb3SignedHeader,
 } from "@opendatalabs/personal-server-ts-core/test-utils";
+import type { SyncManager } from "@opendatalabs/personal-server-ts-core/sync";
 import pino from "pino";
 
 const SERVER_ORIGIN = "http://localhost:8080";
 const ownerWallet = createTestWallet(0);
 const nonOwnerWallet = createTestWallet(1);
+
+function createMockSyncManager(): SyncManager {
+  return {
+    start: vi.fn(),
+    stop: vi.fn().mockResolvedValue(undefined),
+    trigger: vi.fn().mockResolvedValue(undefined),
+    getStatus: vi.fn().mockReturnValue({
+      enabled: true,
+      running: true,
+      lastSync: null,
+      lastProcessedTimestamp: null,
+      pendingFiles: 0,
+      errors: [],
+    }),
+    notifyNewData: vi.fn(),
+    running: true,
+  };
+}
 
 function createMockGateway(): GatewayClient {
   return {
@@ -221,5 +240,114 @@ describe("createApp", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toBe("INVALID_BODY");
+  });
+
+  // --- Phase 4: Sync manager wiring tests ---
+
+  it("syncManager passed to sync routes — GET /v1/sync/status returns enabled status", async () => {
+    const mockSyncManager = createMockSyncManager();
+    const logger = pino({ level: "silent" });
+    const app = createApp({
+      logger,
+      version: "0.0.1",
+      startedAt: new Date(),
+      indexManager,
+      hierarchyOptions: { dataDir: join(tempDir, "data") },
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: ownerWallet.address,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      accessLogReader: createMockAccessLogReader(),
+      syncManager: mockSyncManager,
+    });
+
+    const auth = await buildWeb3SignedHeader({
+      wallet: ownerWallet,
+      aud: SERVER_ORIGIN,
+      method: "GET",
+      uri: "/v1/sync/status",
+    });
+    const res = await app.request("/v1/sync/status", {
+      headers: { authorization: auth },
+    });
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.enabled).toBe(true);
+    expect(body.running).toBe(true);
+    expect(mockSyncManager.getStatus).toHaveBeenCalled();
+  });
+
+  it("syncManager passed to data routes — POST /v1/data/:scope calls notifyNewData", async () => {
+    const mockSyncManager = createMockSyncManager();
+    const logger = pino({ level: "silent" });
+    const app = createApp({
+      logger,
+      version: "0.0.1",
+      startedAt: new Date(),
+      indexManager,
+      hierarchyOptions: { dataDir: join(tempDir, "data") },
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: ownerWallet.address,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      accessLogReader: createMockAccessLogReader(),
+      syncManager: mockSyncManager,
+    });
+
+    const res = await app.request("/v1/data/test.scope", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: "value" }),
+    });
+    expect(res.status).toBe(201);
+
+    const body = await res.json();
+    expect(body.status).toBe("syncing");
+    expect(mockSyncManager.notifyNewData).toHaveBeenCalled();
+  });
+
+  it("without syncManager — GET /v1/sync/status returns disabled", async () => {
+    const logger = pino({ level: "silent" });
+    const app = createApp({
+      logger,
+      version: "0.0.1",
+      startedAt: new Date(),
+      indexManager,
+      hierarchyOptions: { dataDir: join(tempDir, "data") },
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: ownerWallet.address,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      accessLogReader: createMockAccessLogReader(),
+      syncManager: null,
+    });
+
+    const auth = await buildWeb3SignedHeader({
+      wallet: ownerWallet,
+      aud: SERVER_ORIGIN,
+      method: "GET",
+      uri: "/v1/sync/status",
+    });
+    const res = await app.request("/v1/sync/status", {
+      headers: { authorization: auth },
+    });
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.enabled).toBe(false);
+  });
+
+  it("without syncManager — POST /v1/data/:scope returns stored status", async () => {
+    const app = makeApp(); // makeApp doesn't pass syncManager
+    const res = await app.request("/v1/data/test.scope", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: "value" }),
+    });
+    expect(res.status).toBe(201);
+
+    const body = await res.json();
+    expect(body.status).toBe("stored");
   });
 });
