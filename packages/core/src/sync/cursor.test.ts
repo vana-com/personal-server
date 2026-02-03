@@ -18,7 +18,7 @@ async function withTempDir(fn: (dir: string) => Promise<void>): Promise<void> {
 describe("SyncCursor", () => {
   it("read returns null when config has default sync", async () => {
     await withTempDir(async (dir) => {
-      const configPath = join(dir, "server.json");
+      const configPath = join(dir, "config.json");
       // Create a default config file
       const config = ServerConfigSchema.parse({});
       await saveConfig(config, { configPath });
@@ -32,7 +32,7 @@ describe("SyncCursor", () => {
 
   it("write then read returns the same timestamp", async () => {
     await withTempDir(async (dir) => {
-      const configPath = join(dir, "server.json");
+      const configPath = join(dir, "config.json");
       const config = ServerConfigSchema.parse({});
       await saveConfig(config, { configPath });
 
@@ -46,7 +46,7 @@ describe("SyncCursor", () => {
 
   it("write preserves other config fields", async () => {
     await withTempDir(async (dir) => {
-      const configPath = join(dir, "server.json");
+      const configPath = join(dir, "config.json");
       const config = ServerConfigSchema.parse({
         server: { port: 9090 },
         logging: { level: "debug" },
@@ -67,7 +67,7 @@ describe("SyncCursor", () => {
 
   it("write creates config file if it doesn't exist", async () => {
     await withTempDir(async (dir) => {
-      const configPath = join(dir, "nonexistent", "server.json");
+      const configPath = join(dir, "nonexistent", "config.json");
 
       const cursor = createSyncCursor(configPath);
       await cursor.write("2026-01-21T10:00:00Z");

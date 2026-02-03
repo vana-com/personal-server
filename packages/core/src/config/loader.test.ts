@@ -162,4 +162,31 @@ describe("loadConfig", () => {
       expect(config.server.port).toBe(8080);
     });
   });
+
+  it("uses rootPath when configPath is not provided", async () => {
+    await withTempDir(async (dir) => {
+      const rootPath = join(dir, "personal-server-root");
+      const config = await loadConfig({ rootPath });
+
+      expect(config.server.port).toBe(8080);
+
+      const configPath = join(rootPath, "config.json");
+      await expect(access(configPath)).resolves.toBeUndefined();
+      const onDisk = JSON.parse(await readFile(configPath, "utf-8"));
+      expect(onDisk.server.port).toBe(8080);
+    });
+  });
+
+  it("prefers configPath over rootPath when both are provided", async () => {
+    await withTempDir(async (dir) => {
+      const rootPath = join(dir, "root-a");
+      const configPath = join(dir, "root-b", "config.json");
+
+      const config = await loadConfig({ rootPath, configPath });
+      expect(config.server.port).toBe(8080);
+
+      await expect(access(configPath)).resolves.toBeUndefined();
+      await expect(access(join(rootPath, "config.json"))).rejects.toThrow();
+    });
+  });
 });

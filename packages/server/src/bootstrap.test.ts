@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -18,6 +18,7 @@ describe("createServer", () => {
 
   afterEach(async () => {
     await rm(tempDir, { recursive: true, force: true });
+    vi.unstubAllEnvs();
   });
 
   it("returns object with app, logger, config, startedAt", async () => {
@@ -224,6 +225,52 @@ describe("createServer", () => {
 
     expect(ctx).toHaveProperty("accessLogReader");
     expect(typeof ctx.accessLogReader.read).toBe("function");
+    await ctx.cleanup();
+  });
+
+  it("uses rootPath as the storage namespace", async () => {
+    const knownSig =
+      "0xedbb7743cce459345238442dcfb291f234a321d253485eaa58251aa0f28ea8f1410ab988bae2657b689cd24417b41e315efc22ba333024f4a6269c424ded8d361b";
+    vi.stubEnv("VANA_MASTER_KEY_SIGNATURE", knownSig);
+
+    const rootPath = join(tempDir, "sandbox");
+    const config = makeDefaultConfig();
+    const ctx = await createServer(config, { rootPath });
+
+    await expect(access(join(rootPath, "index.db"))).resolves.toBeUndefined();
+    await expect(access(join(rootPath, "key.json"))).resolves.toBeUndefined();
+    await expect(access(join(rootPath, "data"))).resolves.toBeUndefined();
+    await expect(access(join(rootPath, "logs"))).resolves.toBeUndefined();
+
+    const token = ctx.devToken;
+    expect(token).toBeDefined();
+    const res = await ctx.app.request("/ui/api/config", {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(config),
+    });
+    expect(res.status).toBe(200);
+
+    const configOnDisk = JSON.parse(
+      await readFile(join(rootPath, "config.json"), "utf-8"),
+    );
+    expect(configOnDisk.server.port).toBe(config.server.port);
+
+    await ctx.cleanup();
+  });
+
+  it("prefers rootPath over legacy serverDir when both are provided", async () => {
+    const rootPath = join(tempDir, "new-root");
+    const serverDir = join(tempDir, "legacy-root");
+    const config = makeDefaultConfig();
+    const ctx = await createServer(config, { rootPath, serverDir });
+
+    await expect(access(join(rootPath, "index.db"))).resolves.toBeUndefined();
+    await expect(access(join(serverDir, "index.db"))).rejects.toThrow();
+
     await ctx.cleanup();
   });
 

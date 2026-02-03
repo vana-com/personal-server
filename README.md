@@ -18,7 +18,15 @@ NPM workspaces monorepo with three packages:
 | `packages/server` | Hono HTTP server — routes, middleware, composition root                |
 | `packages/cli`    | Facade package for external tools (`@opendatalabs/personal-server-ts`) |
 
-Data lives in `~/.vana/data/`. Server config and state live in `~/.vana/server/` — local file index at `index.db`, config in `config.json`, server keypair in `key.json`.
+By default, Personal Server uses `~/personal-server` as its root namespace:
+
+- Data: `~/personal-server/data/`
+- Config: `~/personal-server/config.json`
+- Index: `~/personal-server/index.db`
+- Server keypair: `~/personal-server/key.json`
+- Access logs: `~/personal-server/logs/`
+
+Override the root with `PERSONAL_SERVER_ROOT_PATH` (for example, Data Connect can use `~/data-connect/personal-server`).
 
 ## Setup
 
@@ -34,13 +42,14 @@ npm run build
 ```bash
 npm start             # build + start server
 npm run dev           # run from source (no build step)
+PERSONAL_SERVER_ROOT_PATH=~/data-connect/personal-server npm start
 ```
 
-The server starts on the port defined in `~/.vana/server/config.json` (default: 8080). Health check at `GET /health`.
+The server starts on the port defined in `${PERSONAL_SERVER_ROOT_PATH:-~/personal-server}/config.json` (default: 8080). Health check at `GET /health`.
 
 ## Configuration
 
-The server reads `~/.vana/server/config.json` on startup (created with defaults if missing).
+The server reads `${PERSONAL_SERVER_ROOT_PATH:-~/personal-server}/config.json` on startup (created with defaults if missing).
 
 ```json
 {
@@ -67,6 +76,7 @@ Register your server with the Vana Gateway so it can participate in the data por
 export VANA_OWNER_PRIVATE_KEY=0x...         # your owner wallet private key
 npm run register-server                     # uses server.origin from config
 npm run register-server https://my.server   # override server URL
+PERSONAL_SERVER_ROOT_PATH=~/data-connect/personal-server npm run register-server
 ```
 
 The script signs an EIP-712 `ServerRegistration` message with the owner key and POSTs it to the gateway. Once registered, `GET /health` will show `delegation.registered: true`.
