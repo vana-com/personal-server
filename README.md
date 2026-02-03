@@ -64,7 +64,7 @@ Set `"pretty": true` for human-readable logs during development.
 Register your server with the Vana Gateway so it can participate in the data portability network:
 
 ```bash
-export VANA_OWNER_PRIVATE_KEY=0x...        # your owner wallet private key
+export VANA_OWNER_PRIVATE_KEY=0x...         # your owner wallet private key
 npm run register-server                     # uses server.origin from config
 npm run register-server https://my.server   # override server URL
 ```
