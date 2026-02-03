@@ -1,8 +1,9 @@
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { ServerConfig } from "@opendatalabs/personal-server-ts-core/schemas";
 import {
-  DEFAULT_SERVER_DIR,
-  DEFAULT_DATA_DIR,
+  DEFAULT_ROOT_PATH,
+  resolveRootPath,
 } from "@opendatalabs/personal-server-ts-core/config";
 import {
   createLogger,
@@ -56,6 +57,8 @@ export interface ServerContext {
 }
 
 export interface CreateServerOptions {
+  rootPath?: string;
+  /** @deprecated Use rootPath instead. */
   serverDir?: string;
   dataDir?: string;
 }
@@ -67,10 +70,15 @@ export async function createServer(
   const logger = createLogger(config.logging);
   const startedAt = new Date();
 
-  const serverDir = options?.serverDir ?? DEFAULT_SERVER_DIR;
-  const dataDir = options?.dataDir ?? DEFAULT_DATA_DIR;
-  const indexPath = join(serverDir, "index.db");
-  const configPath = join(serverDir, "config.json");
+  const storageRoot = resolveRootPath(
+    options?.rootPath ?? options?.serverDir ?? DEFAULT_ROOT_PATH,
+  );
+  const dataDir = options?.dataDir ?? join(storageRoot, "data");
+  const indexPath = join(storageRoot, "index.db");
+  const configPath = join(storageRoot, "config.json");
+
+  await mkdir(storageRoot, { recursive: true });
+  await mkdir(dataDir, { recursive: true });
 
   const db = initializeDatabase(indexPath);
   const indexManager = createIndexManager(db);
@@ -96,7 +104,7 @@ export async function createServer(
     logger.info({ owner: serverOwner }, "Server owner derived from master key");
 
     // Load or create server keypair from disk
-    const keyPath = join(serverDir, "key.json");
+    const keyPath = join(storageRoot, "key.json");
     serverAccount = loadOrCreateServerAccount(keyPath);
     logger.info(
       { owner: serverOwner, serverAddress: serverAccount.address },
@@ -162,8 +170,7 @@ export async function createServer(
       signer: requestSigner,
     });
 
-    const configPath_ = join(serverDir, "server.json");
-    const cursor = createSyncCursor(configPath_);
+    const cursor = createSyncCursor(configPath);
 
     const uploadDeps = {
       indexManager,
@@ -196,7 +203,8 @@ export async function createServer(
     );
   }
 
-  const logsDir = join(serverDir, "logs");
+  const logsDir = join(storageRoot, "logs");
+  await mkdir(logsDir, { recursive: true });
   const accessLogWriter = createAccessLogWriter(logsDir);
   const accessLogReader = createAccessLogReader(logsDir);
 

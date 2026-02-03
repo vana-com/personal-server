@@ -4,11 +4,12 @@
  * Usage:
  *   VANA_OWNER_PRIVATE_KEY=0x... npm run register-server
  *   VANA_OWNER_PRIVATE_KEY=0x... npm run register-server https://my-server.com
+ *   PERSONAL_SERVER_ROOT_PATH=~/data-connect/personal-server VANA_OWNER_PRIVATE_KEY=0x... npm run register-server
  */
 
 import { privateKeyToAccount } from "viem/accounts";
 import { loadConfig } from "../packages/core/src/config/loader.js";
-import { DEFAULT_SERVER_DIR } from "../packages/core/src/config/defaults.js";
+import { resolveRootPath } from "../packages/core/src/config/paths.js";
 import { loadOrCreateServerAccount } from "../packages/core/src/keys/server-account.js";
 import {
   serverRegistrationDomain,
@@ -26,17 +27,19 @@ async function main() {
     process.exit(1);
   }
 
+  const rootPath = resolveRootPath(process.env.PERSONAL_SERVER_ROOT_PATH);
+
   const normalizedKey = ownerKey.startsWith("0x")
     ? (ownerKey as `0x${string}`)
     : (`0x${ownerKey}` as `0x${string}`);
   const ownerAccount = privateKeyToAccount(normalizedKey);
   console.log(`Owner address: ${ownerAccount.address}`);
 
-  const keyPath = join(DEFAULT_SERVER_DIR, "key.json");
+  const keyPath = join(rootPath, "key.json");
   const serverAccount = loadOrCreateServerAccount(keyPath);
   console.log(`Server address: ${serverAccount.address}`);
 
-  const config = await loadConfig();
+  const config = await loadConfig({ rootPath });
   const serverUrl = process.argv[2] ?? config.server.origin;
   console.log(`Server URL: ${serverUrl}`);
   console.log(`Gateway URL: ${config.gateway.url}`);

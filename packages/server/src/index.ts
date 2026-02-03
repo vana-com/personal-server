@@ -5,8 +5,9 @@ import { createServer } from "./bootstrap.js";
 const DRAIN_TIMEOUT_MS = 5_000;
 
 async function main(): Promise<void> {
-  const config = await loadConfig();
-  const { app, logger, devToken } = await createServer(config);
+  const rootPath = process.env.PERSONAL_SERVER_ROOT_PATH;
+  const config = await loadConfig({ rootPath });
+  const { app, logger, devToken } = await createServer(config, { rootPath });
 
   const server = serve(
     { fetch: app.fetch, port: config.server.port },
