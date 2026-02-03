@@ -5,16 +5,18 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
-  group: codex-review-${{ github.event.pull_request.number }}
+  group: codex-review-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   codex:
     name: Generate Review
-    if: ${{ github.event.pull_request.draft == false && secrets.OPENAI_API_KEY != '' }}
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     outputs:
       final_message: ${{ steps.run_codex.outputs.final-message }}
     steps:
@@ -31,10 +33,11 @@ jobs:
             +refs/pull/${{ github.event.pull_request.number }}/head
 
       - name: Run Codex
+        if: ${{ env.OPENAI_API_KEY != '' }}
         uses: openai/codex-action@v1
         id: run_codex
         with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ env.OPENAI_API_KEY }}
           prompt: |
             This is PR #${{ github.event.pull_request.number }} for ${{ github.repository }}.
 
