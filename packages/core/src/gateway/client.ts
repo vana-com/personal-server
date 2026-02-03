@@ -265,8 +265,8 @@ export function createGatewayClient(baseUrl: string): GatewayClient {
     },
 
     async revokeGrant(params: RevokeGrantParams): Promise<void> {
-      const res = await fetch(`${base}/v1/grants/${params.grantId}/revoke`, {
-        method: "POST",
+      const res = await fetch(`${base}/v1/grants/${params.grantId}`, {
+        method: "DELETE",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Web3Signed ${params.signature}`,

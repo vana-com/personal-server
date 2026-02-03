@@ -133,7 +133,7 @@ export async function startMockGateway(
   });
 
   // Grant revocation
-  app.post("/v1/grants/:grantId/revoke", async (c) => {
+  app.delete("/v1/grants/:grantId", async (c) => {
     const auth = c.req.header("Authorization");
     if (!auth || !auth.startsWith("Web3Signed ")) {
       return c.json({ error: "Missing authorization" }, 401);

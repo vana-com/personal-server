@@ -431,7 +431,7 @@ describe("GatewayClient", () => {
   });
 
   describe("revokeGrant", () => {
-    it("sends POST to revoke endpoint", async () => {
+    it("sends DELETE to grant endpoint", async () => {
       const client = createGatewayClient(BASE_URL);
       mockFetch(200, {});
       await client.revokeGrant({
@@ -441,8 +441,8 @@ describe("GatewayClient", () => {
       });
       const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
         .calls[0];
-      expect(fetchCall[0]).toBe(`${BASE_URL}/v1/grants/grant-123/revoke`);
-      expect(fetchCall[1].method).toBe("POST");
+      expect(fetchCall[0]).toBe(`${BASE_URL}/v1/grants/grant-123`);
+      expect(fetchCall[1].method).toBe("DELETE");
       expect(fetchCall[1].headers.Authorization).toBe("Web3Signed 0xsig");
     });
 
