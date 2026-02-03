@@ -73,11 +73,11 @@ jobs:
 
           diagnose_endpoint \
             "Responses probe (gpt-4o-mini)" \
-            '{"model":"gpt-4o-mini","input":"ping","max_output_tokens":1}'
+            '{"model":"gpt-4o-mini","input":"ping","max_output_tokens":16}'
 
           diagnose_endpoint \
             "Responses probe (gpt-5.2-codex)" \
-            '{"model":"gpt-5.2-codex","input":"ping","max_output_tokens":1}'
+            '{"model":"gpt-5.2-codex","input":"ping","max_output_tokens":16}'
 
       - name: Run Codex
         if: ${{ env.OPENAI_API_KEY != '' }}
