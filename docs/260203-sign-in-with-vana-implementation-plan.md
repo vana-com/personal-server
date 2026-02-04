@@ -194,12 +194,12 @@ const { sessionId, deepLinkUrl, expiresAt } = await relay.initSession({
 #### React Client API
 
 ```typescript
-import { useVanaConnect, VanaConnectButton } from '@vana/connect/react';
+import { useVanaConnect, VanaConnectButton } from "@vana/connect/react";
 
 // Hook-based usage
 function MyComponent() {
   const { connect, status, grant, error } = useVanaConnect({
-    sessionRelayUrl: 'https://session.vana.org',
+    sessionRelayUrl: "https://session.vana.org",
   });
 
   const handleConnect = async () => {
@@ -208,8 +208,8 @@ function MyComponent() {
   };
 
   return (
-    <button onClick={handleConnect} disabled={status === 'connecting'}>
-      {status === 'connecting' ? 'Connecting...' : 'Connect data'}
+    <button onClick={handleConnect} disabled={status === "connecting"}>
+      {status === "connecting" ? "Connecting..." : "Connect data"}
     </button>
   );
 }
@@ -219,7 +219,7 @@ function MyApp() {
   return (
     <VanaConnectButton
       sessionId={sessionId}
-      onComplete={(grant) => console.log('Got grant:', grant)}
+      onComplete={(grant) => console.log("Got grant:", grant)}
       onError={(error) => console.error(error)}
     />
   );
