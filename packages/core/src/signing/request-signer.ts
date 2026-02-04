@@ -32,9 +32,10 @@ export function createRequestSigner(account: ServerAccount): RequestSigner {
 
       const payload: Record<string, unknown> = {
         aud: params.aud,
+        // SHA256 of empty string is a well-known constant
         bodyHash: params.body
-          ? createHash("sha256").update(params.body).digest("hex")
-          : "",
+          ? `sha256:${createHash("sha256").update(params.body).digest("hex")}`
+          : "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         exp: now + 300,
         iat: now,
         method: params.method,

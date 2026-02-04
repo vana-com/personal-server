@@ -81,7 +81,7 @@ This specification does NOT cover:
 
 **Passport (Client-side)** : A client-chosen UX layer that authenticates users and manages wallets on their behalf, abstracting wallet concepts from web2 users. Passport is NOT a protocol component; from the protocol POV, only wallet addresses matter. The Desktop App uses Privy for Passport today, but other clients may use different vendors.
 
-**Storage Backend** : A service that stores encrypted data blobs. Can be Hosted Storage, IPFS, user's cloud (Google Drive, Dropbox), or local storage.
+**Storage Backend** : A service that stores encrypted data blobs. Receives only pre-encrypted data from Personal Servers; never sees plaintext. Can be Hosted Storage (Vana Storage), IPFS, user's cloud (Google Drive, Dropbox), or local storage. Storage backends verify requester authorization before accepting operations.
 
 ### **2.2 Protocol Objects**
 
@@ -483,12 +483,30 @@ Users select ONE storage backend for all their data (per-user, not per-file). Se
 
 When a storage backend is selected or changed, the Personal Server bulk-uploads existing local data to the new backend and registers corresponding `DataRegistry` file records on-chain (triggered/configured by the Desktop App).
 
-| **Backend**              | **URL Format**                     | **Notes**                 |
-| ------------------------ | ---------------------------------- | ------------------------- |
-| Hosted Storage (default) | `vana://storage/{userId}/{fileId}` | Managed by ODL, no setup  |
-| Google Drive             | `gdrive://{fileId}`                | User authorizes via OAuth |
-| Dropbox                  | `dropbox://{path}`                 | User authorizes via OAuth |
-| IPFS                     | `ipfs://{cid}`                     | Content-addressed         |
+| **Backend**            | **URL Format**                                                    | **Notes**                    |
+| ---------------------- | ----------------------------------------------------------------- | ---------------------------- |
+| Vana Storage (default) | `https://storage.vana.com/v1/blobs/{owner}/{scope}/{collectedAt}` | Managed by Vana, zero-config |
+| Google Drive           | `gdrive://{fileId}`                                               | User authorizes via OAuth    |
+| Dropbox                | `dropbox://{path}`                                                | User authorizes via OAuth    |
+| IPFS                   | `ipfs://{cid}`                                                    | Content-addressed, immutable |
+
+#### **4.1.7.1 Storage Backend Requirements**
+
+Storage backends in the Data Portability Protocol MUST:
+
+1. **Accept only encrypted blobs** — Storage backends receive pre-encrypted data from Personal Servers. Encryption/decryption is the Personal Server's responsibility.
+
+2. **Authenticate requests** — Verify the requester is authorized to operate on the owner's data. Authorization model is backend-specific but MUST tie operations to the data owner's identity.
+
+3. **Support hierarchical keys** — Vana Storage uses keys in the format `{ownerAddress}/{scope}/{collectedAt}`. Other backends map this to their native structure (e.g., GDrive folders, IPFS CIDs).
+
+4. **Return canonical URLs** — After upload, return a stable URL that the Personal Server registers with the DataRegistry via Gateway.
+
+Storage backends are NOT responsible for:
+
+- Decrypting or processing data
+- Schema validation (done by Personal Server before upload)
+- File discovery (handled by Gateway's DataRegistry)
 
 **Data Flow (Storage-First Model):**
 
@@ -504,7 +522,7 @@ After a storage backend is selected, all new data goes to the storage backend FI
 │  │  2. Desktop App sends raw data to Personal Server                        ││
 │  │  3. Personal Server stores locally unencrypted: ~/.vana/data/{scope}/    ││
 │  │  4. Personal Server encrypts data with scope key                         ││
-│  │  5. Encrypted blob uploaded to storage backend (Vana/GDrive/Dropbox)     ││
+│  │  5. Encrypted blob uploaded to storage backend (Vana Storage/GDrive/Dropbox/IPFS) ││
 │  │  6. File record registered in DataRegistry via DP RPC (schemaId required)││
 │  │  7. DP RPC records file metadata (schemaId attached)                     ││
 │  │  8. Other Personal Servers poll DP RPC for new file records since lastProcessedTimestamp ││
@@ -1990,10 +2008,14 @@ Storage backends implement a standard interface:
 
 ```typescript
 interface StorageBackend {
-  write(path: string, data: Buffer): Promise<string>; // Returns location
-  read(location: string): Promise<Buffer>;
-  delete(location: string): Promise<void>;
-  exists(location: string): Promise<boolean>;
+  upload(key: string, data: Uint8Array): Promise<string>; // Returns canonical URL
+  download(url: string): Promise<Uint8Array>;
+  delete(url: string): Promise<boolean>;
+  exists(url: string): Promise<boolean>;
+
+  // Optional: bulk operations (not all backends support)
+  deleteScope?(scope: string): Promise<number>; // Returns count deleted
+  deleteAll?(): Promise<number>; // Returns count deleted
 }
 ```
 
