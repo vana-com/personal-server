@@ -78,7 +78,10 @@ export async function buildWeb3SignedHeader(params: {
   const now = Math.floor(Date.now() / 1000);
   const payload: Record<string, unknown> = {
     aud: params.aud,
-    bodyHash: params.bodyHash ?? "",
+    // SHA256 of empty string is a well-known constant
+    bodyHash:
+      params.bodyHash ??
+      "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     exp: params.exp ?? now + 300,
     iat: params.iat ?? now,
     method: params.method,

@@ -29,7 +29,7 @@ export interface VerifiedAuth {
 }
 
 const WEB3_SIGNED_PREFIX = "Web3Signed ";
-const CLOCK_SKEW_SECONDS = 300;
+const CLOCK_SKEW_SECONDS = 60;
 
 /** Decode a base64url string (no padding) to UTF-8. */
 function base64urlDecode(input: string): string {
@@ -92,7 +92,7 @@ export function parseWeb3SignedHeader(headerValue: string | undefined): {
  * 1. Parse header -> base64url + signature
  * 2. Recover signer via recoverMessageAddress (EIP-191) over the base64url string
  * 3. Check aud === expectedOrigin, method === expectedMethod, uri === expectedPath
- * 4. Check iat/exp within clock skew (300s)
+ * 4. Check iat/exp within clock skew (60s)
  * 5. Return { signer, payload }
  */
 export async function verifyWeb3Signed(params: {

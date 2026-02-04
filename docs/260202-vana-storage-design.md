@@ -103,7 +103,7 @@ The Worker verifies:
 2. `aud` claim matches `https://storage.vana.com`
 3. `method` and `uri` claims match the request
 4. `bodyHash` matches SHA-256 of the request body (integrity check)
-5. `iat`/`exp` time bounds are valid (300s clock skew tolerance)
+5. `iat`/`exp` time bounds are valid (60s clock skew tolerance)
 6. Recovered signer is authorized for `{ownerAddress}` (see Auth Flow, Section 5)
 
 **Web3Signed Payload Schema:**
@@ -208,7 +208,7 @@ Bulk delete all blobs for a scope. Used when a user deletes a data scope from th
 - **Auth:** Web3Signed
 - **Response (200 OK):**
   ```json
-  { "deleted": true, "scope": "{scope}", "count": 42 }
+  { "deleted": true, "scope": "{scope}", "count": 42, "totalBytes": 12345678 }
   ```
 
 #### `DELETE /v1/blobs/{ownerAddress}`
@@ -218,7 +218,12 @@ Delete all blobs for a user. Used for account deletion.
 - **Auth:** Web3Signed
 - **Response (200 OK):**
   ```json
-  { "deleted": true, "ownerAddress": "{ownerAddress}", "count": 1337 }
+  {
+    "deleted": true,
+    "ownerAddress": "{ownerAddress}",
+    "count": 1337,
+    "totalBytes": 987654321
+  }
   ```
 
 #### `HEAD /v1/blobs/{ownerAddress}/{scope}/{collectedAt}`
@@ -240,11 +245,12 @@ Get usage statistics for a user. For tracking and future quota enforcement.
     "ownerAddress": "0xAbC...",
     "totalBytes": 52428800,
     "blobCount": 127,
-    "updatedAt": "2026-01-21T10:00:00Z"
+    "lastUpload": "2026-01-21T10:00:00Z",
+    "bandwidthBytes": 104857600
   }
   ```
 
-**Implementation note:** Usage stats are maintained by the Worker using a Cloudflare Durable Object or KV counter that increments/decrements on PUT/DELETE. Not real-time R2 enumeration (too expensive).
+**Implementation note:** Usage stats are maintained by the Worker using a Cloudflare KV counter that increments/decrements on PUT/DELETE. `lastUpload` is the timestamp of the most recent upload (or `null` if no uploads). `bandwidthBytes` tracks total download bandwidth. Not real-time R2 enumeration (too expensive).
 
 #### `GET /health`
 
@@ -416,9 +422,9 @@ The Vana Storage Worker reuses the same `Web3Signed` auth scheme as the Personal
 Gateway attestation results are cached to avoid per-request Gateway calls:
 
 - **Cache key:** `auth:{signerAddress}:{ownerAddress}`
-- **Cache TTL:** 5 minutes (balances freshness vs. performance)
+- **Cache TTL:** 60 seconds (security-first; minimizes revocation window)
 - **Cache store:** Worker in-memory (per-isolate) or Cloudflare KV
-- **Cache invalidation:** TTL-based only (server deregistration takes effect within 5 min)
+- **Cache invalidation:** TTL-based only (server deregistration takes effect within 60 sec)
 
 ### Owner Direct Access
 
@@ -697,18 +703,143 @@ URLs and R2 keys use the **filesystem-safe format**: `2026-01-21T10-00-00Z` (hyp
 
 ---
 
-## 10. Open Questions
+## 10. URL Design Rationale
 
-1. ~~**Gateway attestation endpoint**~~ — **Resolved.** `GET /v1/servers/{serverAddress}` exists and returns `{ data: { ownerAddress, serverAddress, ... } }`. No new Gateway work needed for auth.
+### Why Hierarchical URLs Over Content-Addressed (CID)
 
-2. **Gateway file deregistration** — `DELETE /v1/files/{fileId}` does not exist on the Gateway yet. Needed for the delete flow (Section 7). **Deferred** — delete from storage works without Gateway deregistration; registry cleanup will be addressed in a future phase.
+The API uses hierarchical client-controlled keys (`PUT /v1/blobs/{owner}/{scope}/{timestamp}`) rather than content-addressed identifiers (like IPFS CIDs). This decision aligns with blob storage industry standards (S3, GCS, Azure Blob Storage).
 
-3. **Blob size limits** — 100MB suggested. Is this sufficient for all data types? Large exports (e.g., full email archives) might exceed this.
+#### Comparison
 
-4. **Encryption format versioning** — Should R2 object metadata include the encryption format version (e.g., `x-encryption: openpgp-v6-password`) to support future encryption scheme changes?
+| Criterion           | Hierarchical                    | CID-based                |
+| ------------------- | ------------------------------- | ------------------------ |
+| **Determinism**     | ✅ Same input → same URL        | ❌ Requires lookup table |
+| **Idempotency**     | ✅ Built-in (PUT = upsert)      | ❌ Must track separately |
+| **Bulk operations** | ✅ Prefix-based delete          | ❌ Must enumerate first  |
+| **Multi-backend**   | ✅ Maps to GDrive/Dropbox paths | ❌ CIDs don't translate  |
+| **Debugging**       | ✅ Human-readable URLs          | ❌ Opaque hashes         |
 
-5. **Bulk upload on backend switch** — When a user selects Vana Storage for the first time with existing local data, how is the initial bulk upload triggered? Desktop App API call?
+#### Why Not Stripe/Plaid-Style Opaque IDs?
 
-6. **R2 bucket per environment** — Separate buckets for dev/staging/prod, or one bucket with environment prefixes?
+Stripe (`pi_XXX`) and Plaid (`item_XXX`) use server-generated opaque IDs because they manage **transactional resources** (payment flows, account linking state machines). Vana Storage is a **blob storage service** — different problem, different pattern.
 
-7. **Rate limit values** — The suggested limits (60 PUT/min, 300 GET/min) are initial guesses. Should these be validated against expected usage patterns?
+All major blob storage APIs use client-controlled hierarchical keys:
+
+- **S3**: `PUT /{bucket}/{key}`
+- **GCS**: `PUT /b/{bucket}/o/{object}`
+- **Azure Blob**: `PUT /{container}/{blob}`
+
+#### Privacy Consideration
+
+The URL structure exposes scope and timestamp (`instagram.profile/2026-01-21T10-00-00Z`). This is acceptable because:
+
+1. **Blob content is encrypted** — URL metadata reveals nothing about actual data
+2. **URLs are not public** — Access requires Web3Signed authentication
+3. **Multi-backend support** — Hierarchical keys translate to GDrive folders, Dropbox paths, etc.
+
+#### Stripe/Plaid Patterns Applied Elsewhere
+
+The design does adopt relevant patterns from world-class APIs:
+
+| Pattern                 | Implementation                      |
+| ----------------------- | ----------------------------------- |
+| Consistent error format | `{ error: "CODE", message: "..." }` |
+| ETags for versioning    | Returned on PUT/GET responses       |
+| Rate limit headers      | `X-RateLimit-Limit/Remaining/Reset` |
+| Request signing         | Web3Signed authentication           |
+| Idempotency             | PUT to same URL = overwrite         |
+
+---
+
+## 11. Known Limitations & Future Work
+
+This section documents known gaps in the current design that should be addressed before or shortly after v1 production release.
+
+### Critical (Must Fix Before Production)
+
+#### 11.1 Two-Phase Upload Without Transaction Guarantees
+
+Upload flow: PUT blob → registerFile(). If registration fails after successful upload, an orphaned blob exists in storage with no registry entry.
+
+**Scenarios:**
+
+- Network timeout after upload, before registration
+- Gateway downtime during upload cycle
+- Multiple Personal Server instances uploading same data simultaneously
+
+**Impact:** Storage quota consumed by untracked blobs; no cleanup mechanism.
+
+**Mitigation (Implemented):**
+
+1. **Check-before-upload:** Query Gateway for existing fileId before uploading; skip upload if already registered
+2. **Content hash metadata:** Store SHA-256 of encrypted content in `x-content-hash` metadata for deduplication and integrity verification
+
+#### 11.2 Multi-Instance Sync Race Condition
+
+When multiple Personal Server instances sync the same user's data:
+
+- Both compute identical blob key (`{scope}/{collectedAt}`)
+- Both upload to storage (second overwrites first)
+- Both call `registerFile()` with same URL
+- No coordination or locking mechanism
+
+**Impact:** Data corruption if instances have different encryption keys or data versions.
+
+**Mitigation Options:**
+
+1. Add server address to blob key: `{scope}/{collectedAt}/{serverAddress}`
+2. Add content hash to key: `{scope}/{collectedAt}/{contentHash}`
+3. Implement server-side registration lock on Gateway
+
+#### 11.3 Sync Cursor Advances on Partial Failure
+
+Download worker iterates through files, logs errors, and continues. Cursor advances to last file's timestamp regardless of individual download failures.
+
+**Impact:** Failed downloads are never retried. Permanent silent data loss.
+
+**Mitigation:**
+
+1. Track per-file download success
+2. Only advance cursor to timestamp of last _successfully_ downloaded file
+3. Implement dead-letter queue for permanently failed downloads
+
+#### 11.4 No Idempotency Keys for Registration
+
+`registerFile()` has no idempotency key. Network retry after timeout can create duplicate file records pointing to the same URL.
+
+**Impact:** Duplicate fileIds; quota double-counting; deletion only removes one record.
+
+**Mitigation:** Add `idempotencyKey` field to registerFile request; Gateway deduplicates by key with 24h TTL.
+
+### High Priority (Security Hardening)
+
+#### 11.5 Auth Cache Consistency
+
+Design allows per-isolate Worker memory cache. Cloudflare Workers run many isolates; cache state is inconsistent across them.
+
+**Recommendation:** Mandate KV for auth cache; per-isolate cache should be read-through only.
+
+#### 11.6 Audit Logging
+
+No per-request logging of access patterns. If breach occurs, impossible to determine which data was accessed.
+
+**Recommendation:** Log every PUT/GET/DELETE with owner, signer, timestamp, size, result to a durable store.
+
+### Medium Priority (Reliability & Scalability)
+
+| Issue                          | Description                                | Mitigation                          |
+| ------------------------------ | ------------------------------------------ | ----------------------------------- |
+| No retry for transient errors  | 5xx from R2 fails the operation            | Exponential backoff with jitter     |
+| No blob integrity verification | Downloaded blobs not hash-verified         | Verify `x-content-hash` on download |
+| Timestamp collision at scale   | Same `collectedAt` from multiple instances | Add microseconds or sequence number |
+| Usage tracking race            | RMW on KV counters can race                | Use atomic increment operations     |
+| No chunked uploads             | 100MB hard limit                           | Implement multipart upload          |
+| No migration rollback          | Backend switch can partially fail          | Two-phase migration with rollback   |
+
+### Edge Cases Not Covered
+
+1. **Key rotation:** No mechanism to re-encrypt existing blobs when encryption key changes
+2. **Future timestamps:** No validation that `collectedAt` is not in the future
+3. **Memory limits:** No streaming encryption; large blobs require full blob in memory
+4. **Counter corruption:** No recovery mechanism if KV usage counter becomes inconsistent
+5. **Shared data:** No design for blobs shared between multiple owners
