@@ -2,22 +2,18 @@
  * TunnelManager handles the frpc process lifecycle.
  *
  * Responsibilities:
- * - Select correct frpc binary for current platform/arch
  * - Generate signed claim and frpc.toml config
- * - Spawn frpc process
+ * - Spawn frpc process with a caller-provided binary path
  * - Monitor process lifecycle
  * - Provide status for health endpoint
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
 import { writeFile, mkdir, chmod, access, constants } from "node:fs/promises";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import type { ServerAccount } from "@opendatalabs/personal-server-ts-core/keys";
 import { generateSignedClaim } from "./auth.js";
 import { generateFrpcConfig } from "./config.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export type TunnelStatus =
   | "stopped"
@@ -44,29 +40,6 @@ export interface TunnelConfig {
   localPort: number;
 }
 
-/**
- * Get the path to the frpc binary for the current platform/arch.
- */
-function getFrpcBinaryPath(): string {
-  const platform = process.platform;
-  const arch = process.arch;
-
-  let binaryName: string;
-
-  if (platform === "darwin") {
-    binaryName = arch === "arm64" ? "frpc_darwin_arm64" : "frpc_darwin_amd64";
-  } else if (platform === "linux") {
-    binaryName = "frpc_linux_amd64";
-  } else if (platform === "win32") {
-    binaryName = "frpc_windows_amd64.exe";
-  } else {
-    throw new Error(`Unsupported platform: ${platform}`);
-  }
-
-  // Binary is in packages/server/bin/
-  return join(__dirname, "..", "..", "bin", binaryName);
-}
-
 export class TunnelManager {
   private storageRoot: string;
   private process: ChildProcess | null = null;
@@ -84,7 +57,7 @@ export class TunnelManager {
    * Start the frpc process with the given configuration.
    * Returns the public URL once the tunnel is established.
    */
-  async start(config: TunnelConfig): Promise<string> {
+  async start(config: TunnelConfig, binaryPath: string): Promise<string> {
     if (this.process) {
       throw new Error("Tunnel already running");
     }
@@ -121,8 +94,7 @@ export class TunnelManager {
     const configPath = join(tunnelDir, "frpc.toml");
     await writeFile(configPath, frpcConfig, "utf-8");
 
-    // Get binary path and verify it exists
-    const binaryPath = getFrpcBinaryPath();
+    // Verify binary exists and is executable
     try {
       await access(binaryPath, constants.X_OK);
     } catch {

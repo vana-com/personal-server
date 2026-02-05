@@ -41,7 +41,7 @@ import { createVanaStorageAdapter } from "@opendatalabs/personal-server-ts-core/
 import type { Hono } from "hono";
 import { createApp, type IdentityInfo } from "./app.js";
 import { generateDevToken } from "./dev-token.js";
-import { TunnelManager } from "./tunnel/index.js";
+import { TunnelManager, ensureFrpcBinary } from "./tunnel/index.js";
 
 export interface ServerContext {
   app: Hono;
@@ -159,31 +159,47 @@ export async function createServer(
   let effectiveOrigin = config.server.origin; // Start with config.server.origin
 
   if (config.tunnel.enabled && serverOwner && serverAccount) {
-    tunnelManager = new TunnelManager(storageRoot);
-
-    // Generate unique run ID for this process/session (used for claim binding)
-    const runId = randomUUID();
-
+    // Ensure frpc binary is available (downloads on first run or version bump)
+    let frpcBinaryPath: string;
     try {
-      tunnelUrl = await tunnelManager.start({
-        walletAddress: serverAccount.address, // Use server's own keypair address
-        ownerAddress: serverOwner,
-        serverKeypair: serverAccount,
-        runId,
-        serverAddr: config.tunnel.serverAddr,
-        serverPort: config.tunnel.serverPort,
-        localPort: config.server.port,
+      frpcBinaryPath = await ensureFrpcBinary(storageRoot, {
+        log: (msg) => logger.info(msg),
       });
-      logger.info({ tunnelUrl }, "Tunnel established");
-
-      // Use tunnel URL as effective origin for requests and Gateway registration
-      effectiveOrigin = tunnelUrl;
     } catch (err) {
-      logger.warn(
-        { err },
-        "Tunnel failed to connect - server running in local-only mode",
-      );
-      tunnelManager = undefined;
+      logger.warn({ err }, "Failed to download frpc binary - tunnel disabled");
+      frpcBinaryPath = "";
+    }
+
+    if (frpcBinaryPath) {
+      tunnelManager = new TunnelManager(storageRoot);
+
+      // Generate unique run ID for this process/session (used for claim binding)
+      const runId = randomUUID();
+
+      try {
+        tunnelUrl = await tunnelManager.start(
+          {
+            walletAddress: serverAccount.address, // Use server's own keypair address
+            ownerAddress: serverOwner,
+            serverKeypair: serverAccount,
+            runId,
+            serverAddr: config.tunnel.serverAddr,
+            serverPort: config.tunnel.serverPort,
+            localPort: config.server.port,
+          },
+          frpcBinaryPath,
+        );
+        logger.info({ tunnelUrl }, "Tunnel established");
+
+        // Use tunnel URL as effective origin for requests and Gateway registration
+        effectiveOrigin = tunnelUrl;
+      } catch (err) {
+        logger.warn(
+          { err },
+          "Tunnel failed to connect - server running in local-only mode",
+        );
+        tunnelManager = undefined;
+      }
     }
   } else if (config.tunnel.enabled) {
     logger.warn(

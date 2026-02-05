@@ -29,8 +29,7 @@
     "access": "public"
   },
   "files": [
-    "dist",
-    "bin"
+    "dist"
   ],
   "scripts": {
     "copy-ui": "mkdir -p dist/ui && cp src/ui/index.html dist/ui/index.html",

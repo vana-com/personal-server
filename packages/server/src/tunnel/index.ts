@@ -14,3 +14,5 @@ export type {
   TunnelStatus,
   TunnelStatusInfo,
 } from "./manager.js";
+
+export { ensureFrpcBinary, getBinaryPath } from "./binary.js";
