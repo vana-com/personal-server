@@ -21,7 +21,7 @@ describe("tunnel/config", () => {
       expect(config).toContain("serverAddr");
       expect(config).toContain("serverPort");
       expect(config).toContain("[[proxies]]");
-      expect(config).toContain("[proxies.metadatas]");
+      expect(config).toContain("metadatas.");
     });
 
     it("substitutes serverAddr correctly", () => {
