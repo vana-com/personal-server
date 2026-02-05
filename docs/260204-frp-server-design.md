@@ -33,14 +33,15 @@ This document specifies the technical design for the Vana FRP (Fast Reverse Prox
 
 ### 1.2 Key Decisions
 
-| Decision         | Choice                                 | Rationale                                                                       |
-| ---------------- | -------------------------------------- | ------------------------------------------------------------------------------- |
-| Proxy Technology | [frp](https://github.com/fatedier/frp) | Open-source, battle-tested, supports HTTP/HTTPS proxying with subdomain routing |
-| Cloud Provider   | Google Cloud Platform (GCP)            | Reliable, global infrastructure, easy integration with Cloudflare               |
-| CDN/DNS          | Cloudflare                             | Wildcard DNS, DDoS protection, edge TLS termination, free tier available        |
-| Compute          | GCP Compute Engine (VM)                | Simple, cost-effective for MVP; can migrate to GKE later                        |
-| Authentication   | Web3Signed + frps plugin               | Reuses existing auth scheme, server plugin validates on Login/NewProxy          |
-| Subdomain Format | `{walletAddress}.server.vana.org`      | Deterministic, collision-free, aligns with protocol spec                        |
+| Decision          | Choice                                                   | Rationale                                                                                         |
+| ----------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Proxy Technology  | [frp](https://github.com/fatedier/frp)                   | Open-source, battle-tested, supports HTTP/HTTPS proxying with subdomain routing                   |
+| Cloud Provider    | Google Cloud Platform (GCP)                              | Reliable, global infrastructure, easy integration with Cloudflare                                 |
+| CDN/DNS           | Cloudflare                                               | Wildcard DNS, DDoS protection, edge TLS termination, free tier available                          |
+| Compute           | GCP Compute Engine (VM)                                  | Simple, cost-effective for MVP; can migrate to GKE later                                          |
+| Authentication    | Web3Signed claims + frps plugin (no shared static token) | Uses frps server plugin on Login/NewProxy with wallet/subdomain-bound claims                      |
+| Hostname Topology | Split data plane and control plane hostnames             | Keeps builder HTTPS behind Cloudflare proxy while frpc control traffic uses DNS-only TCP endpoint |
+| Subdomain Format  | `{walletAddress}.server.vana.org`                        | Deterministic, collision-free, aligns with protocol spec                                          |
 
 ### 1.3 Scope
 
@@ -88,7 +89,7 @@ From the Data Portability Protocol Spec (Section 4.1.11):
 │                                 │ Outbound-only connection                  │
 │                                 ▼                                           │
 │  ┌─────────────────────────────────────────────────────────────────────────┐│
-│  │  Vana FRP Server (proxy.server.vana.org)                                ││
+│  │  Vana FRP Server (proxy.server.vana.org + frpc.server.vana.org:7000)    ││
 │  │  URL: https://{walletAddress}.server.vana.org                           ││
 │  └─────────────────────────────────────────────────────────────────────────┘│
 │                                 │                                           │
@@ -106,14 +107,14 @@ From the Data Portability Protocol Spec (Section 4.1.11):
 
 #### Functional Requirements
 
-| ID   | Requirement                                                                                   | Priority |
-| ---- | --------------------------------------------------------------------------------------------- | -------- |
-| FR-1 | Route HTTP requests to `{walletAddress}.server.vana.org` to the corresponding Personal Server | P0       |
-| FR-2 | Support concurrent connections from multiple Desktop Apps                                     | P0       |
-| FR-3 | Authenticate frpc clients using tokens                                                        | P0       |
-| FR-4 | Provide TLS termination for all inbound HTTPS traffic                                         | P0       |
-| FR-5 | Return appropriate errors when Personal Server is offline                                     | P0       |
-| FR-6 | Support WebSocket connections for future MCP SSE transport                                    | P1       |
+| ID   | Requirement                                                                                     | Priority |
+| ---- | ----------------------------------------------------------------------------------------------- | -------- |
+| FR-1 | Route HTTP requests to `{walletAddress}.server.vana.org` to the corresponding Personal Server   | P0       |
+| FR-2 | Support concurrent connections from multiple Desktop Apps                                       | P0       |
+| FR-3 | Authenticate frpc clients using signed claims validated by frps plugin (no shared static token) | P0       |
+| FR-4 | Provide TLS termination for all inbound HTTPS traffic                                           | P0       |
+| FR-5 | Return appropriate errors when Personal Server is offline                                       | P0       |
+| FR-6 | Support WebSocket connections for future MCP SSE transport                                      | P1       |
 
 #### Non-Functional Requirements
 
@@ -152,7 +153,8 @@ FRP provides full control over the tunneling infrastructure without requiring us
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
 │                              CLOUDFLARE EDGE                                            │
 │  ┌─────────────────────────────────────────────────────────────────────────────────────┐│
-│  │  DNS: *.server.vana.org → proxy.server.vana.org (CNAME)                             ││
+│  │  DNS (proxied): *.server.vana.org → proxy.server.vana.org (CNAME)                    ││
+│  │  DNS (dns-only): frpc.server.vana.org → <vm static ip> (A)                           ││
 │  │  TLS: Wildcard certificate (*.server.vana.org)                                      ││
 │  │  DDoS: Layer 3/4/7 protection                                                       ││
 │  │  Mode: Full (strict) SSL/TLS                                                        ││
@@ -165,8 +167,8 @@ FRP provides full control over the tunneling infrastructure without requiring us
 │                              GCP COMPUTE ENGINE                                         │
 │  ┌─────────────────────────────────────────────────────────────────────────────────────┐│
 │  │  frps (FRP Server)                                                                  ││
-│  │  ├── HTTP Proxy: 443 (TLS terminated by Cloudflare, or origin cert)                 ││
-│  │  ├── Control Port: 7000 (frpc connections)                                          ││
+│  │  ├── HTTPS VHost: 443 (builder traffic via Cloudflare)                              ││
+│  │  ├── Control Port: 7000 (frpc control channel, DNS-only endpoint)                   ││
 │  │  ├── Dashboard: 7500 (internal metrics)                                             ││
 │  │  ├── Subdomain routing: {walletAddress} → tunnel connection                         ││
 │  │  └── Plugin: calls Auth Plugin on Login/NewProxy operations                         ││
@@ -174,11 +176,11 @@ FRP provides full control over the tunneling infrastructure without requiring us
 │  ┌─────────────────────────────────────────────────────────────────────────────────────┐│
 │  │  Auth Plugin (sidecar container)                                                    ││
 │  │  ├── HTTP: 9000 (internal, localhost only)                                          ││
-│  │  ├── Validates Web3Signed tokens on Login                                           ││
+│  │  ├── Validates Web3Signed claims on Login                                           ││
 │  │  └── Validates subdomain matches wallet on NewProxy                                 ││
 │  └─────────────────────────────────────────────────────────────────────────────────────┘│
 │                                                                                         │
-│  External IP: 34.xxx.xxx.xxx (proxy.server.vana.org)                                    │
+│  External IP: 34.xxx.xxx.xxx (proxy.server.vana.org + frpc.server.vana.org)             │
 │  Firewall: Allow 443 (HTTPS), 7000 (frpc), deny others                                  │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
                                          ▲
@@ -243,11 +245,11 @@ FRP provides full control over the tunneling infrastructure without requiring us
          │    Personal Server starts            │                       │
          │                                      │                       │
          │ 2. Personal Server generates         │                       │
-         │    Web3Signed token (signs with      │                       │
+         │    Web3Signed claim (signs with      │                       │
          │    server keypair)                   │                       │
          │                                      │                       │
          │ 3. frpc connects to frps             │                       │
-         │    privilege_key: Web3Signed token   │                       │
+         │    metas.auth_claim/auth_sig         │                       │
          │    metas.wallet: "0xABC..."          │                       │
          │─────────────────────────────────────▶│                       │
          │                                      │                       │
@@ -287,10 +289,14 @@ FRP provides full control over the tunneling infrastructure without requiring us
 
 #### 4.1.1 DNS Records
 
-| Type  | Name           | Content                 | Proxy              | TTL  |
-| ----- | -------------- | ----------------------- | ------------------ | ---- |
-| A     | `proxy.server` | `34.xxx.xxx.xxx`        | Yes (orange cloud) | Auto |
-| CNAME | `*.server`     | `proxy.server.vana.org` | Yes (orange cloud) | Auto |
+| Type  | Name           | Content                 | Proxy              | TTL  | Purpose                                   |
+| ----- | -------------- | ----------------------- | ------------------ | ---- | ----------------------------------------- |
+| A     | `proxy.server` | `34.xxx.xxx.xxx`        | Yes (orange cloud) | Auto | Builder HTTPS data plane                  |
+| CNAME | `*.server`     | `proxy.server.vana.org` | Yes (orange cloud) | Auto | Wallet subdomain routing for builders     |
+| CNAME | `server`       | `proxy.server.vana.org` | Yes (orange cloud) | Auto | External health endpoint host (`/health`) |
+| A     | `frpc.server`  | `34.xxx.xxx.xxx`        | No (DNS only)      | Auto | frpc TCP control plane (`:7000`)          |
+
+**Important:** Keep `frpc.server.vana.org` DNS-only. Cloudflare proxy mode does not support arbitrary origin TCP ports like `7000` on the free/proxied path.
 
 #### 4.1.2 SSL/TLS Settings
 
@@ -379,7 +385,7 @@ resource "google_compute_instance" "frp_server" {
 rules:
   - name: allow-https
     direction: INGRESS
-    source_ranges: ["0.0.0.0/0"]
+    source_ranges: ["<cloudflare-ipv4-ranges-csv>"] # Populate from https://www.cloudflare.com/ips-v4
     target_tags: ["frp-server"]
     allowed:
       - protocol: tcp
@@ -387,7 +393,7 @@ rules:
 
   - name: allow-frpc
     direction: INGRESS
-    source_ranges: ["0.0.0.0/0"]
+    source_ranges: ["0.0.0.0/0"] # Desktop clients are on consumer networks; keep open and enforce auth in plugin
     target_tags: ["frp-server"]
     allowed:
       - protocol: tcp
@@ -473,15 +479,15 @@ bindPort = 7000                    # frpc control connections
 # -----------------------------------------------------------------------------
 # HTTP/HTTPS Proxy
 # -----------------------------------------------------------------------------
-vhostHTTPPort = 8080               # Internal HTTP (Cloudflare terminates TLS)
-vhostHTTPSPort = 443               # Direct HTTPS if not using Cloudflare
-subdomainHost = "server.vana.org"  # Base domain for subdomain routing
+vhostHTTPPort = 8080                # Optional HTTP ingress (local/dev or internal debugging)
+vhostHTTPSPort = 443                # Builder traffic via Cloudflare-proxied hostnames
+subdomainHost = "server.vana.org"   # Base domain for subdomain routing
 
 # -----------------------------------------------------------------------------
-# Authentication
+# Authentication (Plugin-First)
 # -----------------------------------------------------------------------------
-auth.method = "token"
-auth.token = "{{ FRP_AUTH_TOKEN }}"  # Injected from environment/secrets
+# No shared static auth token between frps and frpc.
+# Authentication and authorization are enforced by the Login/NewProxy plugin.
 
 # -----------------------------------------------------------------------------
 # Dashboard (internal monitoring)
@@ -512,17 +518,25 @@ transport.tcpMuxKeepaliveInterval = 30
 # userConnTimeout = 10             # Seconds
 
 # -----------------------------------------------------------------------------
+# Server Plugin (Auth Plugin)
+# -----------------------------------------------------------------------------
+[[httpPlugins]]
+name = "auth-plugin"
+addr = "127.0.0.1:9000"
+path = "/handler"
+ops = ["Login", "NewProxy"]
+
+# -----------------------------------------------------------------------------
 # TLS (origin certificate for Cloudflare Full Strict)
 # -----------------------------------------------------------------------------
-transport.tls.certFile = "/etc/frp/server.crt"
-transport.tls.keyFile = "/etc/frp/server.key"
+transport.tls.certFile = "/etc/frp/certs/server.crt"
+transport.tls.keyFile = "/etc/frp/certs/server.key"
 ```
 
 ### 5.2 Environment Variables
 
 ```bash
 # /etc/frp/frps.env
-FRP_AUTH_TOKEN=<generated-secure-token>
 DASHBOARD_PASSWORD=<generated-secure-password>
 ```
 
@@ -560,9 +574,9 @@ WantedBy=multi-user.target
 
 ### 6.1 Authentication Overview
 
-Authentication uses **frps server plugins** — frps calls an external HTTP service (Auth Plugin) to validate client connections. This eliminates the need for a separate token exchange step.
+Authentication uses **frps server plugins** — frps calls an external HTTP service (Auth Plugin) to validate client connections. This eliminates the need for a separate credential exchange step.
 
-The Auth Plugin validates **Web3Signed** tokens — the same scheme used across the Vana protocol (Storage Service, Personal Server, etc.).
+The Auth Plugin validates **Web3Signed** claims — the same signature scheme used across the Vana protocol (Storage Service, Personal Server, etc.).
 
 #### 6.1.1 Authentication Flow
 
@@ -573,13 +587,12 @@ The Auth Plugin validates **Web3Signed** tokens — the same scheme used across 
 └────────┬────────┘                    └────────┬────────┘     └────────┬────────┘
          │                                      │                       │
          │ 1. frpc connects                     │                       │
-         │    privilege_key: Web3Signed token   │                       │
+         │    metas.auth_claim/auth_sig         │                       │
          │    metas.wallet: "0xABC..."          │                       │
          │─────────────────────────────────────▶│                       │
          │                                      │                       │
          │                                      │ 2. POST /handler?op=Login
-         │                                      │    { privilege_key,   │
-         │                                      │      metas, ... }     │
+         │                                      │    { metas, ... }     │
          │                                      │──────────────────────▶│
          │                                      │                       │
          │                                      │ 3. Validate Web3Signed│
@@ -610,20 +623,20 @@ The Auth Plugin validates **Web3Signed** tokens — the same scheme used across 
 
 #### 6.1.2 frpc Configuration
 
-The Personal Server configures frpc with a Web3Signed token as the `privilege_key`:
+The Personal Server configures frpc with plugin-validated metadata claims (no shared static `auth.token`):
 
 ```toml
 # frpc.toml (generated by Personal Server)
-serverAddr = "proxy.server.vana.org"
+serverAddr = "frpc.server.vana.org"
 serverPort = 7000
+loginFailExit = false  # keep retrying on transient failures (recommended for desktop uptime)
 
-# Web3Signed token as auth
-auth.method = "token"
-auth.token = "Web3Signed {base64url(payload)}.{signature}"
-
-# Metadata for validation
+# Metadata consumed by Login/NewProxy plugin
 metadatas.wallet = "0xABC1234567890abcdef1234567890abcdef1234"
 metadatas.owner = "0xABC1234567890abcdef1234567890abcdef1234"
+metadatas.run_id = "abc123"
+metadatas.auth_claim = "{base64url(payloadJson)}"
+metadatas.auth_sig = "0x{eip191Signature}"
 
 [[proxies]]
 name = "personal-server"
@@ -633,31 +646,39 @@ localPort = 8080
 subdomain = "0xabc1234567890abcdef1234567890abcdef1234"
 ```
 
-#### 6.1.3 Web3Signed Token Format
+#### 6.1.3 Web3Signed Claim Format
 
-The `privilege_key` contains a Web3Signed token with this payload:
+The plugin validates Web3Signed claim data from `metadatas.auth_claim` + `metadatas.auth_sig`:
 
 ```json
 {
   "aud": "https://tunnel.vana.org",
   "iat": 1707091200,
-  "exp": 1707091500
+  "exp": 1707091500,
+  "owner": "0xABC1234567890abcdef1234567890abcdef1234",
+  "wallet": "0xABC1234567890abcdef1234567890abcdef1234",
+  "subdomain": "0xabc1234567890abcdef1234567890abcdef1234",
+  "runId": "abc123"
 }
 ```
 
-| Field | Type   | Description                         |
-| ----- | ------ | ----------------------------------- |
-| `aud` | string | Audience — tunnel service URL       |
-| `iat` | number | Issued-at timestamp (Unix seconds)  |
-| `exp` | number | Expiration timestamp (Unix seconds) |
+| Field       | Type   | Description                         |
+| ----------- | ------ | ----------------------------------- |
+| `aud`       | string | Audience — tunnel service URL       |
+| `iat`       | number | Issued-at timestamp (Unix seconds)  |
+| `exp`       | number | Expiration timestamp (Unix seconds) |
+| `owner`     | string | Owner wallet that authorizes tunnel |
+| `wallet`    | string | Wallet routed by subdomain          |
+| `subdomain` | string | Claimed subdomain, lowercase wallet |
+| `runId`     | string | Per-process session identifier      |
 
 **Specifications:**
 
 - Clock skew tolerance: **60 seconds**
-- Token TTL: **5 minutes** (300 seconds)
-- Signature: EIP-191 over base64url-encoded payload string
+- Claim TTL: **5 minutes** (300 seconds)
+- Signature: EIP-191 over base64url-encoded payload string (`auth_claim`)
 
-**Note:** Unlike Storage/API requests, `method`, `uri`, and `bodyHash` are not needed since this is a connection-level auth, not a request-level auth.
+**Note:** Unlike Storage/API requests, `method`, `uri`, and `bodyHash` are not required because this is connection-level auth.
 
 #### 6.1.4 Auth Plugin Operations
 
@@ -669,10 +690,13 @@ The Auth Plugin handles two frps operations:
 {
   "content": {
     "version": "0.58.1",
-    "privilege_key": "Web3Signed {payload}.{sig}",
+    "privilege_key": "",
     "metas": {
       "wallet": "0xABC...",
-      "owner": "0xABC..."
+      "owner": "0xABC...",
+      "run_id": "abc123",
+      "auth_claim": "{base64url(payload)}",
+      "auth_sig": "0x{signature}"
     },
     "client_address": "1.2.3.4:12345"
   }
@@ -681,13 +705,21 @@ The Auth Plugin handles two frps operations:
 
 **Login Validation Steps:**
 
-1. Parse `privilege_key` as Web3Signed token
+1. Parse `metas.auth_claim` + `metas.auth_sig` as Web3Signed claim/signature
 2. Verify EIP-191 signature, recover signer address
 3. Check `iat`/`exp` within bounds
-4. If signer === `metas.owner` → authorized (direct owner)
-5. Else, query Gateway: `GET /v1/servers/{signer}`
+4. Validate claim binding:
+   - `claim.owner === metas.owner`
+   - `claim.wallet === metas.wallet`
+   - `claim.subdomain === metas.wallet.toLowerCase()`
+   - `claim.runId === metas.run_id`
+5. If signer === `metas.owner` → authorized (direct owner)
+6. Else, query Gateway: `GET /v1/servers/{signer}`
    - Verify `data.ownerAddress === metas.owner`
    - Cache result (TTL: 60 seconds)
+7. Store verified session claim in in-memory cache keyed by `run_id` for NewProxy checks
+
+**Compatibility:** If `metas.auth_claim` is absent and `privilege_key` is non-empty, plugin may parse `privilege_key` as `Web3Signed {payload}.{sig}` for backward compatibility during rollout.
 
 **NewProxy Operation Request:**
 
@@ -695,7 +727,7 @@ The Auth Plugin handles two frps operations:
 {
   "content": {
     "user": {
-      "metas": { "wallet": "0xABC...", "owner": "0xABC..." }
+      "metas": { "wallet": "0xABC...", "owner": "0xABC...", "run_id": "abc123" }
     },
     "subdomain": "0xabc..."
   }
@@ -707,7 +739,9 @@ The Auth Plugin handles two frps operations:
 1. Extract `subdomain` from request
 2. Extract `wallet` from `user.metas`
 3. Verify `subdomain === wallet.toLowerCase()`
-4. Reject if mismatch
+4. Lookup cached Login claim by `user.metas.run_id`
+5. Verify cached claim matches `wallet`, `owner`, and `subdomain`
+6. Reject if any mismatch
 
 #### 6.1.5 Authorization Model
 
@@ -750,31 +784,43 @@ Two actors can establish tunnels:
 
 **Caching Strategy:**
 
-- **Cache key:** `delegation:{signerAddress}`
-- **Cache value:** `{ ownerAddress, cachedAt }`
-- **Cache TTL:** 60 seconds
+- **Delegation cache key:** `delegation:{signerAddress}`
+- **Delegation cache value:** `{ ownerAddress, cachedAt }`
+- **Delegation cache TTL:** 60 seconds
+- **Login session cache key:** `login:{runId}`
+- **Login session cache value:** `{ owner, wallet, subdomain, signerAddress, verifiedAt }`
+- **Login session cache TTL:** 10 minutes
 - **Cache store:** In-memory
+
+#### 6.1.7 FRP Behavior Notes (from frp repo/docs)
+
+- Server plugin operation hooks include `Login`, `NewProxy`, `CloseProxy`, `Ping`, `NewWorkConn`, and `NewUserConn`; MVP uses `Login` + `NewProxy` only.
+- FRP expects plugin HTTP responses to return status code 200 with plugin JSON payload; non-200 is treated as an exception path.
+- FRP supports `auth.tokenSource` from file in addition to static `auth.token`; this is useful if we later reintroduce base-layer token auth with rotation.
+- FRP supports `auth.additionalScopes` (`HeartBeats`, `NewWorkConns`) for base auth hardening; evaluate if we re-enable built-in token/oidc auth.
+- `loginFailExit = false` in frpc is recommended for desktop clients so tunnel reconnect retries continue during transient outages.
 
 ### 6.2 Security Considerations
 
 #### 6.2.1 Threat Model
 
-| Threat                           | Mitigation                                                  |
-| -------------------------------- | ----------------------------------------------------------- |
-| Unauthorized tunnel registration | Web3Signed auth, Gateway attestation for server delegation  |
-| Replay attacks                   | Short TTL (5 min), method+uri binding in Web3Signed payload |
-| Subdomain hijacking              | Token includes wallet address, validated on connection      |
-| DDoS on frps                     | Cloudflare DDoS protection, future rate limiting            |
-| Man-in-the-middle                | TLS everywhere (Cloudflare edge + origin cert)              |
-| Token theft                      | Short expiration, request-specific binding                  |
-| Tunnel enumeration               | Subdomains are wallet addresses (public anyway)             |
+| Threat                           | Mitigation                                                                                   |
+| -------------------------------- | -------------------------------------------------------------------------------------------- |
+| Unauthorized tunnel registration | Web3Signed auth, Gateway attestation for server delegation                                   |
+| Replay attacks                   | Short TTL (5 min), `runId` binding, claim cache on Login/NewProxy                            |
+| Subdomain hijacking              | Signed claim binds `wallet` + `subdomain`; plugin enforces exact match on Login and NewProxy |
+| DDoS on frps                     | Cloudflare DDoS protection, future rate limiting                                             |
+| Man-in-the-middle                | TLS everywhere (Cloudflare edge + origin cert)                                               |
+| Claim theft                      | Short expiration, `runId` scoping, server delegation verification                            |
+| Tunnel enumeration               | Subdomains are wallet addresses (public anyway)                                              |
 
 #### 6.2.2 Security Checklist
 
 - [ ] TLS for all connections (Cloudflare edge + origin)
-- [ ] Token authentication for frpc connections
-- [ ] Wallet signature verification for token issuance
+- [ ] Signed claim authentication for frpc connections
+- [ ] Wallet signature verification for signed claim issuance
 - [ ] Subdomain isolation (one wallet = one subdomain)
+- [ ] Port 443 restricted to Cloudflare IP ranges
 - [ ] No sensitive data in frps logs
 - [ ] Firewall rules restrict access to necessary ports only
 - [ ] SSH via IAP only (no direct SSH exposure)
@@ -800,16 +846,17 @@ The Personal Server ships with the `frpc` binary for each supported platform:
 # Generated by Personal Server at runtime
 # ~/.vana/frpc.toml
 
-serverAddr = "proxy.server.vana.org"
+serverAddr = "frpc.server.vana.org"
 serverPort = 7000
 
-# Web3Signed token generated by Personal Server
-auth.method = "token"
-auth.token = "Web3Signed {{ BASE64URL_PAYLOAD }}.{{ EIP191_SIGNATURE }}"
-
-# Metadata for Auth Plugin validation
+# Metadata for Auth Plugin validation (plugin-first auth, no shared static token)
 metadatas.wallet = "{{ WALLET_ADDRESS }}"
 metadatas.owner = "{{ OWNER_ADDRESS }}"
+metadatas.run_id = "{{ RUN_ID }}"
+metadatas.auth_claim = "{{ BASE64URL_PAYLOAD_JSON }}"
+metadatas.auth_sig = "{{ EIP191_SIGNATURE }}"
+
+loginFailExit = false
 
 transport.tls.enable = true
 # transport.tls.trustedCaFile = "/path/to/ca.crt"  # If using custom CA
@@ -844,6 +891,7 @@ interface TunnelConfig {
   walletAddress: string; // Owner's wallet address
   ownerAddress: string; // Owner's wallet address (same as walletAddress for owner, different for server)
   serverKeypair: Wallet; // Server's signing keypair
+  runId: string; // Unique per-process/session ID
   serverAddr: string;
   serverPort: number;
   localPort: number;
@@ -867,32 +915,32 @@ export class TunnelManager {
   }
 
   /**
-   * Generate a Web3Signed token for tunnel authentication.
-   * The server signs this token with its own keypair.
-   * The Auth Plugin validates the signature and verifies delegation via Gateway.
+   * Generate signed claim data for plugin-first Login/NewProxy validation.
    */
-  private async generateWeb3SignedToken(
-    serverKeypair: Wallet,
-  ): Promise<string> {
+  private async generateSignedClaim(
+    config: TunnelConfig,
+  ): Promise<{ claim: string; sig: string }> {
     const now = Math.floor(Date.now() / 1000);
     const payload = {
       aud: "https://tunnel.vana.org",
       iat: now,
       exp: now + 300, // 5 minute TTL
+      owner: config.ownerAddress,
+      wallet: config.walletAddress,
+      subdomain: config.walletAddress.toLowerCase(),
+      runId: config.runId,
     };
 
-    const payloadStr = encodeBase64Url(JSON.stringify(payload));
-    const signature = await serverKeypair.signMessage(payloadStr);
-
-    return `Web3Signed ${payloadStr}.${signature}`;
+    const claim = encodeBase64Url(JSON.stringify(payload));
+    const sig = await config.serverKeypair.signMessage(claim);
+    return { claim, sig };
   }
 
   async start(config: TunnelConfig): Promise<string> {
-    // Generate Web3Signed token using server keypair
-    const token = await this.generateWeb3SignedToken(config.serverKeypair);
+    const { claim, sig } = await this.generateSignedClaim(config);
 
-    // Generate frpc config with token and metadata
-    const configContent = this.generateConfig(config, token);
+    // Generate frpc config with signed metadata claim.
+    const configContent = this.generateConfig(config, claim, sig);
     await mkdir(this.dataDir, { recursive: true });
     await writeFile(this.configPath, configContent);
 
@@ -929,16 +977,22 @@ export class TunnelManager {
     return this.frpcProcess !== null;
   }
 
-  private generateConfig(config: TunnelConfig, token: string): string {
+  private generateConfig(
+    config: TunnelConfig,
+    claim: string,
+    sig: string,
+  ): string {
     return `
 serverAddr = "${config.serverAddr}"
 serverPort = ${config.serverPort}
-auth.method = "token"
-auth.token = "${token}"
+loginFailExit = false
 
 # Metadata for Auth Plugin validation
 metadatas.wallet = "${config.walletAddress}"
 metadatas.owner = "${config.ownerAddress}"
+metadatas.run_id = "${config.runId}"
+metadatas.auth_claim = "${claim}"
+metadatas.auth_sig = "${sig}"
 
 transport.tls.enable = true
 
@@ -967,9 +1021,9 @@ subdomain = "${config.walletAddress.toLowerCase()}"
 │  │  1. User opens Desktop App                                              ││
 │  │  2. App authenticates user (Privy)                                      ││
 │  │  3. App starts Personal Server (localhost:8080)                         ││
-│  │  4. Personal Server generates Web3Signed token (using server keypair)   ││
-│  │  5. Personal Server starts frpc with token as privilege_key             ││
-│  │  6. frps Auth Plugin validates token + delegation via Gateway           ││
+│  │  4. Personal Server generates signed Web3 claim (using server keypair)   ││
+│  │  5. Personal Server starts frpc with claim/sig in metadatas             ││
+│  │  6. frps Auth Plugin validates claim + delegation via Gateway           ││
 │  │  7. Tunnel established → URL registered in DataPortabilityServers       ││
 │  └─────────────────────────────────────────────────────────────────────────┘│
 │                                                                             │
@@ -1016,11 +1070,14 @@ Called by frps when a client connects. Query param: `?op=Login`
     "arch": "arm64",
     "user": "",
     "timestamp": 1707091200,
-    "privilege_key": "Web3Signed eyJhdWQiOiJodHRwczovL3R1bm5lbC52YW5hLm9yZyIsImlhdCI6MTcwNzA5MTIwMCwiZXhwIjoxNzA3MDkxNTAwfQ.0x...",
+    "privilege_key": "",
     "run_id": "abc123",
     "metas": {
       "wallet": "0xABC1234567890abcdef1234567890abcdef1234",
-      "owner": "0xABC1234567890abcdef1234567890abcdef1234"
+      "owner": "0xABC1234567890abcdef1234567890abcdef1234",
+      "run_id": "abc123",
+      "auth_claim": "eyJhdWQiOiJodHRwczovL3R1bm5lbC52YW5hLm9yZyIsImlhdCI6MTcwNzA5MTIwMCwiZXhwIjoxNzA3MDkxNTAwLCJvd25lciI6IjB4QUJDIiwi...",
+      "auth_sig": "0x..."
     },
     "client_address": "1.2.3.4:12345"
   }
@@ -1045,6 +1102,8 @@ Called by frps when a client connects. Query param: `?op=Login`
 }
 ```
 
+**HTTP status behavior:** Plugin responses should return HTTP `200` with `reject`/`reject_reason` fields. frps treats non-200 responses as plugin exceptions.
+
 #### 8.1.2 POST /handler (NewProxy Operation)
 
 Called by frps when a client registers a proxy. Query param: `?op=NewProxy`
@@ -1058,7 +1117,8 @@ Called by frps when a client registers a proxy. Query param: `?op=NewProxy`
       "user": "",
       "metas": {
         "wallet": "0xABC1234567890abcdef1234567890abcdef1234",
-        "owner": "0xABC1234567890abcdef1234567890abcdef1234"
+        "owner": "0xABC1234567890abcdef1234567890abcdef1234",
+        "run_id": "abc123"
       },
       "run_id": "abc123"
     },
@@ -1086,6 +1146,37 @@ Called by frps when a client registers a proxy. Query param: `?op=NewProxy`
 {
   "reject": true,
   "reject_reason": "Subdomain does not match wallet address"
+}
+```
+
+#### 8.1.3 GET /health (Auth Plugin Health)
+
+Health endpoint served by the existing Auth Plugin Hono server.
+
+**Checks:**
+
+- process is running and request loop is alive
+- required config is loaded
+- cache/store subsystem is initialized
+- frps dashboard is reachable on `127.0.0.1:7500`
+- local frps ports `443` and `7000` are listening
+
+**Response (healthy):**
+
+```json
+{
+  "ok": true,
+  "service": "auth-plugin"
+}
+```
+
+**Response (unhealthy):**
+
+```json
+{
+  "ok": false,
+  "service": "auth-plugin",
+  "reason": "..."
 }
 ```
 
@@ -1195,18 +1286,14 @@ EOF
 
 # 7. Create environment file with secrets
 echo "[7/8] Creating environment file..."
-# Generate secure tokens
-AUTH_TOKEN=$(openssl rand -hex 32)
 DASHBOARD_PASS=$(openssl rand -hex 16)
 
 cat > ${FRP_DIR}/frps.env << EOF
-FRP_AUTH_TOKEN=${AUTH_TOKEN}
 DASHBOARD_PASSWORD=${DASHBOARD_PASS}
 EOF
 chmod 600 ${FRP_DIR}/frps.env
 
 echo "=== IMPORTANT: Save these credentials ==="
-echo "FRP_AUTH_TOKEN: ${AUTH_TOKEN}"
 echo "DASHBOARD_PASSWORD: ${DASHBOARD_PASS}"
 echo "========================================="
 
@@ -1218,7 +1305,9 @@ systemctl start frps
 systemctl status frps
 
 echo "=== Deployment Complete ==="
-echo "frps is running on ports 7000 (control) and 443 (HTTPS proxy)"
+echo "frps is running on ports 7000 (frpc control) and 443 (builder HTTPS)"
+echo "Control endpoint: frpc.server.vana.org:7000 (DNS-only record)"
+echo "Builder endpoint base: https://{wallet}.server.vana.org (Cloudflare proxied)"
 ```
 
 ### 9.2 Auth Plugin Sidecar Deployment
@@ -1232,7 +1321,7 @@ Update `frps.toml` to enable the Auth Plugin:
 ```toml
 # /etc/frp/frps.toml (add to existing config)
 
-# Auth Plugin - validates Web3Signed tokens
+# Auth Plugin - validates Web3Signed claims
 [[httpPlugins]]
 name = "auth-plugin"
 addr = "127.0.0.1:9000"
@@ -1252,6 +1341,7 @@ auth:
   # Web3Signed validation
   audience: "https://tunnel.vana.org"
   clockSkew: 60s
+  loginSessionCacheTTL: 600s
 
 gateway:
   # For server delegation verification
@@ -1400,6 +1490,36 @@ systemctl start frps
 systemctl status frps
 ```
 
+### 9.6 External Health Endpoint Deployment
+
+Deploy a dedicated local frpc client that exposes the existing Auth Plugin `/health` endpoint through frps, so external probes traverse the real FRP data path.
+
+```toml
+# /etc/frp/frpc-system-health.toml
+serverAddr = "127.0.0.1"
+serverPort = 7000
+loginFailExit = false
+
+# Signed metadata claims (same plugin validation model as normal clients)
+metadatas.wallet = "0xHEALTH..."
+metadatas.owner = "0xHEALTH..."
+metadatas.run_id = "system-health-monitor"
+metadatas.auth_claim = "{base64url(payloadJson)}"
+metadatas.auth_sig = "0x{signature}"
+
+[[proxies]]
+name = "system-health-endpoint"
+type = "http"
+localIP = "127.0.0.1"
+localPort = 9000
+custom_domains = ["server.vana.org"]
+```
+
+```bash
+# Example verification from outside:
+curl -fsS https://server.vana.org/health
+```
+
 ---
 
 ## 10. Monitoring & Observability
@@ -1418,35 +1538,53 @@ ssh -L 7500:localhost:7500 frp-server
 
 #### 10.1.2 External Health Check
 
-Create a simple health check endpoint by tunneling a health service:
+Expose a dedicated external endpoint:
+
+- `https://server.vana.org/health`
+- Polled by external uptime monitor from outside the VPC
+
+This endpoint should represent **real service health**, not just process liveness. Implement it by exposing the existing Auth Plugin `/health` via a dedicated local frpc registration so the probe exercises the real data path:
+
+1. Monitor calls `https://server.vana.org/health`
+2. Cloudflare resolves/terminates TLS
+3. frps routes `server.vana.org` to the system health frpc tunnel
+4. Auth Plugin `/health` returns `200` only if:
+   - auth-plugin process/request loop is healthy
+   - frps dashboard is reachable on `127.0.0.1:7500`
+   - local frps ports `443` and `7000` are listening
+
+Return `503` with structured failure reasons when any dependency is unhealthy.
 
 ```bash
-# On the frps server, run a simple health responder
-# Or check frps process status via systemd
-systemctl is-active frps
+# External probe example
+curl -fsS https://server.vana.org/health
 ```
 
 ### 10.2 Metrics (MVP)
 
 For MVP, collect basic metrics via logs and simple scripts:
 
-| Metric            | Collection Method       | Alert Threshold     |
-| ----------------- | ----------------------- | ------------------- |
-| frps process up   | `systemctl is-active`   | Process not active  |
-| Active tunnels    | Parse dashboard or logs | N/A (informational) |
-| CPU usage         | `top` / `ps`            | > 80% sustained     |
-| Memory usage      | `free` / `ps`           | > 80% of available  |
-| Disk usage        | `df`                    | > 90%               |
-| Connection errors | Parse frps.log          | > 10/min            |
+| Metric                   | Collection Method                          | Alert Threshold                        |
+| ------------------------ | ------------------------------------------ | -------------------------------------- |
+| frps process up          | `systemctl is-active`                      | Process not active                     |
+| auth-plugin process up   | `systemctl is-active auth-plugin`          | Process not active                     |
+| External health endpoint | `curl -fsS https://server.vana.org/health` | Non-200 or timeout                     |
+| Active tunnels           | Parse dashboard or logs                    | N/A (informational)                    |
+| CPU usage                | `top` / `ps`                               | > 80% sustained                        |
+| Memory usage             | `free` / `ps`                              | > 80% of available                     |
+| Disk usage               | `df`                                       | > 90%                                  |
+| Connection errors        | Parse frps.log                             | > 10/min                               |
+| Auth rejects             | Parse auth-plugin logs                     | > 20/min (investigate abuse/misconfig) |
 
 ### 10.3 Logging
 
 #### 10.3.1 Log Locations
 
-| Log              | Path                    | Rotation             |
-| ---------------- | ----------------------- | -------------------- |
-| frps application | `/var/log/frp/frps.log` | 7 days (frps config) |
-| systemd journal  | `journalctl -u frps`    | systemd default      |
+| Log                     | Path                                                    | Rotation               |
+| ----------------------- | ------------------------------------------------------- | ---------------------- |
+| frps application        | `/var/log/frp/frps.log`                                 | 7 days (frps config)   |
+| auth-plugin (container) | `journalctl -u auth-plugin` / `docker logs auth-plugin` | systemd/docker default |
+| systemd journal         | `journalctl -u frps`                                    | systemd default        |
 
 #### 10.3.2 Log Parsing
 
@@ -1454,36 +1592,29 @@ For MVP, collect basic metrics via logs and simple scripts:
 # Count active connections
 grep "new proxy" /var/log/frp/frps.log | wc -l
 
+# Check externally observed health from another network
+curl -fsS https://server.vana.org/health
+
 # Find connection errors
 grep -i "error" /var/log/frp/frps.log | tail -20
+
+# Inspect auth-plugin rejects/errors
+journalctl -u auth-plugin -n 100
 
 # Watch real-time logs
 journalctl -u frps -f
 ```
 
-### 10.4 Alerting (MVP)
+### 10.4 Outage Polling (MVP)
 
-Simple cron-based alerting for MVP:
+Use an external monitor (e.g., uptime checker) to poll:
 
-```bash
-#!/bin/bash
-# /etc/cron.d/frps-monitor
+- `GET https://server.vana.org/health`
+- Interval: 30-60 seconds
+- Healthy: HTTP `200`
+- Unhealthy: HTTP `503` or timeout
 
-# Check every 5 minutes
-*/5 * * * * root /opt/scripts/check-frps.sh
-
-# check-frps.sh:
-#!/bin/bash
-if ! systemctl is-active --quiet frps; then
-  # Send alert (email, Slack, PagerDuty, etc.)
-  curl -X POST "https://hooks.slack.com/services/..." \
-    -H "Content-Type: application/json" \
-    -d '{"text":"ALERT: frps is down on proxy.server.vana.org"}'
-
-  # Attempt restart
-  systemctl restart frps
-fi
-```
+This is the primary outage signal for MVP; no cron-based local notifier is required.
 
 ---
 
@@ -1510,7 +1641,7 @@ fi
 │  Phase 3: Personal Server Integration (2-3 days)                             │
 │  ├── frpc binary bundling                                                    │
 │  ├── TunnelManager implementation                                            │
-│  ├── Web3Signed token generation                                             │
+│  ├── Web3Signed claim generation                                             │
 │  └── Tunnel lifecycle management                                             │
 │                                                                              │
 │  Phase 4: Testing & Hardening (2-3 days)                                     │
@@ -1527,25 +1658,25 @@ fi
 
 #### Phase 1: Infrastructure Setup (3-4 days)
 
-| Task | Description                        | Owner | Status |
-| ---- | ---------------------------------- | ----- | ------ |
-| 1.1  | Create GCP project and enable APIs | Infra | [ ]    |
-| 1.2  | Reserve static external IP         | Infra | [ ]    |
-| 1.3  | Create Compute Engine VM           | Infra | [ ]    |
-| 1.4  | Configure firewall rules           | Infra | [ ]    |
-| 1.5  | Add Cloudflare DNS records         | Infra | [ ]    |
-| 1.6  | Configure Cloudflare SSL/TLS       | Infra | [ ]    |
-| 1.7  | Generate Origin Certificate        | Infra | [ ]    |
-| 1.8  | Deploy frps with initial config    | Infra | [ ]    |
-| 1.9  | Verify tunnel routing works        | Infra | [ ]    |
-| 1.10 | Set up basic monitoring            | Infra | [ ]    |
+| Task | Description                                                                               | Owner | Status |
+| ---- | ----------------------------------------------------------------------------------------- | ----- | ------ |
+| 1.1  | Create GCP project and enable APIs                                                        | Infra | [ ]    |
+| 1.2  | Reserve static external IP                                                                | Infra | [ ]    |
+| 1.3  | Create Compute Engine VM                                                                  | Infra | [ ]    |
+| 1.4  | Configure firewall rules                                                                  | Infra | [ ]    |
+| 1.5  | Add Cloudflare DNS records                                                                | Infra | [ ]    |
+| 1.6  | Configure Cloudflare SSL/TLS                                                              | Infra | [ ]    |
+| 1.7  | Generate Origin Certificate                                                               | Infra | [ ]    |
+| 1.8  | Deploy frps with initial config                                                           | Infra | [ ]    |
+| 1.9  | Verify tunnel routing works                                                               | Infra | [ ]    |
+| 1.10 | Deploy external health endpoint (`server.vana.org/health`) and configure external polling | Infra | [ ]    |
 
 #### Phase 2: Auth Plugin Service (2-3 days)
 
 | Task | Description                                                     | Owner   | Status |
 | ---- | --------------------------------------------------------------- | ------- | ------ |
 | 2.1  | Copy Web3Signed auth from `personal-server-ts`                  | Backend | [ ]    |
-| 2.2  | Implement Hono server with `/handler` endpoint                  | Backend | [ ]    |
+| 2.2  | Implement Hono server with `/handler` and `/health` endpoints   | Backend | [ ]    |
 | 2.3  | Implement Login handler (validate Web3Signed, check delegation) | Backend | [ ]    |
 | 2.4  | Implement NewProxy handler (validate subdomain === wallet)      | Backend | [ ]    |
 | 2.5  | Add Gateway client for delegation verification                  | Backend | [ ]    |
@@ -1558,7 +1689,7 @@ fi
 | ---- | ------------------------------------------------------------ | ------ | ------ |
 | 3.1  | Bundle frpc binaries for all platforms                       | Server | [ ]    |
 | 3.2  | Implement TunnelManager class                                | Server | [ ]    |
-| 3.3  | Implement Web3Signed token generation (using server keypair) | Server | [ ]    |
+| 3.3  | Implement Web3Signed claim generation (using server keypair) | Server | [ ]    |
 | 3.4  | Add tunnel status to server API                              | Server | [ ]    |
 | 3.5  | Handle tunnel reconnection                                   | Server | [ ]    |
 | 3.6  | Update DataPortabilityServers on connect                     | Server | [ ]    |
@@ -1569,7 +1700,7 @@ fi
 | ---- | ----------------------------------------- | -------- | ------ |
 | 4.1  | End-to-end test: Desktop → frps → Builder | QA       | [ ]    |
 | 4.2  | Load test: 100+ concurrent tunnels        | QA       | [ ]    |
-| 4.3  | Security review: token handling, TLS      | Security | [ ]    |
+| 4.3  | Security review: claim handling, TLS      | Security | [ ]    |
 | 4.4  | Failure scenario testing                  | QA       | [ ]    |
 | 4.5  | Write operational runbook                 | Infra    | [ ]    |
 | 4.6  | Update protocol documentation             | Docs     | [ ]    |
@@ -1729,8 +1860,8 @@ journalctl -u frps -n 100
 # Check firewall
 gcloud compute firewall-rules list
 
-# Test port connectivity
-nc -zv proxy.server.vana.org 7000
+# Test control-plane connectivity
+nc -zv frpc.server.vana.org 7000
 ```
 
 #### B.2 SSL/TLS Errors
@@ -1744,7 +1875,18 @@ openssl x509 -in /etc/frp/certs/server.crt -text -noout
 curl -vI https://test.server.vana.org 2>&1 | grep -A 5 "SSL certificate"
 ```
 
-#### B.3 High Latency
+#### B.3 Control Plane Not Connecting
+
+```bash
+# frpc endpoint must be DNS-only in Cloudflare (not proxied)
+# Verify DNS response points to VM IP
+dig +short frpc.server.vana.org
+
+# Check port 7000 reachability
+nc -zv frpc.server.vana.org 7000
+```
+
+#### B.4 High Latency
 
 ```bash
 # Check CPU/memory
@@ -1772,7 +1914,10 @@ ss -s
 
 - [frp GitHub Repository](https://github.com/fatedier/frp)
 - [frp Documentation](https://gofrp.org/docs/)
+- [frp Authentication](https://gofrp.org/en/docs/features/common/authentication/)
+- [frp Server Plugin](https://gofrp.org/en/docs/features/common/server-plugin/)
 - [Cloudflare Origin Certificates](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/)
+- [Cloudflare Network Ports](https://developers.cloudflare.com/fundamentals/reference/network-ports/)
 - [GCP Compute Engine](https://cloud.google.com/compute/docs)
 - [Data Portability Protocol Spec](./260121-data-portability-protocol-spec.md)
 - [Personal Server Scaffold](./260127-personal-server-scaffold.md)

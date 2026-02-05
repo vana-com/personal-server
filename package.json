@@ -29,6 +29,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "register-server": "tsx --env-file-if-exists=.env scripts/register-server.ts",
+    "update-frpc": "tsx scripts/update-frpc.ts",
     "validate": "npm run lint && npm run lint:eslint && npm run format:check && npm test",
     "prepare": "husky"
   },
