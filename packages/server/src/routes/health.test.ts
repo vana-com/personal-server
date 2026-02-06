@@ -158,4 +158,52 @@ describe("healthRoute", () => {
     expect(getServer).toHaveBeenCalledTimes(2);
     expect(getServer).toHaveBeenCalledWith("0xServerAddr");
   });
+
+  it("tunnel is null when getTunnelStatus is not provided", async () => {
+    const app = healthRoute({ version: "0.0.1", startedAt: new Date() });
+    const res = await app.request("/health");
+    const body = await res.json();
+    expect(body.tunnel).toBeNull();
+  });
+
+  it("includes tunnel status when getTunnelStatus is provided", async () => {
+    const app = healthRoute({
+      version: "0.0.1",
+      startedAt: new Date(),
+      getTunnelStatus: () => ({
+        enabled: true,
+        status: "connected",
+        publicUrl: "https://0xabc.server.vana.org",
+        connectedSince: "2026-02-04T10:30:00.000Z",
+      }),
+    });
+    const res = await app.request("/health");
+    const body = await res.json();
+
+    expect(body.tunnel).not.toBeNull();
+    expect(body.tunnel.enabled).toBe(true);
+    expect(body.tunnel.status).toBe("connected");
+    expect(body.tunnel.publicUrl).toBe("https://0xabc.server.vana.org");
+    expect(body.tunnel.connectedSince).toBe("2026-02-04T10:30:00.000Z");
+  });
+
+  it("tunnel status reflects disconnected state", async () => {
+    const app = healthRoute({
+      version: "0.0.1",
+      startedAt: new Date(),
+      getTunnelStatus: () => ({
+        enabled: true,
+        status: "disconnected",
+        publicUrl: null,
+        connectedSince: null,
+        error: "Connection lost",
+      }),
+    });
+    const res = await app.request("/health");
+    const body = await res.json();
+
+    expect(body.tunnel.status).toBe("disconnected");
+    expect(body.tunnel.publicUrl).toBeNull();
+    expect(body.tunnel.error).toBe("Connection lost");
+  });
 });

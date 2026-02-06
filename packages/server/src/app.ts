@@ -6,7 +6,7 @@ import type { HierarchyManagerOptions } from "@opendatalabs/personal-server-ts-c
 import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
 import type { AccessLogWriter } from "@opendatalabs/personal-server-ts-core/logging/access-log";
 import type { AccessLogReader } from "@opendatalabs/personal-server-ts-core/logging/access-reader";
-import { healthRoute } from "./routes/health.js";
+import { healthRoute, type HealthDeps } from "./routes/health.js";
 import { dataRoutes } from "./routes/data.js";
 import { grantsRoutes } from "./routes/grants.js";
 import { accessLogsRoutes } from "./routes/access-logs.js";
@@ -37,6 +37,7 @@ export interface AppDeps {
   devToken?: string;
   configPath?: string;
   syncManager?: SyncManager | null;
+  getTunnelStatus?: HealthDeps["getTunnelStatus"];
 }
 
 export function createApp(deps: AppDeps): Hono {
@@ -63,6 +64,7 @@ export function createApp(deps: AppDeps): Hono {
       identity: deps.identity,
       gateway: deps.gateway,
       logger: deps.logger,
+      getTunnelStatus: deps.getTunnelStatus,
     }),
   );
 

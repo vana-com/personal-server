@@ -3,6 +3,7 @@ import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gatewa
 import type { Logger } from "pino";
 
 import type { IdentityInfo } from "../app.js";
+import type { TunnelStatusInfo } from "../tunnel/index.js";
 
 export interface HealthDeps {
   version: string;
@@ -11,6 +12,7 @@ export interface HealthDeps {
   identity?: IdentityInfo;
   gateway?: GatewayClient;
   logger?: Logger;
+  getTunnelStatus?: () => TunnelStatusInfo | null;
 }
 
 export function healthRoute(deps: HealthDeps): Hono {
@@ -42,12 +44,15 @@ export function healthRoute(deps: HealthDeps): Hono {
         }
       : null;
 
+    const tunnel = deps.getTunnelStatus?.() ?? null;
+
     return c.json({
       status: "healthy",
       version: deps.version,
       uptime: Math.floor(uptimeMs / 1000),
       owner: deps.serverOwner ?? null,
       identity,
+      tunnel,
     });
   });
 

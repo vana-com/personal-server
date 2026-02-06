@@ -6,7 +6,7 @@ import { createServer } from "./bootstrap.js";
 import { ServerConfigSchema } from "@opendatalabs/personal-server-ts-core/schemas";
 
 function makeDefaultConfig() {
-  return ServerConfigSchema.parse({});
+  return ServerConfigSchema.parse({ tunnel: { enabled: false } });
 }
 
 describe("createServer", () => {
@@ -318,7 +318,10 @@ describe("createServer", () => {
 
     it("syncManager is null when sync.enabled is false", async () => {
       vi.stubEnv("VANA_MASTER_KEY_SIGNATURE", knownSig);
-      const config = ServerConfigSchema.parse({ sync: { enabled: false } });
+      const config = ServerConfigSchema.parse({
+        sync: { enabled: false },
+        tunnel: { enabled: false },
+      });
       const ctx = await createServer(config, {
         serverDir: tempDir,
         dataDir: join(tempDir, "data"),
@@ -341,7 +344,10 @@ describe("createServer", () => {
 
     it("syncManager is created when sync.enabled and master key set", async () => {
       vi.stubEnv("VANA_MASTER_KEY_SIGNATURE", knownSig);
-      const config = ServerConfigSchema.parse({ sync: { enabled: true } });
+      const config = ServerConfigSchema.parse({
+        sync: { enabled: true },
+        tunnel: { enabled: false },
+      });
       const ctx = await createServer(config, {
         serverDir: tempDir,
         dataDir: join(tempDir, "data"),
@@ -354,7 +360,10 @@ describe("createServer", () => {
 
     it("cleanup stops syncManager when enabled", async () => {
       vi.stubEnv("VANA_MASTER_KEY_SIGNATURE", knownSig);
-      const config = ServerConfigSchema.parse({ sync: { enabled: true } });
+      const config = ServerConfigSchema.parse({
+        sync: { enabled: true },
+        tunnel: { enabled: false },
+      });
       const ctx = await createServer(config, {
         serverDir: tempDir,
         dataDir: join(tempDir, "data"),

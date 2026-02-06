@@ -33,6 +33,11 @@ export const DEFAULTS = {
     enabled: false,
     lastProcessedTimestamp: null,
   },
+  tunnel: {
+    enabled: true,
+    serverAddr: "frpc.server.vana.org",
+    serverPort: 7000,
+  },
 };
 
 export const StorageBackend = z.enum([
@@ -109,6 +114,18 @@ export const ServerConfigSchema = z.object({
         .default(DEFAULTS.sync.lastProcessedTimestamp),
     })
     .default(DEFAULTS.sync),
+  tunnel: z
+    .object({
+      enabled: z.boolean().default(DEFAULTS.tunnel.enabled),
+      serverAddr: z.string().default(DEFAULTS.tunnel.serverAddr),
+      serverPort: z
+        .number()
+        .int()
+        .min(1)
+        .max(65535)
+        .default(DEFAULTS.tunnel.serverPort),
+    })
+    .default(DEFAULTS.tunnel),
 });
 
 export type ServerConfig = z.infer<typeof ServerConfigSchema>;

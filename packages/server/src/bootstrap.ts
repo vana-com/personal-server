@@ -1,4 +1,5 @@
 import { mkdir } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import type { ServerConfig } from "@opendatalabs/personal-server-ts-core/schemas";
 import {
@@ -40,6 +41,7 @@ import { createVanaStorageAdapter } from "@opendatalabs/personal-server-ts-core/
 import type { Hono } from "hono";
 import { createApp, type IdentityInfo } from "./app.js";
 import { generateDevToken } from "./dev-token.js";
+import { TunnelManager, ensureFrpcBinary } from "./tunnel/index.js";
 
 export interface ServerContext {
   app: Hono;
@@ -52,6 +54,8 @@ export interface ServerContext {
   serverAccount?: ServerAccount;
   serverSigner?: ServerSigner;
   syncManager: SyncManager | null;
+  tunnelManager?: TunnelManager;
+  tunnelUrl?: string;
   devToken?: string;
   cleanup: () => Promise<void>;
 }
@@ -86,7 +90,7 @@ export async function createServer(
 
   const gatewayClient = createGatewayClient(config.gateway.url);
 
-  const serverOrigin = config.server.origin;
+  const _serverOrigin = config.server.origin;
 
   // Derive server owner from VANA_MASTER_KEY_SIGNATURE env var
   const masterKeySignature = process.env.VANA_MASTER_KEY_SIGNATURE as
@@ -145,6 +149,61 @@ export async function createServer(
   } else {
     logger.warn(
       "VANA_MASTER_KEY_SIGNATURE not set — owner-restricted endpoints will return 500",
+    );
+  }
+
+  // --- Tunnel setup ---
+  // Tunnel starts FIRST to get public URL for Gateway registration
+  let tunnelManager: TunnelManager | undefined;
+  let tunnelUrl: string | undefined;
+  let effectiveOrigin = config.server.origin; // Start with config.server.origin
+
+  if (config.tunnel.enabled && serverOwner && serverAccount) {
+    // Ensure frpc binary is available (downloads on first run or version bump)
+    let frpcBinaryPath: string;
+    try {
+      frpcBinaryPath = await ensureFrpcBinary(storageRoot, {
+        log: (msg) => logger.info(msg),
+      });
+    } catch (err) {
+      logger.warn({ err }, "Failed to download frpc binary - tunnel disabled");
+      frpcBinaryPath = "";
+    }
+
+    if (frpcBinaryPath) {
+      tunnelManager = new TunnelManager(storageRoot);
+
+      // Generate unique run ID for this process/session (used for claim binding)
+      const runId = randomUUID();
+
+      try {
+        tunnelUrl = await tunnelManager.start(
+          {
+            walletAddress: serverAccount.address, // Use server's own keypair address
+            ownerAddress: serverOwner,
+            serverKeypair: serverAccount,
+            runId,
+            serverAddr: config.tunnel.serverAddr,
+            serverPort: config.tunnel.serverPort,
+            localPort: config.server.port,
+          },
+          frpcBinaryPath,
+        );
+        logger.info({ tunnelUrl }, "Tunnel established");
+
+        // Use tunnel URL as effective origin for requests and Gateway registration
+        effectiveOrigin = tunnelUrl;
+      } catch (err) {
+        logger.warn(
+          { err },
+          "Tunnel failed to connect - server running in local-only mode",
+        );
+        tunnelManager = undefined;
+      }
+    }
+  } else if (config.tunnel.enabled) {
+    logger.warn(
+      "Tunnel enabled in config but VANA_MASTER_KEY_SIGNATURE not set — tunnel disabled",
     );
   }
 
@@ -217,7 +276,7 @@ export async function createServer(
     startedAt,
     indexManager,
     hierarchyOptions,
-    serverOrigin,
+    serverOrigin: effectiveOrigin,
     serverOwner,
     identity,
     gateway: gatewayClient,
@@ -226,9 +285,15 @@ export async function createServer(
     devToken,
     configPath,
     syncManager,
+    getTunnelStatus: tunnelManager
+      ? () => tunnelManager.getStatus()
+      : undefined,
   });
 
   const cleanup = async () => {
+    if (tunnelManager) {
+      await tunnelManager.stop();
+    }
     if (syncManager) {
       await syncManager.stop();
     }
@@ -246,6 +311,8 @@ export async function createServer(
     serverAccount,
     serverSigner,
     syncManager,
+    tunnelManager,
+    tunnelUrl,
     devToken,
     cleanup,
   };
