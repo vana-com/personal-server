@@ -14,6 +14,7 @@ import { join } from "node:path";
 import type { ServerAccount } from "@opendatalabs/personal-server-ts-core/keys";
 import { generateSignedClaim } from "./auth.js";
 import { generateFrpcConfig } from "./config.js";
+import { buildTunnelUrl } from "./verify.js";
 
 export type TunnelStatus =
   | "stopped"
@@ -132,7 +133,7 @@ export class TunnelManager {
             resolved = true;
             this.status = "connected";
             this.connectedSince = new Date();
-            this.publicUrl = `https://${subdomain}.server.vana.org`;
+            this.publicUrl = buildTunnelUrl(subdomain);
             resolve(this.publicUrl);
           }
         }
@@ -179,7 +180,7 @@ export class TunnelManager {
           // Set as connected optimistically
           this.status = "connected";
           this.connectedSince = new Date();
-          this.publicUrl = `https://${subdomain}.server.vana.org`;
+          this.publicUrl = buildTunnelUrl(subdomain);
           resolve(this.publicUrl);
         }
       }, 10000); // 10 second timeout
@@ -222,6 +223,19 @@ export class TunnelManager {
    */
   isRunning(): boolean {
     return this.process !== null && this.status === "connected";
+  }
+
+  /**
+   * Update status based on external verification of the tunnel URL.
+   */
+  setVerified(reachable: boolean, error?: string): void {
+    if (reachable) {
+      this.status = "connected";
+      this.lastError = null;
+    } else {
+      this.status = "error";
+      this.lastError = error ?? "Tunnel URL not reachable";
+    }
   }
 
   /**

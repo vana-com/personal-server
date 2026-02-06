@@ -191,6 +191,16 @@ export async function createServer(
         );
         logger.info({ tunnelUrl }, "Tunnel established");
 
+        if (!identity?.serverId) {
+          logger.warn(
+            "Tunnel started but server is not registered with gateway — tunnel will not route traffic. Run: npm run register-server",
+          );
+          tunnelManager.setVerified(
+            false,
+            "Server not registered with gateway",
+          );
+        }
+
         // Use tunnel URL as effective origin for requests and Gateway registration
         effectiveOrigin = tunnelUrl;
       } catch (err) {

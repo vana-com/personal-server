@@ -16,3 +16,6 @@ export type {
 } from "./manager.js";
 
 export { ensureFrpcBinary, getBinaryPath } from "./binary.js";
+
+export { buildTunnelUrl, verifyTunnelUrl } from "./verify.js";
+export type { VerifyTunnelOptions, VerifyTunnelResult } from "./verify.js";

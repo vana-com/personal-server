@@ -17,6 +17,7 @@ import {
   type ServerRegistrationMessage,
 } from "../packages/core/src/signing/index.js";
 import { join } from "node:path";
+import { buildTunnelUrl } from "../packages/server/src/tunnel/verify.js";
 
 async function main() {
   const ownerKey = process.env.VANA_OWNER_PRIVATE_KEY;
@@ -40,7 +41,15 @@ async function main() {
   console.log(`Server address: ${serverAccount.address}`);
 
   const config = await loadConfig({ rootPath });
-  const serverUrl = process.argv[2] ?? config.server.origin;
+
+  let serverUrl: string;
+  if (process.argv[2]) {
+    serverUrl = process.argv[2];
+  } else if (config.tunnel.enabled) {
+    serverUrl = buildTunnelUrl(serverAccount.address);
+  } else {
+    serverUrl = config.server.origin;
+  }
   console.log(`Server URL: ${serverUrl}`);
   console.log(`Gateway URL: ${config.gateway.url}`);
 
