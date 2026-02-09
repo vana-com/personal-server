@@ -327,6 +327,7 @@
       <button data-tab="grants">Grants</button>
       <button data-tab="logs">Access Logs</button>
       <button data-tab="api">API Tester</button>
+      <button data-tab="connect">Connect</button>
     </nav>
 
     <main>
@@ -459,6 +460,43 @@
             style="margin-bottom: 8px; font-size: 12px; color: var(--text-dim)"
           ></div>
           <pre class="json" id="api-response">No request sent yet.</pre>
+        </div>
+      </div>
+
+      <!-- Connect Panel -->
+      <div id="panel-connect" class="panel">
+        <div class="card">
+          <div class="card-title">Connect Simulator</div>
+          <label style="display:block;margin-bottom:4px;font-size:11px;color:var(--text-dim)">Session Relay URL</label>
+          <input id="connect-relay-url" type="text" value="https://session-relay-git-dev-opendatalabs.vercel.app" style="margin-bottom:12px" />
+          <label style="display:block;margin-bottom:4px;font-size:11px;color:var(--text-dim)">Deep Link URL</label>
+          <input id="connect-deep-link" type="text" placeholder="Paste deep link URL from the test builder app" style="margin-bottom:12px" />
+          <div style="display:flex;gap:8px">
+            <button class="btn" id="connect-parse-btn">Parse</button>
+          </div>
+          <div id="connect-parsed" style="margin-top:12px;display:none">
+            <div class="kv-grid" id="connect-parsed-info"></div>
+          </div>
+        </div>
+
+        <div class="card" id="connect-flow-card" style="display:none">
+          <div class="card-title">Flow Steps</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <button class="btn" id="connect-claim-btn" disabled>1. Claim Session</button>
+            <button class="btn" id="connect-grant-btn" disabled>2. Create Grant</button>
+            <button class="btn" id="connect-approve-btn" disabled>3. Approve Session</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button class="btn" id="connect-auto-btn" disabled>Auto-Approve All</button>
+            <button class="btn secondary" id="connect-deny-btn" disabled>Deny</button>
+          </div>
+          <div class="card-title" style="margin-top:8px">Progress Log</div>
+          <div id="connect-log" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;font-size:11px;max-height:300px;overflow-y:auto;white-space:pre-wrap"></div>
+        </div>
+
+        <div class="card" id="connect-result-card" style="display:none">
+          <div class="card-title">Result</div>
+          <pre class="json" id="connect-result"></pre>
         </div>
       </div>
     </main>
@@ -1080,6 +1118,327 @@
       }
 
       el("send-api-btn").addEventListener("click", sendApiRequest);
+
+      // --- Connect Simulator ---
+      var connectState = {
+        relayUrl: "",
+        sessionId: "",
+        secret: "",
+        granteeAddress: "",
+        scopes: [],
+        userAddress: "",
+        grantId: "",
+      };
+
+      function connectLog(message, type) {
+        var logEl = el("connect-log");
+        var ts = new Date().toLocaleTimeString();
+        var color =
+          type === "ok"
+            ? "var(--accent)"
+            : type === "err"
+              ? "var(--error)"
+              : "var(--text-dim)";
+        var line = createEl("div", { style: { color: color } });
+        line.textContent = "[" + ts + "] " + message;
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      async function relayFetch(path, opts) {
+        opts = opts || {};
+        var url = connectState.relayUrl + path;
+        var res = await fetch(url, {
+          method: opts.method || "GET",
+          headers: Object.assign(
+            { "Content-Type": "application/json" },
+            opts.headers || {},
+          ),
+          body: opts.body,
+        });
+        var json = await res.json().catch(function () {
+          return {};
+        });
+        return { status: res.status, ok: res.ok, data: json };
+      }
+
+      function connectParse() {
+        var relayUrl = el("connect-relay-url").value.trim().replace(/\/+$/, "");
+        var deepLink = el("connect-deep-link").value.trim();
+
+        if (!deepLink) {
+          connectLog("Deep link URL is required", "err");
+          return;
+        }
+
+        var url;
+        try {
+          url = new URL(deepLink);
+        } catch (e) {
+          connectLog("Invalid deep link URL: " + e.message, "err");
+          return;
+        }
+
+        var sessionId = url.searchParams.get("sessionId");
+        var secret = url.searchParams.get("secret");
+
+        if (!sessionId || !secret) {
+          connectLog(
+            "Deep link must contain sessionId and secret params",
+            "err",
+          );
+          return;
+        }
+
+        connectState.relayUrl = relayUrl;
+        connectState.sessionId = sessionId;
+        connectState.secret = secret;
+
+        // Show parsed info
+        var info = el("connect-parsed-info");
+        clearChildren(info);
+        var items = [
+          ["sessionId", sessionId],
+          ["secret", secret.slice(0, 8) + "..."],
+          ["relay", relayUrl],
+        ];
+        for (var i = 0; i < items.length; i++) {
+          var lbl = createEl("span", { class: "label" });
+          lbl.textContent = items[i][0];
+          var val = createEl("span", { class: "value" });
+          val.textContent = items[i][1];
+          info.appendChild(lbl);
+          info.appendChild(val);
+        }
+        el("connect-parsed").style.display = "block";
+        el("connect-flow-card").style.display = "block";
+
+        // Enable buttons
+        el("connect-claim-btn").disabled = false;
+        el("connect-auto-btn").disabled = false;
+        el("connect-deny-btn").disabled = false;
+        el("connect-grant-btn").disabled = true;
+        el("connect-approve-btn").disabled = true;
+
+        connectLog("Parsed deep link — sessionId: " + sessionId, "ok");
+      }
+
+      async function connectClaim() {
+        connectLog("Claiming session...");
+        el("connect-claim-btn").disabled = true;
+
+        try {
+          var result = await relayFetch("/v1/session/claim", {
+            method: "POST",
+            body: JSON.stringify({
+              sessionId: connectState.sessionId,
+              secret: connectState.secret,
+            }),
+          });
+
+          if (!result.ok) {
+            var errMsg =
+              (result.data.error && result.data.error.message) ||
+              "Claim failed (" + result.status + ")";
+            connectLog("Claim failed: " + errMsg, "err");
+            el("connect-claim-btn").disabled = false;
+            return false;
+          }
+
+          connectState.granteeAddress =
+            result.data.granteeAddress || result.data.session?.granteeAddress || "";
+          connectState.scopes =
+            result.data.scopes || result.data.session?.scopes || [];
+
+          connectLog(
+            "Session claimed — grantee: " +
+              connectState.granteeAddress +
+              ", scopes: [" +
+              connectState.scopes.join(", ") +
+              "]",
+            "ok",
+          );
+
+          el("connect-grant-btn").disabled = false;
+          return true;
+        } catch (e) {
+          connectLog("Claim error: " + e.message, "err");
+          el("connect-claim-btn").disabled = false;
+          return false;
+        }
+      }
+
+      async function connectCreateGrant() {
+        connectLog("Creating grant...");
+        el("connect-grant-btn").disabled = true;
+
+        try {
+          // Get owner address from /health
+          var healthResult = await api("/health");
+          if (
+            !healthResult.ok ||
+            !healthResult.data ||
+            !healthResult.data.owner
+          ) {
+            connectLog(
+              "Could not get owner address from /health. Is VANA_MASTER_KEY_SIGNATURE set?",
+              "err",
+            );
+            el("connect-grant-btn").disabled = false;
+            return false;
+          }
+          connectState.userAddress = healthResult.data.owner;
+          connectLog("Owner address: " + connectState.userAddress);
+
+          // Create grant via POST /v1/grants
+          var grantResult = await api("/v1/grants", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              granteeAddress: connectState.granteeAddress,
+              scopes: connectState.scopes,
+            }),
+          });
+
+          if (!grantResult.ok) {
+            var errMsg =
+              (grantResult.data.error && grantResult.data.error.message) ||
+              "Create grant failed (" + grantResult.status + ")";
+            connectLog("Grant creation failed: " + errMsg, "err");
+            el("connect-grant-btn").disabled = false;
+            return false;
+          }
+
+          connectState.grantId = String(grantResult.data.grantId);
+          connectLog("Grant created — grantId: " + connectState.grantId, "ok");
+
+          el("connect-approve-btn").disabled = false;
+          return true;
+        } catch (e) {
+          connectLog("Grant error: " + e.message, "err");
+          el("connect-grant-btn").disabled = false;
+          return false;
+        }
+      }
+
+      async function connectApprove() {
+        connectLog("Approving session...");
+        el("connect-approve-btn").disabled = true;
+
+        try {
+          var result = await relayFetch(
+            "/v1/session/" + connectState.sessionId + "/approve",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                secret: connectState.secret,
+                grantId: connectState.grantId,
+                userAddress: connectState.userAddress,
+                scopes: connectState.scopes,
+              }),
+            },
+          );
+
+          if (!result.ok) {
+            var errMsg =
+              (result.data.error && result.data.error.message) ||
+              "Approve failed (" + result.status + ")";
+            connectLog("Approve failed: " + errMsg, "err");
+            el("connect-approve-btn").disabled = false;
+            return false;
+          }
+
+          connectLog("Session approved!", "ok");
+
+          // Show result
+          el("connect-result-card").style.display = "block";
+          el("connect-result").textContent = JSON.stringify(
+            {
+              grantId: connectState.grantId,
+              userAddress: connectState.userAddress,
+              granteeAddress: connectState.granteeAddress,
+              scopes: connectState.scopes,
+              sessionId: connectState.sessionId,
+            },
+            null,
+            2,
+          );
+
+          // Disable all buttons
+          el("connect-auto-btn").disabled = true;
+          el("connect-deny-btn").disabled = true;
+          return true;
+        } catch (e) {
+          connectLog("Approve error: " + e.message, "err");
+          el("connect-approve-btn").disabled = false;
+          return false;
+        }
+      }
+
+      async function connectDeny() {
+        connectLog("Denying session...");
+
+        try {
+          var result = await relayFetch(
+            "/v1/session/" + connectState.sessionId + "/deny",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                secret: connectState.secret,
+                reason: "Denied from Dev UI",
+              }),
+            },
+          );
+
+          if (!result.ok) {
+            var errMsg =
+              (result.data.error && result.data.error.message) ||
+              "Deny failed (" + result.status + ")";
+            connectLog("Deny failed: " + errMsg, "err");
+            return;
+          }
+
+          connectLog("Session denied", "ok");
+
+          // Disable all action buttons
+          el("connect-claim-btn").disabled = true;
+          el("connect-grant-btn").disabled = true;
+          el("connect-approve-btn").disabled = true;
+          el("connect-auto-btn").disabled = true;
+          el("connect-deny-btn").disabled = true;
+        } catch (e) {
+          connectLog("Deny error: " + e.message, "err");
+        }
+      }
+
+      async function connectAutoApprove() {
+        el("connect-auto-btn").disabled = true;
+        el("connect-deny-btn").disabled = true;
+        connectLog("Starting auto-approve flow...");
+
+        var ok = await connectClaim();
+        if (!ok) {
+          el("connect-auto-btn").disabled = false;
+          el("connect-deny-btn").disabled = false;
+          return;
+        }
+
+        ok = await connectCreateGrant();
+        if (!ok) {
+          el("connect-auto-btn").disabled = false;
+          el("connect-deny-btn").disabled = false;
+          return;
+        }
+
+        await connectApprove();
+      }
+
+      el("connect-parse-btn").addEventListener("click", connectParse);
+      el("connect-claim-btn").addEventListener("click", connectClaim);
+      el("connect-grant-btn").addEventListener("click", connectCreateGrant);
+      el("connect-approve-btn").addEventListener("click", connectApprove);
+      el("connect-deny-btn").addEventListener("click", connectDeny);
+      el("connect-auto-btn").addEventListener("click", connectAutoApprove);
 
       // --- Utilities ---
       function truncAddr(addr) {
