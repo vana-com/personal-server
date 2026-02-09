@@ -14,6 +14,7 @@ import { syncRoutes } from "./routes/sync.js";
 import { uiConfigRoutes } from "./routes/ui-config.js";
 import { uiRoute } from "./routes/ui.js";
 import type { SyncManager } from "@opendatalabs/personal-server-ts-core/sync";
+import type { ServerSigner } from "@opendatalabs/personal-server-ts-core/signing";
 import type { Logger } from "pino";
 
 export interface IdentityInfo {
@@ -37,6 +38,7 @@ export interface AppDeps {
   devToken?: string;
   configPath?: string;
   syncManager?: SyncManager | null;
+  serverSigner?: ServerSigner;
   getTunnelStatus?: HealthDeps["getTunnelStatus"];
 }
 
@@ -84,7 +86,7 @@ export function createApp(deps: AppDeps): Hono {
     }),
   );
 
-  // Mount grants routes (POST /verify is public, GET / needs owner auth)
+  // Mount grants routes (POST /verify is public, GET / and POST / need owner auth)
   app.route(
     "/v1/grants",
     grantsRoutes({
@@ -93,6 +95,7 @@ export function createApp(deps: AppDeps): Hono {
       serverOwner: deps.serverOwner,
       serverOrigin: deps.serverOrigin,
       devToken: deps.devToken,
+      serverSigner: deps.serverSigner,
     }),
   );
 

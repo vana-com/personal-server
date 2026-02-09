@@ -371,7 +371,7 @@
           <input
             id="add-data-scope"
             type="text"
-            value="test.example"
+            value="test.dpv1.260130"
             style="margin-bottom: 12px"
           />
           <label
@@ -388,7 +388,8 @@
             spellcheck="false"
             style="min-height: 120px; margin-bottom: 12px"
             placeholder='{
-  "example_key": "example_value"
+  "test-string-key": "test-string",
+  "test-num-key": 0
 }'
           ></textarea>
           <button class="btn" id="submit-data-btn">Submit</button>
@@ -1127,6 +1128,7 @@
         granteeAddress: "",
         scopes: [],
         userAddress: "",
+        serverAddress: "",
         grantId: "",
       };
 
@@ -1288,6 +1290,7 @@
             return false;
           }
           connectState.userAddress = healthResult.data.owner;
+          connectState.serverAddress = healthResult.data.identity && healthResult.data.identity.address || "";
           connectLog("Owner address: " + connectState.userAddress);
 
           // Create grant via POST /v1/grants
@@ -1334,6 +1337,7 @@
                 secret: connectState.secret,
                 grantId: connectState.grantId,
                 userAddress: connectState.userAddress,
+                serverAddress: connectState.serverAddress,
                 scopes: connectState.scopes,
               }),
             },

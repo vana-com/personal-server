@@ -2,27 +2,27 @@
 
 ## **Table of Contents**
 
-1.  [Introduction](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#1-introduction-ee225b16)
-2.  [Terminology](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#2-terminology-3f6af1fd)
-3.  [Protocol Model](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#3-protocol-model-648113d9)
-4.  [Protocol Components](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#4-protocol-components-2b65bc42)
-    - [4.1.6 Personal Server Implementation Targets](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#416-personal-server-implementation-targets-6cf06d45)
-    - [4.1.7 Data Sync Component](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#417-data-sync-component-5d7a3b44)
-    - [4.1.8 Local Data Hierarchy](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#418-local-data-hierarchy-6cd86d28)
-    - [4.1.9 Builder Data Access Interface](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#419-builder-data-access-interface-a763221e)
-    - [4.1.10 MCP Server Integration](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#4110-mcp-server-integration-68d6cf85)
-    - [4.1.11 Internet Accessibility (Tunneling)](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#4111-internet-accessibility-tunneling-bb515cd5)
-    - [4.5 Session Relay Service](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#45-session-relay-service-b64d444e)
-5.  [Data Formats](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#5-data-formats-f08cd950)
-6.  [Protocol Operations](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#6-protocol-operations-f73e200e)
-    - [6.6 Builder React Package (@vana/connect)](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#66-builder-react-package-vanaconnect-a4f1ad32)
-7.  [Security Considerations](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#7-security-considerations-d9e63b6d)
-8.  [Error Handling](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#8-error-handling-e4b1618c)
-9.  [Extensibility](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#9-extensibility-c39a0c74)
-10. [Appendix A: Alignment Analysis](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#appendix-a-alignment-analysis-5dd3be2e)
-11. [Appendix B: Complete Flow Scenarios](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#appendix-b-complete-flow-scenarios-c6b80296)
-12. [Appendix C: SMTP Analogy Mapping](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#appendix-c-smtp-analogy-mapping-a388f8c0)
-13. [Appendix D: ODL Cloud Reference Architecture](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#appendix-d-odl-cloud-reference-86d3d186)
+1.  [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#1-introduction-ee225b16)
+2.  [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#2-terminology-3f6af1fd)
+3.  [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#3-protocol-model-648113d9)
+4.  [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#4-protocol-components-2b65bc42)
+    - [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#416-personal-server-implementation-targets-6cf06d45)
+    - [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#417-data-sync-component-5d7a3b44)
+    - [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#418-local-data-hierarchy-6cd86d28)
+    - [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#419-builder-data-access-interface-a763221e)
+    - [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#4110-mcp-server-integration-68d6cf85)
+    - [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#4111-internet-accessibility-tunneling-bb515cd5)
+    - [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#45-session-relay-service-b64d444e)
+5.  [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#5-data-formats-f08cd950)
+6.  [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#6-protocol-operations-f73e200e)
+    - [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#66-builder-react-package-vanaconnect-a4f1ad32)
+7.  [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#7-security-considerations-d9e63b6d)
+8.  [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#8-error-handling-e4b1618c)
+9.  [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#9-extensibility-c39a0c74)
+10. [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#appendix-a-alignment-analysis-5dd3be2e)
+11. [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#appendix-b-complete-flow-scenarios-c6b80296)
+12. [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#appendix-c-smtp-analogy-mapping-a388f8c0)
+13. [[CORE] Vana Data Portability Protocol Specification](https://linear.app/vana-team/document/core-vana-data-portability-protocol-specification-c86fc2a9750c#appendix-d-odl-cloud-reference-86d3d186)
 
 ---
 
@@ -300,6 +300,10 @@ DELETE /v1/data/{scope}
   Delete data file
 GET /v1/grants
   List all grants for this user
+POST /v1/grants
+  Create a new grant (owner-only, called by Desktop App)
+  Body: { granteeAddress, scopes, expiresAt?, nonce? }
+  Response: { grantId } (201 Created)
 POST /v1/grants/verify
   Verify a grant signature
 GET /v1/access-logs
@@ -495,11 +499,8 @@ When a storage backend is selected or changed, the Personal Server bulk-uploads 
 Storage backends in the Data Portability Protocol MUST:
 
 1. **Accept only encrypted blobs** — Storage backends receive pre-encrypted data from Personal Servers. Encryption/decryption is the Personal Server's responsibility.
-
 2. **Authenticate requests** — Verify the requester is authorized to operate on the owner's data. Authorization model is backend-specific but MUST tie operations to the data owner's identity.
-
 3. **Support hierarchical keys** — Vana Storage uses keys in the format `{ownerAddress}/{scope}/{collectedAt}`. Other backends map this to their native structure (e.g., GDrive folders, IPFS CIDs).
-
 4. **Return canonical URLs** — After upload, return a stable URL that the Personal Server registers with the DataRegistry via Gateway.
 
 Storage backends are NOT responsible for:
@@ -1391,7 +1392,11 @@ The Session Relay is a standalone service that coordinates "Connect Data" betwee
 
 **Session State**
 
-`pending` → `claimed` → `approved` → `completed` → `expired` (15 minutes)
+`pending` → `claimed` → `approved`
+
+                                        → `expired` (15 minutes)
+
+                                        → `denied`
 
 **Request Signing**
 
@@ -1410,16 +1415,22 @@ POST /v1/session/init
   Headers: { Authorization: Web3Signed <base64url(json)>.<signature> }
   Input: { granteeAddress, scopes, webhookUrl?, app_user_id? }
   Output: { sessionId, deepLinkUrl, expiresAt }
+  Deep link format: vana://connect?sessionId=xxx&secret=yyy
 GET /v1/session/{sessionId}/poll
   Input: { }
-  Output: { status, grant? }
+  Output: { status, grant?, reason? }
 POST /v1/session/claim
-  Input: { sessionId }
+  Input: { sessionId, secret }
   Output: { sessionId, granteeAddress, scopes, webhookUrl?, app_user_id?, expiresAt }
 POST /v1/session/{sessionId}/approve
-  Input: { signedGrant }
+  Input: { secret, grantId, userAddress, scopes }
   Output: { status: "success" }
+POST /v1/session/{sessionId}/deny
+  Input: { secret, reason? }
+  Output: { status: "denied" }
 ```
+
+The `secret` is a cryptographic token generated at session creation. It is included in the deep link URL and required for claim/approve/deny to bind the Desktop App to the session securely.
 
 **Grant Payload (returned via poll/webhook):**
 
@@ -1705,7 +1716,7 @@ The "Connect data" flow allows users to connect their Vana Personal Server to a 
 2. **Session Creation**: Builder backend creates a session (signed) via Session Relay. The frontend opens a popup with a deep link.
 3. **Desktop Pairing**: User opens the Desktop App via deep link (Desktop App must be installed).
 4. **Consent**: Desktop App fetches session details, resolves Builder metadata by discovering the manifest from `appUrl`, verifies signature, and prompts the user to approve.
-5. **Completion**: Desktop App submits the signed Grant to the Gateway (relayer) to create the on-chain `permissionId`, then submits the signed Grant + `permissionId` to the Session Relay. The Builder receives the grant payload via polling or webhook and completes the login.
+5. **Completion**: Desktop App calls `POST /v1/grants` on the Personal Server with `{ granteeAddress, scopes }`. The Personal Server signs the EIP-712 grant registration and submits it to the Gateway, returning a `grantId`. The Desktop App then approves the session via Session Relay with `{ secret, grantId, userAddress, scopes }`. The Builder receives the grant payload via polling or webhook and completes the login.
 
 Grant payload includes `grantId` (on-chain `permissionId`) and the user's wallet address.
 
@@ -1754,13 +1765,35 @@ Grant payload includes `grantId` (on-chain `permissionId`) and the user's wallet
      │    Grant       │                │                │
      │─────────────────────────────────────────────────▶│
      │                │                │                │
-     │                │                │ 10. Submit Signed Grant
+     │                │                │                │
+     │                │                │                │ ┌──────────────┐
+     │                │                │                │ │ Personal     │
+     │                │                │                │ │ Server       │
+     │                │                │                │ └──────┬───────┘
+     │                │                │                │        │
+     │                │                │ 10. POST /v1/grants     │
+     │                │                │    { granteeAddress,    │
+     │                │                │      scopes }           │
+     │                │                │───────────────▶│        │
+     │                │                │                │        │
+     │                │                │                │ 10a. Sign EIP-712 +
+     │                │                │                │      Submit to Gateway
+     │                │                │                │───────▶│
+     │                │                │                │◀───────│
+     │                │                │                │        │
+     │                │                │ 10b. { grantId }        │
+     │                │                │◀───────────────│        │
+     │                │                │                │        │
+     │                │                │ 11. Approve Session     │
+     │                │                │    { secret, grantId,   │
+     │                │                │      userAddress,       │
+     │                │                │      scopes }           │
      │                │                │◀───────────────│
      │                │                │                │
-     │                │ 11. Poll/webhook for Grant      │
+     │                │ 12. Poll/webhook for Grant      │
      │                │◀───────────────│                │
      │                │                │                │
-     │                │ 12. Fetch Data (using Grant)    │
+     │                │ 13. Fetch Data (using Grant)    │
      │                │────────────────────────────────▶│
      │                │                                 │
 ```
@@ -1837,9 +1870,17 @@ Grant payload includes `grantId` (on-chain `permissionId`) and the user's wallet
 - Gateway or chain layer records a delete marker (tombstone) so downstream systems treat the file as unavailable.
 - Personal Servers MUST treat tombstoned file records as non-existent and return `410` or `404` for read attempts.
 
-### **6.6 Builder React Package (@vana/connect)**
+### **6.6 Builder SDK (@opendatalabs/connect)**
 
-The builder-facing React package provides the default "Connect data" UX and abstracts Session Relay complexity. It is React-only and compatible with any React framework (e.g., Next.js).
+The builder-facing SDK provides both server-side and client-side tools for integrating the "Connect data" flow and accessing user data. Published as `@opendatalabs/connect` on NPM.
+
+**Package Structure (Multi-Entrypoint)**
+
+```
+@opendatalabs/connect/server  — Session Relay client, request signer, data client
+@opendatalabs/connect/react   — Polling hook, Connect button component
+@opendatalabs/connect/core    — Shared types, errors
+```
 
 **Prerequisite:** The Builder must be registered on-chain (via the Desktop App + Gateway relayer) with a valid `appUrl` and public key.
 
@@ -1855,34 +1896,68 @@ The builder-facing React package provides the default "Connect data" UX and abst
 5. Desktop App submits `registerGrantee` via Gateway relayer
 6. Builder config:
    - Set `VANA_APP_PRIVATE_KEY` in server env (used to sign `Authorization: Web3Signed ...`)
-   - Use `granteeAddress` in `@vana/connect` init
+   - Use `granteeAddress` in `@opendatalabs/connect` init
    - Publish manifest at `appUrl` with valid `vana` block
+
+**Server-Side SDK (`@opendatalabs/connect/server`)**
+
+```typescript
+import {
+  createSessionRelay,
+  createDataClient,
+  createRequestSigner,
+} from "@opendatalabs/connect/server";
+
+// Session Relay — create sessions and poll for completion
+const relay = createSessionRelay({
+  privateKey: process.env.VANA_APP_PRIVATE_KEY,
+  granteeAddress: "0x...",
+  sessionRelayUrl: "https://session-relay.vana.org",
+});
+const session = await relay.initSession({ scopes: ["instagram.profile"] });
+const result = await relay.pollUntilComplete(session.sessionId);
+
+// Data Client — fetch user data with grants
+const data = createDataClient({
+  privateKey: process.env.VANA_APP_PRIVATE_KEY,
+  gatewayUrl: "https://gateway.vana.org",
+});
+const serverUrl = await data.resolveServerUrl(result.grant.userAddress);
+const profile = await data.fetchData({
+  serverUrl,
+  scope: "instagram.profile",
+  grantId: result.grant.grantId,
+});
+```
+
+**React Client SDK (`@opendatalabs/connect/react`)**
+
+```typescript
+import { useVanaConnect, ConnectButton } from "@opendatalabs/connect/react";
+
+// Hook-based (custom UI)
+const { connect, status, grant, deepLinkUrl, reset } = useVanaConnect({
+  sessionRelayUrl: "https://session-relay.vana.org",
+});
+await connect({ sessionId: "..." }); // sessionId from server
+
+// Component-based (pre-built UX)
+<ConnectButton
+  sessionId={sessionId}
+  sessionRelayUrl="https://session-relay.vana.org"
+  onComplete={(grant) => { /* handle grant */ }}
+/>
+```
 
 **Responsibilities**
 
-- Create a Session Relay session and render the popup/modal
-- Display deep link to the Desktop App (no manual code entry)
-- Resolve completion via polling and/or webhook
-- Return the signed Grant payload to the builder application
+- Server: Create signed Session Relay sessions, poll for completion, generate Web3Signed headers, fetch data from Personal Servers
+- React: Poll session status from browser (no auth needed), display deep link, manage connection lifecycle
 - Enforce that the Builder has an on-chain `appUrl` and a valid manifest discoverable via `<link rel="manifest">`
-
-**Required Inputs (Logical)**
-
-- Builder identifier (`granteeAddress`)
-- Builder authorization for the session init request (must be created server-side and sent as `Authorization: Web3Signed ...`)
-- Requested scopes
-- Optional webhook URL
-- Optional `app_user_id` for builder-local user tracking
-
-**Surface Area (Minimal)**
-
-- A single high-level `connect(...)` entrypoint that returns the grant payload (session must be created server-side)
-- A default modal component for fast integration
-- Hooks for custom UI using the same session lifecycle
 
 **Signing Helpers**
 
-`@vana/connect` SHOULD provide helpers to canonicalize JSON (sort keys alphabetically) and generate `Authorization: Web3Signed ...` when a builder wallet signer is provided.
+`@opendatalabs/connect/server` provides `createRequestSigner()` to canonicalize JSON (sort keys alphabetically) and generate `Authorization: Web3Signed ...` headers using the builder's private key.
 
 ---
 
@@ -2012,7 +2087,6 @@ interface StorageBackend {
   download(url: string): Promise<Uint8Array>;
   delete(url: string): Promise<boolean>;
   exists(url: string): Promise<boolean>;
-
   // Optional: bulk operations (not all backends support)
   deleteScope?(scope: string): Promise<number>; // Returns count deleted
   deleteAll?(): Promise<number>; // Returns count deleted
@@ -2135,7 +2209,7 @@ App:  "Instagram connected ✓"
 ```
 Builder: [Registers as Builder via Desktop App; appUrl + public key on-chain]
          [Hosts manifest and links it via <link rel="manifest"> on https://myapp.com]
-Builder: [Implements "Connect data" button using @vana/connect]
+Builder: [Implements "Connect data" button using @opendatalabs/connect]
 User: [Visits myapp.com]
       [Clicks "Connect data"]
 Builder backend: [POST /v1/session/init to Session Relay (signed)]
@@ -2329,12 +2403,13 @@ BUILDER                 CLOUDFLARE              SPRITES                 PERSONAL
 
 ## **Document History**
 
-| **Version** | **Date**   | **Changes**                                                                                                                                                                                  |
-| ----------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.4.0-draft | 2026-01-27 | Renaming "Sign in with Vana" to "Connect data" and "Vana Cloud" to "ODL Cloud" (temporary name)                                                                                              |
-| 0.3.0-draft | 2026-01-26 | Standardized Session Relay flow, builder reads from Personal Server (decrypted), added versioned /data reads, clarified storage backend bulk sync, and documented builder registration steps |
-| 0.2.0-draft | 2026-01-22 | Added Personal Server deployment details, sync model, MCP integration, and ODL Cloud reference architecture                                                                                  |
-| 0.1.0-draft | 2026-01-21 | Initial draft                                                                                                                                                                                |
+| **Version** | **Date**   | **Changes**                                                                                                                                                                                                                                   |
+| ----------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.5.0-draft | 2026-02-09 | Added POST /v1/grants endpoint, added `secret` parameter to Session Relay claim/approve/deny, updated connect flow to show Personal Server grant signing, renamed @vana/connect to @opendatalabs/connect with multi-entrypoint package design |
+| 0.4.0-draft | 2026-01-27 | Renaming "Sign in with Vana" to "Connect data" and "Vana Cloud" to "ODL Cloud" (temporary name)                                                                                                                                               |
+| 0.3.0-draft | 2026-01-26 | Standardized Session Relay flow, builder reads from Personal Server (decrypted), added versioned /data reads, clarified storage backend bulk sync, and documented builder registration steps                                                  |
+| 0.2.0-draft | 2026-01-22 | Added Personal Server deployment details, sync model, MCP integration, and ODL Cloud reference architecture                                                                                                                                   |
+| 0.1.0-draft | 2026-01-21 | Initial draft                                                                                                                                                                                                                                 |
 
 ---
 

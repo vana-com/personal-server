@@ -1,6 +1,5 @@
 /**
- * Grants routes — POST /verify (public endpoint).
- * Verifies EIP-712 grant signatures locally without network calls.
+ * Grants routes — GET / (owner), POST / (create grant), POST /verify (public).
  */
 
 import { Hono } from "hono";
@@ -11,6 +10,7 @@ import {
   GRANT_DOMAIN,
   GRANT_TYPES,
 } from "@opendatalabs/personal-server-ts-core/grants";
+import type { ServerSigner } from "@opendatalabs/personal-server-ts-core/signing";
 import { createWeb3AuthMiddleware } from "../middleware/web3-auth.js";
 import { createOwnerCheckMiddleware } from "../middleware/owner-check.js";
 
@@ -20,6 +20,7 @@ export interface GrantsRouteDeps {
   serverOwner?: `0x${string}`;
   serverOrigin: string;
   devToken?: string;
+  serverSigner?: ServerSigner;
 }
 
 interface VerifyRequestBody {
@@ -32,6 +33,32 @@ interface VerifyRequestBody {
     nonce: number;
   };
   signature: `0x${string}`;
+}
+
+interface CreateRequestBody {
+  granteeAddress: `0x${string}`;
+  scopes: string[];
+  expiresAt?: number;
+  nonce?: number;
+}
+
+function isValidCreateBody(body: unknown): body is CreateRequestBody {
+  if (body === null || typeof body !== "object" || Array.isArray(body))
+    return false;
+  const b = body as Record<string, unknown>;
+
+  if (
+    typeof b.granteeAddress !== "string" ||
+    !b.granteeAddress.startsWith("0x")
+  )
+    return false;
+  if (!Array.isArray(b.scopes) || b.scopes.length === 0) return false;
+  if (!b.scopes.every((s: unknown) => typeof s === "string")) return false;
+  if (b.expiresAt !== undefined && typeof b.expiresAt !== "number")
+    return false;
+  if (b.nonce !== undefined && typeof b.nonce !== "number") return false;
+
+  return true;
 }
 
 function isValidVerifyBody(body: unknown): body is VerifyRequestBody {
@@ -89,6 +116,103 @@ export function grantsRoutes(deps: GrantsRouteDeps): Hono {
     }
     const grants = await deps.gateway.listGrantsByUser(deps.serverOwner);
     return c.json({ grants });
+  });
+
+  // POST / — create a grant (owner-only, called by Desktop App)
+  app.post("/", web3Auth, ownerCheck, async (c) => {
+    if (!deps.serverOwner) {
+      return c.json(
+        {
+          error: {
+            code: 500,
+            errorCode: "SERVER_NOT_CONFIGURED",
+            message:
+              "Server owner address not configured. Set VANA_MASTER_KEY_SIGNATURE environment variable.",
+          },
+        },
+        500,
+      );
+    }
+
+    if (!deps.serverSigner) {
+      return c.json(
+        {
+          error: {
+            code: 500,
+            errorCode: "SERVER_SIGNER_NOT_CONFIGURED",
+            message:
+              "Server signer not configured. Set VANA_MASTER_KEY_SIGNATURE environment variable.",
+          },
+        },
+        500,
+      );
+    }
+
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json(
+        { error: "INVALID_BODY", message: "Invalid JSON body" },
+        400,
+      );
+    }
+
+    if (!isValidCreateBody(body)) {
+      return c.json(
+        {
+          error: "INVALID_BODY",
+          message:
+            "Body must include granteeAddress (0x string) and scopes (non-empty string array)",
+        },
+        400,
+      );
+    }
+
+    const { granteeAddress, scopes, expiresAt, nonce } = body;
+
+    // Look up builder to get their on-chain ID
+    const builder = await deps.gateway.getBuilder(granteeAddress);
+    if (!builder) {
+      return c.json(
+        {
+          error: {
+            code: 404,
+            errorCode: "BUILDER_NOT_REGISTERED",
+            message: `Builder ${granteeAddress} is not registered on-chain`,
+          },
+        },
+        404,
+      );
+    }
+
+    // Build the grant payload JSON string
+    const grantPayload = JSON.stringify({
+      user: deps.serverOwner,
+      builder: granteeAddress,
+      scopes,
+      expiresAt: expiresAt ?? 0,
+      nonce: nonce ?? Date.now(),
+    });
+
+    // Sign EIP-712 GrantRegistration
+    const signature = await deps.serverSigner.signGrantRegistration({
+      grantorAddress: deps.serverOwner,
+      granteeId: builder.id as `0x${string}`,
+      grant: grantPayload,
+      fileIds: [],
+    });
+
+    // Submit to Gateway
+    const result = await deps.gateway.createGrant({
+      grantorAddress: deps.serverOwner,
+      granteeId: builder.id,
+      grant: grantPayload,
+      fileIds: [],
+      signature,
+    });
+
+    return c.json({ grantId: result.grantId }, 201);
   });
 
   // POST /verify — public endpoint, no auth required

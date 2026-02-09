@@ -5,6 +5,7 @@
  * - Generate signed claim and frpc.toml config
  * - Spawn frpc process with a caller-provided binary path
  * - Monitor process lifecycle
+ * - Periodically refresh the auth claim before it expires
  * - Provide status for health endpoint
  */
 
@@ -12,7 +13,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { writeFile, mkdir, chmod, access, constants } from "node:fs/promises";
 import { join } from "node:path";
 import type { ServerAccount } from "@opendatalabs/personal-server-ts-core/keys";
-import { generateSignedClaim } from "./auth.js";
+import { generateSignedClaim, CLAIM_TTL_SECONDS } from "./auth.js";
 import { generateFrpcConfig } from "./config.js";
 import { buildTunnelUrl } from "./verify.js";
 
@@ -41,6 +42,12 @@ export interface TunnelConfig {
   localPort: number;
 }
 
+/** Refresh at 80% of TTL to leave buffer before expiry. */
+const REFRESH_INTERVAL_MS = CLAIM_TTL_SECONDS * 0.8 * 1000;
+
+/** Retry interval when a refresh attempt fails. */
+const REFRESH_RETRY_MS = 30_000;
+
 export class TunnelManager {
   private storageRoot: string;
   private process: ChildProcess | null = null;
@@ -49,6 +56,9 @@ export class TunnelManager {
   private connectedSince: Date | null = null;
   private lastError: string | null = null;
   private config: TunnelConfig | null = null;
+  private binaryPath: string | null = null;
+  private refreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private refreshing = false;
 
   constructor(storageRoot: string) {
     this.storageRoot = storageRoot;
@@ -57,6 +67,7 @@ export class TunnelManager {
   /**
    * Start the frpc process with the given configuration.
    * Returns the public URL once the tunnel is established.
+   * Automatically schedules periodic claim refresh.
    */
   async start(config: TunnelConfig, binaryPath: string): Promise<string> {
     if (this.process) {
@@ -64,42 +75,14 @@ export class TunnelManager {
     }
 
     this.config = config;
+    this.binaryPath = binaryPath;
     this.status = "starting";
     this.lastError = null;
-
-    // Generate signed claim
-    const { claim, sig } = await generateSignedClaim({
-      ownerAddress: config.ownerAddress,
-      walletAddress: config.walletAddress,
-      runId: config.runId,
-      serverKeypair: config.serverKeypair,
-    });
-
-    // Generate frpc.toml config
-    const subdomain = config.walletAddress.toLowerCase();
-    const frpcConfig = generateFrpcConfig({
-      serverAddr: config.serverAddr,
-      serverPort: config.serverPort,
-      localPort: config.localPort,
-      subdomain,
-      walletAddress: config.walletAddress,
-      ownerAddress: config.ownerAddress,
-      runId: config.runId,
-      authClaim: claim,
-      authSig: sig,
-    });
-
-    // Write config to disk
-    const tunnelDir = join(this.storageRoot, "tunnel");
-    await mkdir(tunnelDir, { recursive: true });
-    const configPath = join(tunnelDir, "frpc.toml");
-    await writeFile(configPath, frpcConfig, "utf-8");
 
     // Verify binary exists and is executable
     try {
       await access(binaryPath, constants.X_OK);
     } catch {
-      // Try to make it executable
       try {
         await chmod(binaryPath, 0o755);
       } catch {
@@ -109,88 +92,23 @@ export class TunnelManager {
       }
     }
 
-    // Spawn frpc process
-    return new Promise((resolve, reject) => {
-      const proc = spawn(binaryPath, ["-c", configPath], {
-        stdio: ["ignore", "pipe", "pipe"],
-      });
+    const subdomain = config.walletAddress.toLowerCase();
+    this.publicUrl = buildTunnelUrl(subdomain);
 
-      this.process = proc;
+    const configPath = await this.writeFreshConfig(subdomain);
+    await this.spawnProcess(configPath);
 
-      let startupOutput = "";
-      let resolved = false;
+    this.scheduleRefresh();
 
-      const onData = (data: Buffer) => {
-        const text = data.toString();
-        startupOutput += text;
-
-        // Check for successful connection
-        if (
-          text.includes("start proxy success") ||
-          text.includes("login to server success")
-        ) {
-          if (!resolved) {
-            resolved = true;
-            this.status = "connected";
-            this.connectedSince = new Date();
-            this.publicUrl = buildTunnelUrl(subdomain);
-            resolve(this.publicUrl);
-          }
-        }
-
-        // Check for errors
-        if (
-          text.includes("login to the server failed") ||
-          text.includes("error")
-        ) {
-          // Don't reject immediately due to loginFailExit=false
-          // Just log and continue trying
-        }
-      };
-
-      proc.stdout?.on("data", onData);
-      proc.stderr?.on("data", onData);
-
-      proc.on("error", (err) => {
-        this.status = "error";
-        this.lastError = err.message;
-        if (!resolved) {
-          resolved = true;
-          reject(new Error(`Failed to start frpc: ${err.message}`));
-        }
-      });
-
-      proc.on("exit", (code) => {
-        this.process = null;
-        if (code !== 0 && !resolved) {
-          this.status = "error";
-          this.lastError = `frpc exited with code ${code}: ${startupOutput}`;
-          resolved = true;
-          reject(new Error(this.lastError));
-        } else if (this.status === "connected") {
-          this.status = "disconnected";
-        }
-      });
-
-      // Timeout for startup
-      setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          // Even if we don't see the success message, the tunnel might still be working
-          // Set as connected optimistically
-          this.status = "connected";
-          this.connectedSince = new Date();
-          this.publicUrl = buildTunnelUrl(subdomain);
-          resolve(this.publicUrl);
-        }
-      }, 10000); // 10 second timeout
-    });
+    return this.publicUrl;
   }
 
   /**
    * Stop the frpc process gracefully.
    */
   async stop(): Promise<void> {
+    this.clearRefreshTimer();
+
     if (!this.process) {
       return;
     }
@@ -256,5 +174,183 @@ export class TunnelManager {
    */
   getPublicUrl(): string | null {
     return this.publicUrl;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Generate a fresh signed claim, write frpc.toml, and return the config path.
+   */
+  private async writeFreshConfig(subdomain: string): Promise<string> {
+    const config = this.config!;
+
+    const { claim, sig } = await generateSignedClaim({
+      ownerAddress: config.ownerAddress,
+      walletAddress: config.walletAddress,
+      runId: config.runId,
+      serverKeypair: config.serverKeypair,
+    });
+
+    const frpcConfig = generateFrpcConfig({
+      serverAddr: config.serverAddr,
+      serverPort: config.serverPort,
+      localPort: config.localPort,
+      subdomain,
+      walletAddress: config.walletAddress,
+      ownerAddress: config.ownerAddress,
+      runId: config.runId,
+      authClaim: claim,
+      authSig: sig,
+    });
+
+    const tunnelDir = join(this.storageRoot, "tunnel");
+    await mkdir(tunnelDir, { recursive: true });
+    const configPath = join(tunnelDir, "frpc.toml");
+    await writeFile(configPath, frpcConfig, "utf-8");
+
+    return configPath;
+  }
+
+  /**
+   * Spawn the frpc process and wait for it to report a successful connection
+   * (or resolve optimistically after a timeout).
+   */
+  private async spawnProcess(configPath: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const proc = spawn(this.binaryPath!, ["-c", configPath], {
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      this.process = proc;
+
+      let startupOutput = "";
+      let resolved = false;
+
+      const onData = (data: Buffer) => {
+        const text = data.toString();
+        startupOutput += text;
+
+        if (
+          text.includes("start proxy success") ||
+          text.includes("login to server success")
+        ) {
+          if (!resolved) {
+            resolved = true;
+            this.status = "connected";
+            this.connectedSince = new Date();
+            resolve();
+          }
+        }
+      };
+
+      proc.stdout?.on("data", onData);
+      proc.stderr?.on("data", onData);
+
+      proc.on("error", (err) => {
+        this.status = "error";
+        this.lastError = err.message;
+        if (!resolved) {
+          resolved = true;
+          reject(new Error(`Failed to start frpc: ${err.message}`));
+        }
+      });
+
+      proc.on("exit", (code) => {
+        this.process = null;
+        // During a planned refresh cycle, don't update status
+        if (this.refreshing) return;
+        if (code !== 0 && !resolved) {
+          this.status = "error";
+          this.lastError = `frpc exited with code ${code}: ${startupOutput}`;
+          resolved = true;
+          reject(new Error(this.lastError));
+        } else if (this.status === "connected") {
+          this.status = "disconnected";
+        }
+      });
+
+      // Timeout for startup — resolve optimistically
+      setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          this.status = "connected";
+          this.connectedSince = new Date();
+          resolve();
+        }
+      }, 10_000);
+    });
+  }
+
+  /**
+   * Kill the running frpc process and wait for it to exit.
+   */
+  private async killProcess(): Promise<void> {
+    if (!this.process) return;
+
+    return new Promise((resolve) => {
+      const proc = this.process!;
+
+      const timeout = setTimeout(() => {
+        proc.kill("SIGKILL");
+        this.process = null;
+        resolve();
+      }, 3000);
+
+      proc.once("exit", () => {
+        clearTimeout(timeout);
+        this.process = null;
+        resolve();
+      });
+
+      proc.kill("SIGTERM");
+    });
+  }
+
+  private scheduleRefresh(): void {
+    this.clearRefreshTimer();
+    this.refreshTimer = setTimeout(
+      () => void this.refreshClaim(),
+      REFRESH_INTERVAL_MS,
+    );
+  }
+
+  private clearRefreshTimer(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+  }
+
+  /**
+   * Refresh the auth claim by rewriting frpc.toml and restarting the process.
+   * On failure, retries after a shorter interval.
+   */
+  private async refreshClaim(): Promise<void> {
+    if (!this.config || !this.binaryPath) return;
+
+    const subdomain = this.config.walletAddress.toLowerCase();
+
+    try {
+      const configPath = await this.writeFreshConfig(subdomain);
+
+      // Stop old process (suppress status change during restart)
+      this.refreshing = true;
+      await this.killProcess();
+      this.refreshing = false;
+
+      this.status = "starting";
+      await this.spawnProcess(configPath);
+
+      this.scheduleRefresh();
+    } catch {
+      this.refreshing = false;
+      // Retry sooner on failure
+      this.refreshTimer = setTimeout(
+        () => void this.refreshClaim(),
+        REFRESH_RETRY_MS,
+      );
+    }
   }
 }

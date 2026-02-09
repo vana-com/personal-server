@@ -24,6 +24,7 @@ export const DEFAULTS = {
       dataRegistry: "0x8C8788f98385F6ba1adD4234e551ABba0f82Cb7C",
       dataPortabilityPermissions: "0xD54523048AdD05b4d734aFaE7C68324Ebb7373eF",
       dataPortabilityServer: "0x1483B1F634DBA75AeaE60da7f01A679aabd5ee2c",
+      dataPortabilityGrantees: "0x8325C0A0948483EdA023A1A2Fd895e62C5131234",
     },
   },
   devUi: {
@@ -95,6 +96,10 @@ export const ServerConfigSchema = z.object({
             .string()
             .startsWith("0x")
             .default(DEFAULTS.gateway.contracts.dataPortabilityServer),
+          dataPortabilityGrantees: z
+            .string()
+            .startsWith("0x")
+            .default(DEFAULTS.gateway.contracts.dataPortabilityGrantees),
         })
         .default(DEFAULTS.gateway.contracts),
     })
@@ -138,5 +143,6 @@ export type GatewayConfig = {
     dataRegistry: string;
     dataPortabilityPermissions: string;
     dataPortabilityServer: string;
+    dataPortabilityGrantees: string;
   };
 };

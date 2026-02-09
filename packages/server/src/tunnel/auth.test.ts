@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { recoverMessageAddress } from "viem";
 import { createTestWallet } from "@opendatalabs/personal-server-ts-core/test-utils";
-import { generateSignedClaim, base64urlEncode } from "./auth.js";
+import {
+  generateSignedClaim,
+  base64urlEncode,
+  CLAIM_TTL_SECONDS,
+} from "./auth.js";
 
 describe("tunnel/auth", () => {
   describe("base64urlEncode", () => {
@@ -85,7 +89,7 @@ describe("tunnel/auth", () => {
       expect(payload.runId).toBe("test-run-id");
       expect(typeof payload.iat).toBe("number");
       expect(typeof payload.exp).toBe("number");
-      expect(payload.exp - payload.iat).toBe(300); // 5 min TTL
+      expect(payload.exp - payload.iat).toBe(CLAIM_TTL_SECONDS);
     });
 
     it("subdomain is lowercased wallet address", async () => {

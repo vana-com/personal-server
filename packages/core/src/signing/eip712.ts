@@ -112,3 +112,28 @@ export interface ServerRegistrationMessage {
   publicKey: `0x${string}`;
   serverUrl: string;
 }
+
+export function builderRegistrationDomain(
+  config: GatewayConfig,
+): TypedDataDomain {
+  return buildDomain(
+    config.chainId,
+    config.contracts.dataPortabilityGrantees as `0x${string}`,
+  );
+}
+
+export const BUILDER_REGISTRATION_TYPES = {
+  BuilderRegistration: [
+    { name: "ownerAddress", type: "address" },
+    { name: "granteeAddress", type: "address" },
+    { name: "publicKey", type: "string" },
+    { name: "appUrl", type: "string" },
+  ],
+};
+
+export interface BuilderRegistrationMessage {
+  ownerAddress: `0x${string}`;
+  granteeAddress: `0x${string}`;
+  publicKey: string;
+  appUrl: string;
+}

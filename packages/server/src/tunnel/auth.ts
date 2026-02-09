@@ -7,6 +7,9 @@
 
 import type { ServerAccount } from "@opendatalabs/personal-server-ts-core/keys";
 
+/** Claim time-to-live in seconds. Used for refresh scheduling. */
+export const CLAIM_TTL_SECONDS = 300;
+
 export interface SignedClaim {
   claim: string; // base64url(payload)
   sig: string; // EIP-191 signature
@@ -60,7 +63,7 @@ export async function generateSignedClaim(
   const payload: ClaimPayload = {
     aud: "https://tunnel.vana.org",
     iat: now,
-    exp: now + 300, // 5 min TTL
+    exp: now + CLAIM_TTL_SECONDS,
     owner: config.ownerAddress,
     wallet: config.walletAddress,
     subdomain: config.walletAddress.toLowerCase(),

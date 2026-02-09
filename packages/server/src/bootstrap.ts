@@ -295,6 +295,7 @@ export async function createServer(
     devToken,
     configPath,
     syncManager,
+    serverSigner,
     getTunnelStatus: tunnelManager
       ? () => tunnelManager.getStatus()
       : undefined,

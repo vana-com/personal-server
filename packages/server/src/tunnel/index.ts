@@ -2,7 +2,11 @@
  * FRP tunnel module for establishing reverse proxy connections.
  */
 
-export { generateSignedClaim, base64urlEncode } from "./auth.js";
+export {
+  generateSignedClaim,
+  base64urlEncode,
+  CLAIM_TTL_SECONDS,
+} from "./auth.js";
 export type { SignedClaim, ClaimPayload, ClaimConfig } from "./auth.js";
 
 export { generateFrpcConfig } from "./config.js";

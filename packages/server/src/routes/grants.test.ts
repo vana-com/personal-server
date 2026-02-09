@@ -39,6 +39,26 @@ function createMockGateway(): GatewayClient {
     listGrantsByUser: vi.fn().mockResolvedValue([]),
     getSchemaForScope: vi.fn().mockResolvedValue(null),
     getServer: vi.fn().mockResolvedValue(null),
+    getFile: vi.fn().mockResolvedValue(null),
+    listFilesSince: vi.fn().mockResolvedValue({ files: [], nextCursor: null }),
+    getSchema: vi.fn().mockResolvedValue(null),
+    registerFile: vi.fn().mockResolvedValue({ fileId: "file-1" }),
+    createGrant: vi.fn().mockResolvedValue({ grantId: "grant-123" }),
+    revokeGrant: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+function createMockServerSigner() {
+  return {
+    signFileRegistration: vi
+      .fn()
+      .mockResolvedValue("0xfilesig" as `0x${string}`),
+    signGrantRegistration: vi
+      .fn()
+      .mockResolvedValue("0xgrantsig" as `0x${string}`),
+    signGrantRevocation: vi
+      .fn()
+      .mockResolvedValue("0xrevokesig" as `0x${string}`),
   };
 }
 
@@ -88,12 +108,18 @@ async function signGrant(payload: GrantPayload): Promise<{
   };
 }
 
-function createApp(overrides?: Partial<{ gateway: GatewayClient }>) {
+function createApp(
+  overrides?: Partial<{
+    gateway: GatewayClient;
+    serverSigner: ReturnType<typeof createMockServerSigner>;
+  }>,
+) {
   return grantsRoutes({
     logger,
     gateway: overrides?.gateway ?? createMockGateway(),
     serverOwner: owner.address,
     serverOrigin: SERVER_ORIGIN,
+    serverSigner: overrides?.serverSigner ?? createMockServerSigner(),
   });
 }
 
@@ -281,5 +307,143 @@ describe("POST /verify", () => {
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json.error).toBe("INVALID_BODY");
+  });
+});
+
+describe("POST /", () => {
+  async function postWithOwnerAuth(
+    app: ReturnType<typeof grantsRoutes>,
+    body: Record<string, unknown>,
+  ) {
+    const bodyStr = JSON.stringify(body);
+    const auth = await buildWeb3SignedHeader({
+      wallet: owner,
+      aud: SERVER_ORIGIN,
+      method: "POST",
+      uri: "/",
+      bodyHash: `sha256:${await import("node:crypto").then((c) => c.createHash("sha256").update(bodyStr).digest("hex"))}`,
+    });
+    return app.request("/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: auth,
+      },
+      body: bodyStr,
+    });
+  }
+
+  it("creates grant via gateway and returns grantId", async () => {
+    const mockGateway = createMockGateway();
+    const mockSigner = createMockServerSigner();
+
+    const app = createApp({ gateway: mockGateway, serverSigner: mockSigner });
+    const res = await postWithOwnerAuth(app, {
+      granteeAddress: builder.address,
+      scopes: ["instagram.*"],
+    });
+
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.grantId).toBe("grant-123");
+
+    // Verify gateway.getBuilder was called with the grantee address
+    expect(mockGateway.getBuilder).toHaveBeenCalledWith(builder.address);
+
+    // Verify serverSigner.signGrantRegistration was called
+    expect(mockSigner.signGrantRegistration).toHaveBeenCalledWith(
+      expect.objectContaining({
+        grantorAddress: owner.address,
+        granteeId: "0xbuilder1",
+        fileIds: [],
+      }),
+    );
+
+    // Verify gateway.createGrant was called with correct params
+    expect(mockGateway.createGrant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        grantorAddress: owner.address,
+        granteeId: "0xbuilder1",
+        fileIds: [],
+        signature: "0xgrantsig",
+      }),
+    );
+  });
+
+  it("returns 404 when builder is not registered", async () => {
+    const mockGateway = createMockGateway();
+    vi.mocked(mockGateway.getBuilder).mockResolvedValue(null);
+
+    const app = createApp({ gateway: mockGateway });
+    const res = await postWithOwnerAuth(app, {
+      granteeAddress: builder.address,
+      scopes: ["instagram.*"],
+    });
+
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error.errorCode).toBe("BUILDER_NOT_REGISTERED");
+  });
+
+  it("returns 500 when serverSigner is not configured", async () => {
+    const app = grantsRoutes({
+      logger,
+      gateway: createMockGateway(),
+      serverOwner: owner.address,
+      serverOrigin: SERVER_ORIGIN,
+      // serverSigner intentionally omitted
+    });
+
+    const res = await postWithOwnerAuth(app, {
+      granteeAddress: builder.address,
+      scopes: ["instagram.*"],
+    });
+
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error.errorCode).toBe("SERVER_SIGNER_NOT_CONFIGURED");
+  });
+
+  it("returns 400 for invalid body (missing scopes)", async () => {
+    const app = createApp();
+    const res = await postWithOwnerAuth(app, {
+      granteeAddress: builder.address,
+    });
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("INVALID_BODY");
+  });
+
+  it("returns 400 for invalid body (missing granteeAddress)", async () => {
+    const app = createApp();
+    const res = await postWithOwnerAuth(app, {
+      scopes: ["instagram.*"],
+    });
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("INVALID_BODY");
+  });
+
+  it("passes optional expiresAt and nonce to grant payload", async () => {
+    const mockGateway = createMockGateway();
+    const mockSigner = createMockServerSigner();
+
+    const app = createApp({ gateway: mockGateway, serverSigner: mockSigner });
+    const res = await postWithOwnerAuth(app, {
+      granteeAddress: builder.address,
+      scopes: ["instagram.*"],
+      expiresAt: 1700000000,
+      nonce: 42,
+    });
+
+    expect(res.status).toBe(201);
+
+    // Verify the grant payload passed to signer contains custom expiresAt/nonce
+    const signerCall = mockSigner.signGrantRegistration.mock.calls[0][0];
+    const grantPayload = JSON.parse(signerCall.grant);
+    expect(grantPayload.expiresAt).toBe(1700000000);
+    expect(grantPayload.nonce).toBe(42);
   });
 });
