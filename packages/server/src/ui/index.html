@@ -468,34 +468,89 @@
       <div id="panel-connect" class="panel">
         <div class="card">
           <div class="card-title">Connect Simulator</div>
-          <label style="display:block;margin-bottom:4px;font-size:11px;color:var(--text-dim)">Session Relay URL</label>
-          <input id="connect-relay-url" type="text" value="https://session-relay-git-dev-opendatalabs.vercel.app" style="margin-bottom:12px" />
-          <label style="display:block;margin-bottom:4px;font-size:11px;color:var(--text-dim)">Deep Link URL</label>
-          <input id="connect-deep-link" type="text" placeholder="Paste deep link URL from the test builder app" style="margin-bottom:12px" />
-          <div style="display:flex;gap:8px">
+          <label
+            style="
+              display: block;
+              margin-bottom: 4px;
+              font-size: 11px;
+              color: var(--text-dim);
+            "
+            >Session Relay URL</label
+          >
+          <input
+            id="connect-relay-url"
+            type="text"
+            value="https://session-relay-git-dev-opendatalabs.vercel.app"
+            style="margin-bottom: 12px"
+          />
+          <label
+            style="
+              display: block;
+              margin-bottom: 4px;
+              font-size: 11px;
+              color: var(--text-dim);
+            "
+            >Deep Link URL</label
+          >
+          <input
+            id="connect-deep-link"
+            type="text"
+            placeholder="Paste deep link URL from the test builder app"
+            style="margin-bottom: 12px"
+          />
+          <div style="display: flex; gap: 8px">
             <button class="btn" id="connect-parse-btn">Parse</button>
           </div>
-          <div id="connect-parsed" style="margin-top:12px;display:none">
+          <div id="connect-parsed" style="margin-top: 12px; display: none">
             <div class="kv-grid" id="connect-parsed-info"></div>
           </div>
         </div>
 
-        <div class="card" id="connect-flow-card" style="display:none">
+        <div class="card" id="connect-flow-card" style="display: none">
           <div class="card-title">Flow Steps</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-            <button class="btn" id="connect-claim-btn" disabled>1. Claim Session</button>
-            <button class="btn" id="connect-grant-btn" disabled>2. Create Grant</button>
-            <button class="btn" id="connect-approve-btn" disabled>3. Approve Session</button>
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              flex-wrap: wrap;
+              margin-bottom: 12px;
+            "
+          >
+            <button class="btn" id="connect-claim-btn" disabled>
+              1. Claim Session
+            </button>
+            <button class="btn" id="connect-grant-btn" disabled>
+              2. Create Grant
+            </button>
+            <button class="btn" id="connect-approve-btn" disabled>
+              3. Approve Session
+            </button>
           </div>
-          <div style="display:flex;gap:8px;margin-bottom:12px">
-            <button class="btn" id="connect-auto-btn" disabled>Auto-Approve All</button>
-            <button class="btn secondary" id="connect-deny-btn" disabled>Deny</button>
+          <div style="display: flex; gap: 8px; margin-bottom: 12px">
+            <button class="btn" id="connect-auto-btn" disabled>
+              Auto-Approve All
+            </button>
+            <button class="btn secondary" id="connect-deny-btn" disabled>
+              Deny
+            </button>
           </div>
-          <div class="card-title" style="margin-top:8px">Progress Log</div>
-          <div id="connect-log" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;font-size:11px;max-height:300px;overflow-y:auto;white-space:pre-wrap"></div>
+          <div class="card-title" style="margin-top: 8px">Progress Log</div>
+          <div
+            id="connect-log"
+            style="
+              background: var(--surface-2);
+              border: 1px solid var(--border);
+              border-radius: var(--radius);
+              padding: 8px 12px;
+              font-size: 11px;
+              max-height: 300px;
+              overflow-y: auto;
+              white-space: pre-wrap;
+            "
+          ></div>
         </div>
 
-        <div class="card" id="connect-result-card" style="display:none">
+        <div class="card" id="connect-result-card" style="display: none">
           <div class="card-title">Result</div>
           <pre class="json" id="connect-result"></pre>
         </div>
@@ -1248,7 +1303,9 @@
           }
 
           connectState.granteeAddress =
-            result.data.granteeAddress || result.data.session?.granteeAddress || "";
+            result.data.granteeAddress ||
+            result.data.session?.granteeAddress ||
+            "";
           connectState.scopes =
             result.data.scopes || result.data.session?.scopes || [];
 
@@ -1290,7 +1347,10 @@
             return false;
           }
           connectState.userAddress = healthResult.data.owner;
-          connectState.serverAddress = healthResult.data.identity && healthResult.data.identity.address || "";
+          connectState.serverAddress =
+            (healthResult.data.identity &&
+              healthResult.data.identity.address) ||
+            "";
           connectLog("Owner address: " + connectState.userAddress);
 
           // Create grant via POST /v1/grants
