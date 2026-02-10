@@ -8,25 +8,26 @@ This document specifies how dataConnect wires into the Data Portability Protocol
 
 ### What's changing
 
-| Area            | Current                           | New                                                                        |
-| --------------- | --------------------------------- | -------------------------------------------------------------------------- |
-| Deep link       | URL query params                  | `vana://connect?sessionId={id}&secret={secret}` via Tauri deep-link plugin |
-| Session relay   | Old `/sessions/*` endpoints       | `/v1/session/claim`, `/v1/session/{id}/approve`, `/v1/session/{id}/deny`   |
-| Grant signing   | Mock EIP-712 in dataConnect       | Personal Server `POST /v1/grants` — server signs and submits to Gateway    |
-| Builder info    | Hardcoded registry (one demo app) | Gateway `GET /v1/builders/{address}` + manifest fetch                      |
-| Connected apps  | No `grantId` stored               | Gateway is source of truth; fetch via Personal Server `GET /v1/grants`     |
-| Auth flow order | Consent before sign-in            | **Sign-in before consent** (server needs wallet to sign grants)            |
+| Area            | Current                           | New                                                                                         |
+| --------------- | --------------------------------- | ------------------------------------------------------------------------------------------- |
+| Deep link       | URL query params                  | `vana://connect?sessionId={id}&secret={secret}` via Tauri deep-link plugin                  |
+| Session relay   | Old `/sessions/*` endpoints       | `/v1/session/claim`, `/v1/session/{id}/approve`, `/v1/session/{id}/deny`                    |
+| Grant signing   | Mock EIP-712 in dataConnect       | Personal Server `POST /v1/grants` — server signs and submits to Gateway                     |
+| Builder info    | Hardcoded registry (one demo app) | Gateway `GET /v1/builders/{address}` + manifest fetch                                       |
+| Connected apps  | No `grantId` stored               | Gateway is source of truth; fetch via Personal Server `GET /v1/grants`                      |
+| Auth flow order | Consent before sign-in (mock)     | **Consent before sign-in** — session data held in state; sign-in deferred to grant creation |
 
-### Corrected screen order
+### Screen order
 
 ```
 Screen 1: "Connect your ChatGPT"     ← deep link landing, session claim
-Screen 2: "Sign in" (Vana Passport)   ← wallet + master key → server can sign
-Screen 3: "Allow access" (consent)     ← grant creation + session approve
-Screen 4: "Connected" (success)        ← confirmation
+Screen 2: Browser scraping            ← user exports their data
+Screen 3: "Allow access" (consent)    ← user approves scopes (session data held in state)
+Screen 4: "Sign in" (Vana Passport)   ← wallet + master key → server can sign
+Screen 5: "Connected" (success)       ← grant creation + session approve + confirmation
 ```
 
-The critical ordering fix: **sign-in must happen before consent** because the Personal Server needs `VANA_MASTER_KEY_SIGNATURE` (derived from the owner wallet) to create grants. No wallet → no server signer → grant creation fails.
+Session claim data (`granteeAddress`, `scopes`, builder manifest) is held in app state throughout the flow. The user sees what data will be shared and consents **before** being asked to sign in. Sign-in is deferred until grant creation time — the only step that actually requires a wallet and the Personal Server's derived keypair. If the user is already signed in, Screen 4 is skipped automatically.
 
 ---
 
@@ -53,15 +54,23 @@ Builder App           Session Relay          dataConnect           Personal Serv
     │                      │                      ├────────────────────────────────────────►│
     │                      │                      │◄── appUrl, publicKey ───────────────────┤
     │                      │                      │                      │                  │
-    │                      │                      │  GET {appUrl}/.well-known/vana-manifest.json
+    │                      │                      │  GET {appUrl}        │                  │
     │                      │                      ├──►(builder's server) │                  │
-    │                      │                      │◄── name, icon, desc  │                  │
+    │                      │                      │◄── HTML with <link rel="manifest">      │
+    │                      │                      │                      │                  │
+    │                      │                      │  GET {manifestUrl}   │                  │
+    │                      │                      ├──►(builder's server) │                  │
+    │                      │                      │◄── W3C manifest with vana block         │
+    │                      │                      │                      │                  │
+    │                      │                      │  [DATA EXPORT]       │                  │
+    │                      │                      │  browser scraping    │                  │
+    │                      │                      │                      │                  │
+    │                      │                      │  [USER CONSENTS]     │                  │
+    │                      │                      │  (held in app state) │                  │
     │                      │                      │                      │                  │
     │                      │                      │  [SIGN-IN via Privy] │                  │
     │                      │                      │  wallet + masterKey  │                  │
     │                      │                      ├─ start server ──────►│                  │
-    │                      │                      │                      │                  │
-    │                      │                      │  [USER CONSENTS]     │                  │
     │                      │                      │                      │                  │
     │                      │                      │  POST /v1/grants     │                  │
     │                      │                      ├─────────────────────►│  POST /v1/grants │
@@ -82,7 +91,7 @@ Builder App           Session Relay          dataConnect           Personal Serv
 
 ### Screen 1: "Connect your ChatGPT"
 
-This is the **existing data export page**. It doubles as the deep link landing where session claim happens in the background.
+This is the **deep link landing page**. Session claim and builder verification happen in the background while the user sees the data export prompt.
 
 ```
 ┌──────────────────────────────────────────┐
@@ -107,10 +116,10 @@ This is the **existing data export page**. It doubles as the deep link landing w
 **What happens behind the scenes**:
 
 1. **Claim session** — `POST /v1/session/claim` with `{ sessionId, secret }`. Receives `granteeAddress`, `scopes`, `expiresAt`.
-2. **Verify builder** — `GET /v1/builders/{granteeAddress}` on Gateway to get `appUrl` and `publicKey`. Then fetch `{appUrl}/.well-known/vana-manifest.json` for display name, icon, and description.
-3. dataConnect now knows who the builder is and what scopes they want. It shows the data connector context (e.g., "This saves your ChatGPT data to your computer").
+2. **Verify builder** — `GET /v1/builders/{granteeAddress}` on Gateway to get `appUrl` and `publicKey`. Then fetch `{appUrl}` HTML, resolve the `<link rel="manifest">` tag, fetch the linked W3C Web App Manifest, and read the `vana` block for display name, icon, privacy/terms URLs, and signature. Verify the `vana.signature` recovers the builder address.
+3. dataConnect now knows who the builder is and what scopes they want. Session data (`granteeAddress`, `scopes`, builder manifest) is stored in app state for later use.
 
-**Data received**:
+**Data held in state**:
 
 - `granteeAddress` — builder's wallet address
 - `scopes` — e.g., `["chatgpt.conversations"]`
@@ -118,43 +127,43 @@ This is the **existing data export page**. It doubles as the deep link landing w
 
 ---
 
-### Screen 2: "Sign in" (Vana Passport)
+### Screen 2: Browser Scraping (data export)
 
-Shown if the user is not already authenticated. This must happen **before** consent because the Personal Server needs the wallet to sign grants.
+The user exports their data via an embedded browser. This happens before consent so the user understands what data they're sharing.
 
 ```
 ┌──────────────────────────────────────────┐
 │  dataConnect                             │
 │                                          │
 │  ┌────────────────────────────────────┐  │
-│  │  Sign in with Vana                 │  │
+│  │   Exporting your ChatGPT data...   │  │
 │  │                                    │  │
-│  │  Sign in to allow apps to access   │  │
-│  │  your data.                        │  │
+│  │  ┌──────────────────────────────┐  │  │
+│  │  │  (embedded browser)          │  │  │
+│  │  │  chatgpt.com/...             │  │  │
+│  │  │                              │  │  │
+│  │  └──────────────────────────────┘  │  │
 │  │                                    │  │
-│  │  [Sign in with Google]             │  │
-│  │  [Sign in with Email]              │  │
+│  │  Progress: ████████░░ 80%          │  │
 │  └────────────────────────────────────┘  │
 └──────────────────────────────────────────┘
 ```
 
-**Trigger**: User not authenticated (no wallet address available).
+**Trigger**: User clicks "Start Export" on Screen 1.
 
-**What happens behind the scenes**:
+**What happens**:
 
-1. **Privy auth** — User signs in via Privy (Google, email, etc.). dataConnect receives wallet address + master key signature.
-2. **Personal Server starts** — dataConnect launches the bundled Personal Server with `VANA_MASTER_KEY_SIGNATURE`. The server derives its signing keypair from this.
-3. **Server registers with Gateway** — The Personal Server registers itself so it can sign grants and receive data requests.
+1. dataConnect opens an embedded browser (webview) pointed at the data source (e.g., ChatGPT).
+2. The user's data is scraped and saved locally to their machine.
+3. Once export completes, the flow advances to the consent screen.
 
-**Key dependency**: The Personal Server cannot create grants until this step completes. The server's derived keypair (from `VANA_MASTER_KEY_SIGNATURE`) is what signs the EIP-712 `GrantRegistration` submitted to Gateway.
-
-**If already signed in**: This screen is skipped entirely.
+**Why before consent**: The user gets to see their data being exported before deciding whether to share it with the builder. This builds trust — they know exactly what data is at stake.
 
 ---
 
 ### Screen 3: "Allow access to your ChatGPT data" (consent)
 
-The user decides whether to grant the builder access.
+The user decides whether to grant the builder access. No authentication is required at this step — the user's decision is recorded in app state.
 
 ```
 ┌──────────────────────────────────────────┐
@@ -174,12 +183,13 @@ The user decides whether to grant the builder access.
 └──────────────────────────────────────────┘
 ```
 
-**Trigger**: User is authenticated, builder is verified, Personal Server is running.
+**Trigger**: Builder verified + session claimed + data export complete.
 
 **What happens when the user clicks Allow**:
 
-1. **Create grant** — dataConnect calls Personal Server `POST /v1/grants` with `{ granteeAddress, scopes }`. The server signs an EIP-712 `GrantRegistration`, submits it to Gateway, and returns `{ grantId }`.
-2. **Approve session** — dataConnect calls Session Relay `POST /v1/session/{id}/approve` with `{ secret, grantId, userAddress, scopes }`. This tells the builder's polling loop that the grant is ready.
+1. The user's consent decision is recorded in app state (no protocol calls yet).
+2. If the user is **not authenticated**, the flow advances to Screen 4 (sign-in).
+3. If the user is **already authenticated**, Screen 4 is skipped and the flow advances directly to Screen 5 (grant creation + confirmation).
 
 **What happens when the user clicks Cancel**:
 
@@ -195,9 +205,42 @@ The user decides whether to grant the builder access.
 
 ---
 
-### Screen 4: "RickRoll has your ChatGPT data" (success)
+### Screen 4: "Sign in" (Vana Passport)
 
-Confirmation that the grant was created and the builder was notified.
+Shown only if the user is not already authenticated. Sign-in is deferred to this point — after the user has already seen their data and consented to sharing it.
+
+```
+┌──────────────────────────────────────────┐
+│  dataConnect                             │
+│                                          │
+│  ┌────────────────────────────────────┐  │
+│  │  Sign in with Vana                 │  │
+│  │                                    │  │
+│  │  Sign in to allow apps to access   │  │
+│  │  your data.                        │  │
+│  │                                    │  │
+│  │  [Sign in with Google]             │  │
+│  │  [Sign in with Email]              │  │
+│  └────────────────────────────────────┘  │
+└──────────────────────────────────────────┘
+```
+
+**Trigger**: User clicked Allow on Screen 3 but is not authenticated (no wallet address available).
+
+**What happens behind the scenes**:
+
+1. **Privy auth** — User signs in via Privy (Google, email, etc.). dataConnect receives wallet address + master key signature.
+2. **Personal Server starts** — dataConnect launches the bundled Personal Server with `VANA_MASTER_KEY_SIGNATURE`. The server derives its signing keypair from this.
+3. **Server registers with Gateway** — The Personal Server registers itself so it can sign grants and receive data requests.
+4. Once sign-in completes, the flow automatically advances to Screen 5.
+
+**If already signed in**: This screen is skipped entirely. The flow goes directly from consent (Screen 3) to confirmation (Screen 5).
+
+---
+
+### Screen 5: "Connected" (success)
+
+Grant creation, session approval, and confirmation all happen on this screen. This is where the actual protocol work occurs — now that the user has consented and is authenticated.
 
 ```
 ┌──────────────────────────────────────────┐
@@ -215,7 +258,13 @@ Confirmation that the grant was created and the builder was notified.
 └──────────────────────────────────────────┘
 ```
 
-**Trigger**: Grant created + session approved.
+**Trigger**: User consented (Screen 3) + user authenticated (Screen 4, or already signed in).
+
+**What happens behind the scenes**:
+
+1. **Create grant** — dataConnect calls Personal Server `POST /v1/grants` with `{ granteeAddress, scopes }` (from app state). The server signs an EIP-712 `GrantRegistration`, submits it to Gateway, and returns `{ grantId }`.
+2. **Approve session** — dataConnect calls Session Relay `POST /v1/session/{id}/approve` with `{ secret, grantId, userAddress, scopes }`. This tells the builder's polling loop that the grant is ready.
+3. **Show confirmation** — The success screen is displayed.
 
 **No local `grantId` storage needed**: Gateway is the source of truth. The Connected Apps page can fetch grants from Gateway via Personal Server `GET /v1/grants` (returns grantId, grantee, scopes, revocation status).
 
@@ -223,17 +272,19 @@ Confirmation that the grant was created and the builder was notified.
 
 ---
 
-## 4. Key Architectural Change: Sign-in Before Consent
+## 4. Key Architectural Change: Deferred Sign-in
 
-### Why the order changed
+### Why sign-in is deferred
 
-The previous flow (and current dataConnect code) shows consent/grant creation **before** sign-in. This cannot work with real protocol integrations because:
+The dependency chain for grant creation is unchanged — sign-in is still required before the Personal Server can create grants. What changed is **when** sign-in happens in the UX flow.
 
-1. **Grant creation requires a server signer** — `POST /v1/grants` on the Personal Server signs an EIP-712 `GrantRegistration` with a derived keypair.
-2. **The derived keypair comes from `VANA_MASTER_KEY_SIGNATURE`** — which is produced during Privy auth when the user's wallet signs a deterministic message.
-3. **No wallet → no master key signature → no server signer → `POST /v1/grants` returns 500** (`SERVER_SIGNER_NOT_CONFIGURED`).
+The key insight: session claim data (`granteeAddress`, `scopes`, builder manifest) can be held in app state. Sign-in is only needed at grant creation time, not at consent time. This means we can collect consent **before** asking the user to sign in.
 
-### Dependency chain
+### UX flow vs. dependency chain
+
+The UX flow is: **claim → export → consent → sign-in → grant creation**
+
+But the technical dependency chain remains:
 
 ```
 Privy auth
@@ -245,19 +296,23 @@ Privy auth
                                 └─► POST /v1/session/{id}/approve with grantId
 ```
 
-Every step depends on the one above it. Sign-in is the root dependency.
+Sign-in is still the root dependency for grant creation. The difference is that sign-in only fires **after** the user has already seen their data, understood the request, and committed to allowing access. Session data and the consent decision are held in app state until sign-in completes and grant creation can proceed.
+
+### Benefit
+
+Better UX — the user sees what they're consenting to before being asked to sign in. Users who would decline can do so without ever needing to authenticate.
 
 ### What this means for the state machine
 
 ```
-loading → claiming → verifying-builder → auth-required → consent → creating-grant → approving → success
-                                              │
-                                         (skipped if
-                                          already
-                                          signed in)
+loading → claiming → verifying-builder → exporting → consent → auth-required → creating-grant → approving → success
+                                                                     │
+                                                                (skipped if
+                                                                 already
+                                                                 signed in)
 ```
 
-If the user is already authenticated, the flow jumps from `verifying-builder` straight to `consent`.
+If the user is already authenticated, the flow jumps from `consent` straight to `creating-grant`.
 
 ---
 
@@ -321,7 +376,7 @@ Suggested PR sequence — each change is small and independently testable.
 ### PR 3: Personal Server Grant Client + Auth
 
 - New `personalServer.ts` service client
-- Dev token generation in Tauri backend for localhost auth
+- Web3Signed client auth using the owner wallet (from Privy) for owner-only endpoints
 - **Test**: Integration test against running Personal Server
 
 ### PR 4: Builder Manifest Discovery
@@ -332,7 +387,7 @@ Suggested PR sequence — each change is small and independently testable.
 
 ### PR 5: Grant Flow State Machine Rewrite
 
-- New state machine: `loading → claiming → verifying-builder → auth-required → consent → creating-grant → approving → success`
+- New state machine: `loading → claiming → verifying-builder → exporting → consent → auth-required → creating-grant → approving → success`
 - Wire up all services (relay → builder → auth → personal server → relay)
 - **Test**: Component tests for each state transition
 
@@ -381,11 +436,11 @@ Suggested PR sequence — each change is small and independently testable.
 
 **Base URL**: `http://localhost:{port}`
 
-| Method | Path                | Auth                               | Purpose                                     |
-| ------ | ------------------- | ---------------------------------- | ------------------------------------------- |
-| `POST` | `/v1/grants`        | Owner (Web3Signed or Bearer token) | Create grant → sign → submit to Gateway     |
-| `GET`  | `/v1/grants`        | Owner                              | List all grants for this user               |
-| `POST` | `/v1/grants/verify` | None                               | Verify a grant signature (used by builders) |
+| Method | Path                | Auth               | Purpose                                     |
+| ------ | ------------------- | ------------------ | ------------------------------------------- |
+| `POST` | `/v1/grants`        | Owner (Web3Signed) | Create grant → sign → submit to Gateway     |
+| `GET`  | `/v1/grants`        | Owner (Web3Signed) | List all grants for this user               |
+| `POST` | `/v1/grants/verify` | None               | Verify a grant signature (used by builders) |
 
 **Create grant request body**: `{ granteeAddress, scopes, expiresAt?, nonce? }`
 **Create grant response (201)**: `{ grantId }`
@@ -399,7 +454,7 @@ Suggested PR sequence — each change is small and independently testable.
 5. Submit to Gateway
 6. Return `{ grantId }`
 
-**Auth for bundled server**: dataConnect generates a random dev token at startup, passes it as `VANA_DEV_TOKEN` env var to the Personal Server process, and uses `Authorization: Bearer {devToken}` for all local requests.
+**Auth for bundled server**: dataConnect authenticates to the Personal Server using `Web3Signed` headers signed by the owner wallet (obtained from Privy auth). Each owner-only endpoint (`POST /v1/grants`, `GET /v1/grants`) requires an `Authorization: Web3Signed <base64url(json)>.<signature>` header where the signature is produced by the owner's wallet key.
 
 ### Gateway
 
@@ -412,5 +467,12 @@ Suggested PR sequence — each change is small and independently testable.
 
 **Builder lookup response**: `{ id, appUrl, publicKey, ... }`
 
-**Manifest URL**: `{appUrl}/.well-known/vana-manifest.json`
-**Manifest fields**: `name`, `icon`, `description`, `scopes`, `privacyUrl`, `termsUrl`, `supportUrl`
+**Manifest Discovery**: Fetch `{appUrl}` HTML → resolve `<link rel="manifest" href="...">` (must be same-origin) → fetch the linked manifest.
+
+**Manifest Format**: Standard W3C Web App Manifest with a `vana` block for protocol-specific metadata.
+
+**`vana` block fields**: `appUrl`, `privacyPolicyUrl`, `termsUrl`, `supportUrl`, `webhookUrl`, `signature`
+
+**Signature**: EIP-191 by builder address over canonical JSON of the `vana` block (sorted keys alphabetically, excluding `signature`).
+
+**Standard manifest fields used**: `name`, `icons` (used for consent UI display).

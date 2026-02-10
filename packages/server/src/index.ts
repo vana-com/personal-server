@@ -1,22 +1,24 @@
 import { serve } from "@hono/node-server";
+import { createRequire } from "node:module";
 import { loadConfig } from "@opendatalabs/personal-server-ts-core/config";
 import { createServer } from "./bootstrap.js";
 import { verifyTunnelUrl } from "./tunnel/index.js";
+
+const require = createRequire(import.meta.url);
+const pkg = require("../package.json") as { version: string };
 
 const DRAIN_TIMEOUT_MS = 5_000;
 
 async function main(): Promise<void> {
   const rootPath = process.env.PERSONAL_SERVER_ROOT_PATH;
   const config = await loadConfig({ rootPath });
-  const { app, logger, devToken, tunnelUrl, tunnelManager } =
-    await createServer(config, {
-      rootPath,
-    });
+  const context = await createServer(config, { rootPath });
+  const { app, logger, devToken } = context;
 
   const server = serve(
     { fetch: app.fetch, port: config.server.port },
     (info) => {
-      logger.info({ port: info.port, version: "0.0.1" }, "Server started");
+      logger.info({ port: info.port, version: pkg.version }, "Server started");
 
       if (devToken) {
         logger.info(
@@ -25,32 +27,36 @@ async function main(): Promise<void> {
         );
         logger.info({ devToken }, "Dev token (ephemeral)");
       }
-
-      // Verify tunnel URL is reachable now that the HTTP server is listening
-      // Skip if already in error state (e.g. server not registered)
-      if (
-        tunnelUrl &&
-        tunnelManager &&
-        tunnelManager.getStatus().status !== "error"
-      ) {
-        logger.info({ tunnelUrl }, "Verifying tunnel URL is reachable...");
-        verifyTunnelUrl(tunnelUrl).then((result) => {
-          tunnelManager.setVerified(result.reachable, result.error);
-          if (result.reachable) {
-            logger.info(
-              { tunnelUrl, attempts: result.attempts },
-              "Tunnel URL verified",
-            );
-          } else {
-            logger.warn(
-              { tunnelUrl, attempts: result.attempts, error: result.error },
-              "Tunnel URL not reachable — server running in local-only mode",
-            );
-          }
-        });
-      }
     },
   );
+
+  // Fire-and-forget: gateway check + tunnel connect (slow operations)
+  // HTTP server is already listening so POST /v1/data/:scope works immediately
+  context.startBackgroundServices().then(() => {
+    // Verify tunnel URL is reachable now that both HTTP server and tunnel are up
+    const { tunnelManager, tunnelUrl } = context;
+    if (
+      tunnelUrl &&
+      tunnelManager &&
+      tunnelManager.getStatus().status !== "error"
+    ) {
+      logger.info({ tunnelUrl }, "Verifying tunnel URL is reachable...");
+      verifyTunnelUrl(tunnelUrl).then((result) => {
+        tunnelManager.setVerified(result.reachable, result.error);
+        if (result.reachable) {
+          logger.info(
+            { tunnelUrl, attempts: result.attempts },
+            "Tunnel URL verified",
+          );
+        } else {
+          logger.warn(
+            { tunnelUrl, attempts: result.attempts, error: result.error },
+            "Tunnel URL not reachable — server running in local-only mode",
+          );
+        }
+      });
+    }
+  });
 
   function shutdown(signal: string): void {
     logger.info({ signal }, "Shutdown signal received, draining connections");

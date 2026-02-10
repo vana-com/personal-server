@@ -1,6 +1,10 @@
 import { mkdir } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
+
+const require = createRequire(import.meta.url);
+const pkg = require("../package.json") as { version: string };
 import type { ServerConfig } from "@opendatalabs/personal-server-ts-core/schemas";
 import {
   DEFAULT_ROOT_PATH,
@@ -57,6 +61,7 @@ export interface ServerContext {
   tunnelManager?: TunnelManager;
   tunnelUrl?: string;
   devToken?: string;
+  startBackgroundServices: () => Promise<void>;
   cleanup: () => Promise<void>;
 }
 
@@ -90,8 +95,6 @@ export async function createServer(
 
   const gatewayClient = createGatewayClient(config.gateway.url);
 
-  const _serverOrigin = config.server.origin;
-
   // Derive server owner from VANA_MASTER_KEY_SIGNATURE env var
   const masterKeySignature = process.env.VANA_MASTER_KEY_SIGNATURE as
     | `0x${string}`
@@ -120,31 +123,11 @@ export async function createServer(
       contracts: config.gateway.contracts,
     });
 
-    // Check registration (Data Connect handles actual registration)
-    let serverId: string | null = null;
-    try {
-      const serverInfo = await gatewayClient.getServer(serverAccount.address);
-      serverId = serverInfo?.id ?? null;
-    } catch {
-      // Gateway unreachable — assume not registered
-    }
-
-    if (serverId) {
-      logger.info("Server registered with gateway — signing delegation active");
-    } else {
-      logger.warn(
-        {
-          serverAddress: serverAccount.address,
-          publicKey: serverAccount.publicKey,
-        },
-        "Server not registered. Register personal server with the gateway to enable delegation.",
-      );
-    }
-
+    // Identity starts with serverId=null; background services will populate it
     identity = {
       address: serverAccount.address,
       publicKey: serverAccount.publicKey,
-      serverId,
+      serverId: null,
     };
   } else {
     logger.warn(
@@ -152,69 +135,16 @@ export async function createServer(
     );
   }
 
-  // --- Tunnel setup ---
-  // Tunnel starts FIRST to get public URL for Gateway registration
-  let tunnelManager: TunnelManager | undefined;
-  let tunnelUrl: string | undefined;
-  let effectiveOrigin = config.server.origin; // Start with config.server.origin
-
-  if (config.tunnel.enabled && serverOwner && serverAccount) {
-    // Ensure frpc binary is available (downloads on first run or version bump)
-    let frpcBinaryPath: string;
+  // Download frpc binary eagerly (auth-independent) so it's ready when the user signs in
+  let frpcBinaryPath = "";
+  if (config.tunnel.enabled) {
     try {
       frpcBinaryPath = await ensureFrpcBinary(storageRoot, {
         log: (msg) => logger.info(msg),
       });
     } catch (err) {
       logger.warn({ err }, "Failed to download frpc binary - tunnel disabled");
-      frpcBinaryPath = "";
     }
-
-    if (frpcBinaryPath) {
-      tunnelManager = new TunnelManager(storageRoot);
-
-      // Generate unique run ID for this process/session (used for claim binding)
-      const runId = randomUUID();
-
-      try {
-        tunnelUrl = await tunnelManager.start(
-          {
-            walletAddress: serverAccount.address, // Use server's own keypair address
-            ownerAddress: serverOwner,
-            serverKeypair: serverAccount,
-            runId,
-            serverAddr: config.tunnel.serverAddr,
-            serverPort: config.tunnel.serverPort,
-            localPort: config.server.port,
-          },
-          frpcBinaryPath,
-        );
-        logger.info({ tunnelUrl }, "Tunnel established");
-
-        if (!identity?.serverId) {
-          logger.warn(
-            "Tunnel started but server is not registered with gateway — tunnel will not route traffic. Run: npm run register-server",
-          );
-          tunnelManager.setVerified(
-            false,
-            "Server not registered with gateway",
-          );
-        }
-
-        // Use tunnel URL as effective origin for requests and Gateway registration
-        effectiveOrigin = tunnelUrl;
-      } catch (err) {
-        logger.warn(
-          { err },
-          "Tunnel failed to connect - server running in local-only mode",
-        );
-        tunnelManager = undefined;
-      }
-    }
-  } else if (config.tunnel.enabled) {
-    logger.warn(
-      "Tunnel enabled in config but VANA_MASTER_KEY_SIGNATURE not set — tunnel disabled",
-    );
   }
 
   // --- Sync engine setup ---
@@ -280,13 +210,19 @@ export async function createServer(
   // Generate ephemeral dev token when devUi is enabled
   const devToken = config.devUi.enabled ? generateDevToken() : undefined;
 
+  // Mutable origin — starts with config value, updated when tunnel connects
+  let effectiveOrigin = config.server.origin;
+
+  // Mutable tunnelManager — set when tunnel starts in background
+  let tunnelManager: TunnelManager | undefined;
+
   const app = createApp({
     logger,
-    version: "0.0.1",
+    version: pkg.version,
     startedAt,
     indexManager,
     hierarchyOptions,
-    serverOrigin: effectiveOrigin,
+    serverOrigin: () => effectiveOrigin,
     serverOwner,
     identity,
     gateway: gatewayClient,
@@ -296,9 +232,7 @@ export async function createServer(
     configPath,
     syncManager,
     serverSigner,
-    getTunnelStatus: tunnelManager
-      ? () => tunnelManager.getStatus()
-      : undefined,
+    getTunnelStatus: () => tunnelManager?.getStatus() ?? null,
   });
 
   const cleanup = async () => {
@@ -311,7 +245,7 @@ export async function createServer(
     indexManager.close();
   };
 
-  return {
+  const context: ServerContext = {
     app,
     logger,
     config,
@@ -323,8 +257,91 @@ export async function createServer(
     serverSigner,
     syncManager,
     tunnelManager,
-    tunnelUrl,
+    tunnelUrl: undefined,
     devToken,
+    startBackgroundServices: async () => {
+      // --- Gateway registration check (slow: HTTP call) ---
+      if (serverAccount && identity) {
+        try {
+          const serverInfo = await gatewayClient.getServer(
+            serverAccount.address,
+          );
+          identity.serverId = serverInfo?.id ?? null;
+        } catch {
+          // Gateway unreachable — assume not registered
+        }
+
+        if (identity.serverId) {
+          logger.info(
+            "Server registered with gateway — signing delegation active",
+          );
+        } else {
+          logger.warn(
+            {
+              serverAddress: serverAccount.address,
+              publicKey: serverAccount.publicKey,
+            },
+            "Server not registered. Register personal server with the gateway to enable delegation.",
+          );
+        }
+      }
+
+      // --- Tunnel setup (slow: subprocess wait) ---
+      if (
+        config.tunnel.enabled &&
+        serverOwner &&
+        serverAccount &&
+        frpcBinaryPath
+      ) {
+        tunnelManager = new TunnelManager(storageRoot);
+        context.tunnelManager = tunnelManager;
+
+        const runId = randomUUID();
+
+        try {
+          const url = await tunnelManager.start(
+            {
+              walletAddress: serverAccount.address,
+              ownerAddress: serverOwner,
+              serverKeypair: serverAccount,
+              runId,
+              serverAddr: config.tunnel.serverAddr,
+              serverPort: config.tunnel.serverPort,
+              localPort: config.server.port,
+            },
+            frpcBinaryPath,
+          );
+          logger.info({ tunnelUrl: url }, "Tunnel established");
+          context.tunnelUrl = url;
+          effectiveOrigin = url;
+
+          if (!identity?.serverId) {
+            logger.warn(
+              "Tunnel started but server is not registered with gateway — tunnel will not route traffic. Run: npm run register-server",
+            );
+            tunnelManager.setVerified(
+              false,
+              "Server not registered with gateway",
+            );
+          }
+        } catch (err) {
+          logger.warn(
+            { err },
+            "Tunnel failed to connect - server running in local-only mode",
+          );
+          tunnelManager = undefined;
+          context.tunnelManager = undefined;
+        }
+      } else if (config.tunnel.enabled && !frpcBinaryPath) {
+        logger.warn("frpc binary not available — tunnel disabled");
+      } else if (config.tunnel.enabled) {
+        logger.warn(
+          "Tunnel enabled in config but VANA_MASTER_KEY_SIGNATURE not set — tunnel disabled",
+        );
+      }
+    },
     cleanup,
   };
+
+  return context;
 }

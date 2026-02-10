@@ -18,7 +18,7 @@ export interface GrantsRouteDeps {
   logger: Logger;
   gateway: GatewayClient;
   serverOwner?: `0x${string}`;
-  serverOrigin: string;
+  serverOrigin: string | (() => string);
   devToken?: string;
   serverSigner?: ServerSigner;
 }

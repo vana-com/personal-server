@@ -3,7 +3,7 @@ import { verifyWeb3Signed } from "@opendatalabs/personal-server-ts-core/auth";
 import { ProtocolError } from "@opendatalabs/personal-server-ts-core/errors";
 
 export interface Web3AuthMiddlewareDeps {
-  serverOrigin: string;
+  serverOrigin: string | (() => string);
   devToken?: string;
   serverOwner?: `0x${string}`;
 }
@@ -55,7 +55,10 @@ export function createWeb3AuthMiddleware(
     try {
       const auth = await verifyWeb3Signed({
         headerValue: c.req.header("authorization"),
-        expectedOrigin: deps.serverOrigin,
+        expectedOrigin:
+          typeof deps.serverOrigin === "function"
+            ? deps.serverOrigin()
+            : deps.serverOrigin,
         expectedMethod: c.req.method,
         expectedPath: new URL(c.req.url).pathname,
       });

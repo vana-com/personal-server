@@ -12,7 +12,7 @@ import { createOwnerCheckMiddleware } from "../middleware/owner-check.js";
 export interface AccessLogsRouteDeps {
   logger: Logger;
   accessLogReader: AccessLogReader;
-  serverOrigin: string;
+  serverOrigin: string | (() => string);
   serverOwner?: `0x${string}`;
   devToken?: string;
 }

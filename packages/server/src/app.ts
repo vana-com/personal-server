@@ -29,7 +29,7 @@ export interface AppDeps {
   startedAt: Date;
   indexManager: IndexManager;
   hierarchyOptions: HierarchyManagerOptions;
-  serverOrigin: string;
+  serverOrigin: string | (() => string);
   serverOwner?: `0x${string}`;
   identity?: IdentityInfo;
   gateway: GatewayClient;
