@@ -3,6 +3,7 @@ name: Prerelease
 on:
   push:
     branches:
+      - main
       - develop
       - "feat/*"
 
