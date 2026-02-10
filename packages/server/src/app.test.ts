@@ -3,24 +3,43 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createApp } from "./app.js";
-import { MissingAuthError } from "@personal-server/core/errors";
+import { MissingAuthError } from "@opendatalabs/personal-server-ts-core/errors";
 import {
   initializeDatabase,
   createIndexManager,
   type IndexManager,
-} from "@personal-server/core/storage/index";
-import type { GatewayClient } from "@personal-server/core/gateway";
-import type { AccessLogWriter } from "@personal-server/core/logging/access-log";
-import type { AccessLogReader } from "@personal-server/core/logging/access-reader";
+} from "@opendatalabs/personal-server-ts-core/storage/index";
+import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
+import type { AccessLogWriter } from "@opendatalabs/personal-server-ts-core/logging/access-log";
+import type { AccessLogReader } from "@opendatalabs/personal-server-ts-core/logging/access-reader";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
+import type { SyncManager } from "@opendatalabs/personal-server-ts-core/sync";
 import pino from "pino";
 
 const SERVER_ORIGIN = "http://localhost:8080";
 const ownerWallet = createTestWallet(0);
 const nonOwnerWallet = createTestWallet(1);
+
+function createMockSyncManager(): SyncManager {
+  return {
+    start: vi.fn(),
+    stop: vi.fn().mockResolvedValue(undefined),
+    trigger: vi.fn().mockResolvedValue(undefined),
+    getStatus: vi.fn().mockReturnValue({
+      enabled: true,
+      running: true,
+      lastSync: null,
+      lastProcessedTimestamp: null,
+      pendingFiles: 0,
+      errors: [],
+    }),
+    notifyNewData: vi.fn(),
+    running: true,
+  };
+}
 
 function createMockGateway(): GatewayClient {
   return {
@@ -29,9 +48,12 @@ function createMockGateway(): GatewayClient {
     getGrant: vi.fn().mockResolvedValue(null),
     listGrantsByUser: vi.fn().mockResolvedValue([]),
     getSchemaForScope: vi.fn().mockResolvedValue({
-      schemaId: "schema-1",
+      id: "0xschema1",
+      ownerAddress: "0xOwner",
+      name: "test.scope",
+      definitionUrl: "https://ipfs.io/ipfs/QmTestSchema",
       scope: "test.scope",
-      url: "https://ipfs.io/ipfs/QmTestSchema",
+      addedAt: "2026-01-21T10:00:00.000Z",
     }),
     getServer: vi.fn().mockResolvedValue(null),
   };
@@ -218,5 +240,114 @@ describe("createApp", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toBe("INVALID_BODY");
+  });
+
+  // --- Phase 4: Sync manager wiring tests ---
+
+  it("syncManager passed to sync routes — GET /v1/sync/status returns enabled status", async () => {
+    const mockSyncManager = createMockSyncManager();
+    const logger = pino({ level: "silent" });
+    const app = createApp({
+      logger,
+      version: "0.0.1",
+      startedAt: new Date(),
+      indexManager,
+      hierarchyOptions: { dataDir: join(tempDir, "data") },
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: ownerWallet.address,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      accessLogReader: createMockAccessLogReader(),
+      syncManager: mockSyncManager,
+    });
+
+    const auth = await buildWeb3SignedHeader({
+      wallet: ownerWallet,
+      aud: SERVER_ORIGIN,
+      method: "GET",
+      uri: "/v1/sync/status",
+    });
+    const res = await app.request("/v1/sync/status", {
+      headers: { authorization: auth },
+    });
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.enabled).toBe(true);
+    expect(body.running).toBe(true);
+    expect(mockSyncManager.getStatus).toHaveBeenCalled();
+  });
+
+  it("syncManager passed to data routes — POST /v1/data/:scope calls notifyNewData", async () => {
+    const mockSyncManager = createMockSyncManager();
+    const logger = pino({ level: "silent" });
+    const app = createApp({
+      logger,
+      version: "0.0.1",
+      startedAt: new Date(),
+      indexManager,
+      hierarchyOptions: { dataDir: join(tempDir, "data") },
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: ownerWallet.address,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      accessLogReader: createMockAccessLogReader(),
+      syncManager: mockSyncManager,
+    });
+
+    const res = await app.request("/v1/data/test.scope", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: "value" }),
+    });
+    expect(res.status).toBe(201);
+
+    const body = await res.json();
+    expect(body.status).toBe("syncing");
+    expect(mockSyncManager.notifyNewData).toHaveBeenCalled();
+  });
+
+  it("without syncManager — GET /v1/sync/status returns disabled", async () => {
+    const logger = pino({ level: "silent" });
+    const app = createApp({
+      logger,
+      version: "0.0.1",
+      startedAt: new Date(),
+      indexManager,
+      hierarchyOptions: { dataDir: join(tempDir, "data") },
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: ownerWallet.address,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      accessLogReader: createMockAccessLogReader(),
+      syncManager: null,
+    });
+
+    const auth = await buildWeb3SignedHeader({
+      wallet: ownerWallet,
+      aud: SERVER_ORIGIN,
+      method: "GET",
+      uri: "/v1/sync/status",
+    });
+    const res = await app.request("/v1/sync/status", {
+      headers: { authorization: auth },
+    });
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.enabled).toBe(false);
+  });
+
+  it("without syncManager — POST /v1/data/:scope returns stored status", async () => {
+    const app = makeApp(); // makeApp doesn't pass syncManager
+    const res = await app.request("/v1/data/test.scope", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: "value" }),
+    });
+    expect(res.status).toBe(201);
+
+    const body = await res.json();
+    expect(body.status).toBe("stored");
   });
 });

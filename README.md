@@ -1,35 +1,85 @@
 # Vana Personal Server
 
+[![CI](https://github.com/vana-com/personal-server-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/vana-com/personal-server-ts/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@opendatalabs/personal-server-ts)](https://www.npmjs.com/package/@opendatalabs/personal-server-ts)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![node >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+[![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org)
+
 TypeScript implementation of the Vana Data Portability Protocol's Personal Server. Stores user data locally, serves it to authorized users via grant-enforced APIs, and syncs encrypted copies to storage backends.
 
 ## Architecture
 
 NPM workspaces monorepo with three packages:
 
-| Package           | Purpose                                                              |
-| ----------------- | -------------------------------------------------------------------- |
-| `packages/core`   | Protocol logic — auth, grants, scopes, storage, keys, gateway client |
-| `packages/server` | Hono HTTP server — routes, middleware, composition root              |
-| `packages/cli`    | CLI entry point (placeholder)                                        |
+| Package           | Purpose                                                                |
+| ----------------- | ---------------------------------------------------------------------- |
+| `packages/core`   | Protocol logic — auth, grants, scopes, storage, keys, gateway client   |
+| `packages/server` | Hono HTTP server — routes, middleware, composition root                |
+| `packages/cli`    | Facade package for external tools (`@opendatalabs/personal-server-ts`) |
 
-Data lives in `~/.vana/` — decrypted files in `data/`, local file index at `index.db`, config in `server.json`.
+By default, Personal Server uses `~/personal-server` as its root namespace:
+
+- Data: `~/personal-server/data/`
+- Config: `~/personal-server/config.json`
+- Index: `~/personal-server/index.db`
+- Server keypair: `~/personal-server/key.json`
+- Access logs: `~/personal-server/logs/`
+
+Override the root with `PERSONAL_SERVER_ROOT_PATH` (for example, Data Connect can use `~/data-connect/personal-server`).
 
 ## Setup
 
 ```bash
 node -v  # >= 20
 npm install
+cp .env.example .env   # dev/test master key — see file for details
 npm run build
 ```
 
 ## Run
 
 ```bash
-# Start the server (reads ~/.vana/server.json)
-npx tsx packages/server/src/index.ts
+npm start             # build + start server
+npm run dev           # run from source (no build step)
+PERSONAL_SERVER_ROOT_PATH=~/data-connect/personal-server npm start
 ```
 
-The server starts on the port defined in `server.json` (default: 8080). Health check at `GET /health`.
+The server starts on the port defined in `${PERSONAL_SERVER_ROOT_PATH:-~/personal-server}/config.json` (default: 8080). Health check at `GET /health`.
+
+## Configuration
+
+The server reads `${PERSONAL_SERVER_ROOT_PATH:-~/personal-server}/config.json` on startup (created with defaults if missing).
+
+```json
+{
+  "server": {
+    "port": 8080
+  },
+  "logging": {
+    "level": "info",
+    "pretty": false
+  },
+  "storage": {
+    "backend": "local"
+  }
+}
+```
+
+Set `"pretty": true` for human-readable logs during development.
+
+### Server Registration
+
+Register your server with the Vana Gateway so it can participate in the data portability network:
+
+```bash
+export VANA_OWNER_PRIVATE_KEY=0x...         # your owner wallet private key
+npm run register-server                     # uses server.origin from config
+npm run register-server https://my.server   # override server URL
+PERSONAL_SERVER_ROOT_PATH=~/data-connect/personal-server npm run register-server
+```
+
+The script signs an EIP-712 `ServerRegistration` message with the owner key and POSTs it to the gateway. Once registered, `GET /health` will show `delegation.registered: true`.
 
 ## Test
 

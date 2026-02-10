@@ -3,11 +3,11 @@ import { pino } from "pino";
 import type {
   AccessLogReader,
   AccessLogReadResult,
-} from "@personal-server/core/logging/access-reader";
+} from "@opendatalabs/personal-server-ts-core/logging/access-reader";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
 import { accessLogsRoutes } from "./access-logs.js";
 
 const logger = pino({ level: "silent" });

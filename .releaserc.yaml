@@ -1,8 +1,17 @@
 branches: ["main"]
-preset: conventionalcommits
 plugins:
-  - "@semantic-release/commit-analyzer"
+  - - "@semantic-release/commit-analyzer"
+    - preset: conventionalcommits
+      releaseRules:
+        - breaking: true
+          release: minor
   - "@semantic-release/release-notes-generator"
+  - - "@semantic-release/npm"
+    - pkgRoot: packages/core
+      npmPublish: true
+  - - "@semantic-release/npm"
+    - pkgRoot: packages/server
+      npmPublish: true
   - - "@semantic-release/npm"
     - pkgRoot: packages/cli
       npmPublish: true

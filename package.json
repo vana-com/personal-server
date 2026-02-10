@@ -1,11 +1,23 @@
 {
   "name": "personal-server-ts",
   "private": true,
+  "description": "TypeScript implementation of the Vana Data Portability Protocol's Personal Server",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vana-com/personal-server-ts.git"
+  },
+  "homepage": "https://github.com/vana-com/personal-server-ts#readme",
+  "bugs": {
+    "url": "https://github.com/vana-com/personal-server-ts/issues"
+  },
   "type": "module",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
+    "start": "npm run build && node --env-file-if-exists=.env packages/server/dist/index.js",
+    "dev": "tsc --build && tsx watch --env-file-if-exists=.env packages/server/src/index.ts",
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "test": "vitest run",
@@ -16,6 +28,8 @@
     "lint:eslint:fix": "eslint --fix 'packages/*/src/**/*.ts'",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "register-server": "tsx --env-file-if-exists=.env scripts/register-server.ts",
+    "register-builder": "tsx --env-file-if-exists=.env scripts/register-builder.ts",
     "validate": "npm run lint && npm run lint:eslint && npm run format:check && npm test",
     "prepare": "husky"
   },
@@ -32,24 +46,25 @@
     "node": ">=20.0.0"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.3.1",
-    "@commitlint/config-conventional": "^20.3.1",
+    "@commitlint/cli": "^20.4.1",
+    "@commitlint/config-conventional": "^20.4.1",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^12.0.2",
+    "@semantic-release/github": "^12.0.3",
     "@semantic-release/npm": "^13.1.3",
     "@semantic-release/release-notes-generator": "^14.1.0",
-    "@types/node": "^25.1.0",
+    "@types/node": "^25.2.0",
     "conventional-changelog-conventionalcommits": "^9.1.0",
-    "esbuild": "^0.24.0",
+    "esbuild": "^0.27.2",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
-    "semantic-release": "^25.0.2",
+    "semantic-release": "^25.0.3",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.54.0",
-    "vitest": "^3.0.0"
+    "vitest": "^4.0.18"
   }
 }

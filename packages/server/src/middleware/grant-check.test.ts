@@ -5,21 +5,36 @@ import { createGrantCheckMiddleware } from "./grant-check.js";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
-import type { GatewayClient } from "@personal-server/core/gateway";
-import type { GatewayGrantResponse } from "@personal-server/core/grants";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
+import type {
+  GatewayClient,
+  Builder,
+} from "@opendatalabs/personal-server-ts-core/gateway";
+import type { GatewayGrantResponse } from "@opendatalabs/personal-server-ts-core/grants";
 
 const SERVER_ORIGIN = "http://localhost:8080";
 const wallet = createTestWallet(0);
-const otherWallet = createTestWallet(1);
+
+const BUILDER_ID = "0xbuilder1";
+const OTHER_BUILDER_ID = "0xbuilder2";
 
 function createMockGateway(
   overrides: Partial<GatewayClient> = {},
 ): GatewayClient {
   return {
     isRegisteredBuilder: vi.fn().mockResolvedValue(true),
-    getBuilder: vi.fn().mockResolvedValue(null),
+    getBuilder: vi.fn().mockResolvedValue({
+      id: BUILDER_ID,
+      ownerAddress: "0xOwner",
+      granteeAddress: wallet.address,
+      publicKey: "0x04key",
+      appUrl: "https://app.example.com",
+      addedAt: "2026-01-21T10:00:00.000Z",
+    } satisfies Builder),
     getGrant: vi.fn().mockResolvedValue(null),
+    listGrantsByUser: vi.fn().mockResolvedValue([]),
+    getSchemaForScope: vi.fn().mockResolvedValue(null),
+    getServer: vi.fn().mockResolvedValue(null),
     ...overrides,
   };
 }
@@ -28,12 +43,20 @@ function makeGrant(
   overrides: Partial<GatewayGrantResponse> = {},
 ): GatewayGrantResponse {
   return {
-    grantId: "grant-123",
-    user: "0xOwnerAddress",
-    builder: wallet.address,
-    scopes: ["instagram.*"],
-    expiresAt: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-    revoked: false,
+    id: "grant-123",
+    grantorAddress: "0xOwnerAddress",
+    granteeId: BUILDER_ID,
+    grant: JSON.stringify({
+      user: "0xOwnerAddress",
+      builder: wallet.address,
+      scopes: ["instagram.*"],
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    }),
+    fileIds: [],
+    status: "confirmed",
+    addedAt: "2026-01-21T10:00:00.000Z",
+    revokedAt: null,
+    revocationSignature: null,
     ...overrides,
   };
 }
@@ -91,7 +114,7 @@ describe("createGrantCheckMiddleware", () => {
       grant: GatewayGrantResponse;
     };
     expect(json.ok).toBe(true);
-    expect(json.grant.grantId).toBe("grant-123");
+    expect(json.grant.id).toBe("grant-123");
     expect(gateway.getGrant).toHaveBeenCalledWith("grant-123");
   });
 
@@ -129,7 +152,7 @@ describe("createGrantCheckMiddleware", () => {
   });
 
   it("revoked grant returns 403 GRANT_REVOKED", async () => {
-    const grant = makeGrant({ revoked: true });
+    const grant = makeGrant({ revokedAt: "2026-01-25T10:00:00.000Z" });
     const gateway = createMockGateway({
       getGrant: vi.fn().mockResolvedValue(grant),
     });
@@ -144,8 +167,11 @@ describe("createGrantCheckMiddleware", () => {
 
   it("expired grant returns 403 GRANT_EXPIRED", async () => {
     const grant = makeGrant({
-      expiresAt: Math.floor(Date.now() / 1000) - 3600,
-    }); // expired 1 hour ago
+      grant: JSON.stringify({
+        scopes: ["instagram.*"],
+        expiresAt: Math.floor(Date.now() / 1000) - 3600,
+      }),
+    });
     const gateway = createMockGateway({
       getGrant: vi.fn().mockResolvedValue(grant),
     });
@@ -159,7 +185,12 @@ describe("createGrantCheckMiddleware", () => {
   });
 
   it("scope mismatch returns 403 SCOPE_MISMATCH", async () => {
-    const grant = makeGrant({ scopes: ["twitter.*"] }); // grant covers twitter, not instagram
+    const grant = makeGrant({
+      grant: JSON.stringify({
+        scopes: ["twitter.*"],
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      }),
+    });
     const gateway = createMockGateway({
       getGrant: vi.fn().mockResolvedValue(grant),
     });
@@ -173,9 +204,26 @@ describe("createGrantCheckMiddleware", () => {
   });
 
   it("grantee mismatch returns 401 INVALID_SIGNATURE", async () => {
-    const grant = makeGrant({ builder: otherWallet.address }); // grant is for a different builder
+    // Grant is for a different builder ID
+    const grant = makeGrant({ granteeId: OTHER_BUILDER_ID });
     const gateway = createMockGateway({
       getGrant: vi.fn().mockResolvedValue(grant),
+      // getBuilder returns builder with BUILDER_ID, but grant has OTHER_BUILDER_ID
+    });
+    const app = createApp(gateway);
+
+    const res = await makeAuthRequest(app);
+
+    expect(res.status).toBe(401);
+    const json = (await res.json()) as { error: { errorCode: string } };
+    expect(json.error.errorCode).toBe("INVALID_SIGNATURE");
+  });
+
+  it("builder not found returns 401 INVALID_SIGNATURE", async () => {
+    const grant = makeGrant();
+    const gateway = createMockGateway({
+      getGrant: vi.fn().mockResolvedValue(grant),
+      getBuilder: vi.fn().mockResolvedValue(null),
     });
     const app = createApp(gateway);
 
@@ -187,7 +235,12 @@ describe("createGrantCheckMiddleware", () => {
   });
 
   it("expiresAt=0 (no expiry) passes", async () => {
-    const grant = makeGrant({ expiresAt: 0 });
+    const grant = makeGrant({
+      grant: JSON.stringify({
+        scopes: ["instagram.*"],
+        expiresAt: 0,
+      }),
+    });
     const gateway = createMockGateway({
       getGrant: vi.fn().mockResolvedValue(grant),
     });

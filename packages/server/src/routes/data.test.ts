@@ -6,38 +6,54 @@ import { pino } from "pino";
 import {
   initializeDatabase,
   createIndexManager,
-} from "@personal-server/core/storage/index";
-import type { IndexManager } from "@personal-server/core/storage/index";
-import type { HierarchyManagerOptions } from "@personal-server/core/storage/hierarchy";
+} from "@opendatalabs/personal-server-ts-core/storage/index";
+import type { IndexManager } from "@opendatalabs/personal-server-ts-core/storage/index";
+import type { HierarchyManagerOptions } from "@opendatalabs/personal-server-ts-core/storage/hierarchy";
 import {
   buildDataFilePath,
   buildScopeDir,
-} from "@personal-server/core/storage/hierarchy";
-import type { GatewayClient } from "@personal-server/core/gateway";
-import type { GatewayGrantResponse } from "@personal-server/core/grants";
-import type { AccessLogWriter } from "@personal-server/core/logging/access-log";
+} from "@opendatalabs/personal-server-ts-core/storage/hierarchy";
+import type {
+  GatewayClient,
+  Builder,
+} from "@opendatalabs/personal-server-ts-core/gateway";
+import type { GatewayGrantResponse } from "@opendatalabs/personal-server-ts-core/grants";
+import type { AccessLogWriter } from "@opendatalabs/personal-server-ts-core/logging/access-log";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
+import type { SyncManager } from "@opendatalabs/personal-server-ts-core/sync";
 import { dataRoutes } from "./data.js";
 import type { DataRouteDeps } from "./data.js";
 
 const SERVER_ORIGIN = "http://localhost:8080";
 const wallet = createTestWallet(0);
 
+const BUILDER_ID = "0xbuilder1";
+
 function createMockGateway(
   overrides: Partial<GatewayClient> = {},
 ): GatewayClient {
   return {
     isRegisteredBuilder: vi.fn().mockResolvedValue(true),
-    getBuilder: vi.fn().mockResolvedValue(null),
+    getBuilder: vi.fn().mockResolvedValue({
+      id: BUILDER_ID,
+      ownerAddress: "0xOwner",
+      granteeAddress: wallet.address,
+      publicKey: "0x04key",
+      appUrl: "https://app.example.com",
+      addedAt: "2026-01-21T10:00:00.000Z",
+    } satisfies Builder),
     getGrant: vi.fn().mockResolvedValue(null),
     listGrantsByUser: vi.fn().mockResolvedValue([]),
     getSchemaForScope: vi.fn().mockResolvedValue({
-      schemaId: "schema-1",
+      id: "0xschema1",
+      ownerAddress: "0xOwner",
+      name: "instagram.profile",
+      definitionUrl: "https://ipfs.io/ipfs/QmTestSchema",
       scope: "instagram.profile",
-      url: "https://ipfs.io/ipfs/QmTestSchema",
+      addedAt: "2026-01-21T10:00:00.000Z",
     }),
     getServer: vi.fn().mockResolvedValue(null),
     ...overrides,
@@ -48,12 +64,20 @@ function makeGrant(
   overrides: Partial<GatewayGrantResponse> = {},
 ): GatewayGrantResponse {
   return {
-    grantId: "grant-123",
-    user: "0xOwnerAddress",
-    builder: wallet.address,
-    scopes: ["instagram.*"],
-    expiresAt: Math.floor(Date.now() / 1000) + 3600,
-    revoked: false,
+    id: "grant-123",
+    grantorAddress: "0xOwnerAddress",
+    granteeId: BUILDER_ID,
+    grant: JSON.stringify({
+      user: "0xOwnerAddress",
+      builder: wallet.address,
+      scopes: ["instagram.*"],
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    }),
+    fileIds: [],
+    status: "confirmed",
+    addedAt: "2026-01-21T10:00:00.000Z",
+    revokedAt: null,
+    revocationSignature: null,
     ...overrides,
   };
 }
@@ -299,7 +323,105 @@ describe("POST /v1/data/:scope", () => {
     const gateway = createMockGateway();
     const schema = await gateway.getSchemaForScope("instagram.profile");
     expect(schema).toBeDefined();
-    expect(schema!.url).toBe("https://ipfs.io/ipfs/QmTestSchema");
+    expect(schema!.definitionUrl).toBe("https://ipfs.io/ipfs/QmTestSchema");
+  });
+
+  it("returns status 'syncing' when syncManager is provided", async () => {
+    const db2 = initializeDatabase(":memory:");
+    const indexManager2 = createIndexManager(db2);
+    const mockSyncManager = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      trigger: vi.fn(),
+      getStatus: vi.fn(),
+      notifyNewData: vi.fn(),
+      running: false,
+    } satisfies SyncManager;
+
+    const localApp = dataRoutes({
+      indexManager: indexManager2,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: "0xOwnerAddress" as `0x${string}`,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      syncManager: mockSyncManager,
+    });
+
+    const res = await localApp.request("/instagram.profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "test" }),
+    });
+    expect(res.status).toBe(201);
+
+    const json = await res.json();
+    expect(json.status).toBe("syncing");
+
+    indexManager2.close();
+  });
+
+  it("returns status 'stored' when syncManager is null", async () => {
+    const db2 = initializeDatabase(":memory:");
+    const indexManager2 = createIndexManager(db2);
+
+    const localApp = dataRoutes({
+      indexManager: indexManager2,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: "0xOwnerAddress" as `0x${string}`,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      syncManager: null,
+    });
+
+    const res = await localApp.request("/instagram.profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "test" }),
+    });
+    expect(res.status).toBe(201);
+
+    const json = await res.json();
+    expect(json.status).toBe("stored");
+
+    indexManager2.close();
+  });
+
+  it("calls notifyNewData on syncManager when provided", async () => {
+    const db2 = initializeDatabase(":memory:");
+    const indexManager2 = createIndexManager(db2);
+    const mockSyncManager = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      trigger: vi.fn(),
+      getStatus: vi.fn(),
+      notifyNewData: vi.fn(),
+      running: false,
+    } satisfies SyncManager;
+
+    const localApp = dataRoutes({
+      indexManager: indexManager2,
+      hierarchyOptions,
+      logger,
+      serverOrigin: SERVER_ORIGIN,
+      serverOwner: "0xOwnerAddress" as `0x${string}`,
+      gateway: createMockGateway(),
+      accessLogWriter: createMockAccessLogWriter(),
+      syncManager: mockSyncManager,
+    });
+
+    await localApp.request("/instagram.profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "test" }),
+    });
+
+    expect(mockSyncManager.notifyNewData).toHaveBeenCalledOnce();
+
+    indexManager2.close();
   });
 
   it("creates two separate versions for same scope", async () => {
@@ -768,7 +890,10 @@ describe("GET /v1/data/:scope", () => {
 
   it("returns 403 GRANT_EXPIRED for expired grant", async () => {
     const grant = makeGrant({
-      expiresAt: Math.floor(Date.now() / 1000) - 3600,
+      grant: JSON.stringify({
+        scopes: ["instagram.*"],
+        expiresAt: Math.floor(Date.now() / 1000) - 3600,
+      }),
     });
     const gateway = createMockGateway({
       getGrant: vi.fn().mockResolvedValue(grant),
@@ -783,7 +908,12 @@ describe("GET /v1/data/:scope", () => {
   });
 
   it("returns 403 SCOPE_MISMATCH when grant does not cover scope", async () => {
-    const grant = makeGrant({ scopes: ["twitter.*"] });
+    const grant = makeGrant({
+      grant: JSON.stringify({
+        scopes: ["twitter.*"],
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      }),
+    });
     const gateway = createMockGateway({
       getGrant: vi.fn().mockResolvedValue(grant),
     });
@@ -948,7 +1078,7 @@ describe("DELETE /v1/data/:scope", () => {
 
   it("after DELETE, GET same scope returns 404", async () => {
     const grant = makeGrant({
-      user: ownerWallet.address,
+      grantorAddress: ownerWallet.address,
     });
     const gateway = createMockGateway({
       getGrant: vi.fn().mockResolvedValue(grant),

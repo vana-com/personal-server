@@ -1,16 +1,17 @@
 import { Hono } from "hono";
-import { ScopeSchema } from "@personal-server/core/scopes";
-import { createDataFileEnvelope } from "@personal-server/core/schemas/data-file";
+import { ScopeSchema } from "@opendatalabs/personal-server-ts-core/scopes";
+import { createDataFileEnvelope } from "@opendatalabs/personal-server-ts-core/schemas/data-file";
 import {
   generateCollectedAt,
   writeDataFile,
   readDataFile,
   deleteAllForScope,
-} from "@personal-server/core/storage/hierarchy";
-import type { HierarchyManagerOptions } from "@personal-server/core/storage/hierarchy";
-import type { IndexManager } from "@personal-server/core/storage/index";
-import type { GatewayClient } from "@personal-server/core/gateway";
-import type { AccessLogWriter } from "@personal-server/core/logging/access-log";
+} from "@opendatalabs/personal-server-ts-core/storage/hierarchy";
+import type { HierarchyManagerOptions } from "@opendatalabs/personal-server-ts-core/storage/hierarchy";
+import type { IndexManager } from "@opendatalabs/personal-server-ts-core/storage/index";
+import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
+import type { AccessLogWriter } from "@opendatalabs/personal-server-ts-core/logging/access-log";
+import type { SyncManager } from "@opendatalabs/personal-server-ts-core/sync";
 import type { Logger } from "pino";
 import {
   createBodyLimit,
@@ -27,16 +28,22 @@ export interface DataRouteDeps {
   hierarchyOptions: HierarchyManagerOptions;
   logger: Logger;
   serverOrigin: string;
-  serverOwner: `0x${string}`;
+  serverOwner?: `0x${string}`;
   gateway: GatewayClient;
   accessLogWriter: AccessLogWriter;
+  syncManager?: SyncManager | null;
+  devToken?: string;
 }
 
 export function dataRoutes(deps: DataRouteDeps): Hono {
   const app = new Hono();
 
   // Create middleware instances
-  const web3Auth = createWeb3AuthMiddleware(deps.serverOrigin);
+  const web3Auth = createWeb3AuthMiddleware({
+    serverOrigin: deps.serverOrigin,
+    devToken: deps.devToken,
+    serverOwner: deps.serverOwner,
+  });
   const builderCheck = createBuilderCheckMiddleware(deps.gateway);
   const grantCheck = createGrantCheckMiddleware({
     gateway: deps.gateway,
@@ -221,7 +228,7 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
           400,
         );
       }
-      schemaUrl = schema.url;
+      schemaUrl = schema.definitionUrl;
     } catch (err) {
       deps.logger.error({ err, scope }, "Gateway schema lookup failed");
       return c.json(
@@ -261,8 +268,15 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
       "Data file ingested",
     );
 
-    // 8. Return 201
-    return c.json({ scope, collectedAt, status: "stored" as const }, 201);
+    // 8. Notify sync manager of new data (if enabled)
+    let status: "stored" | "syncing" = "stored";
+    if (deps.syncManager) {
+      deps.syncManager.notifyNewData();
+      status = "syncing";
+    }
+
+    // 9. Return 201
+    return c.json({ scope, collectedAt, status }, 201);
   });
 
   // Owner-check middleware (web3-auth + owner-check)

@@ -2,10 +2,28 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import type { GatewayGrantResponse } from "../grants/types.js";
 
-import type { GrantListItem, Schema, ServerInfo } from "./client.js";
+import type { FileRecord, FileListResult } from "../sync/types.js";
+import type { GrantListItem, Schema, ServerInfo, Builder } from "./client.js";
 import { createGatewayClient } from "./client.js";
 
 const BASE_URL = "https://gateway.example.com";
+
+/** Wrap data in gateway envelope format */
+function envelope<T>(data: T) {
+  return {
+    data,
+    proof: {
+      signature: "0xproof",
+      timestamp: "2026-01-21T10:00:00.000Z",
+      gatewayAddress: "0xGateway",
+      requestHash: "0xreqhash",
+      responseHash: "0xreshash",
+      userSignature: "0xusersig",
+      status: "confirmed",
+      chainBlockHeight: 1000,
+    },
+  };
+}
 
 describe("GatewayClient", () => {
   const originalFetch = globalThis.fetch;
@@ -33,13 +51,17 @@ describe("GatewayClient", () => {
   }
 
   describe("isRegisteredBuilder", () => {
-    it("returns true on 200 with registered builder", async () => {
+    it("returns true on 200 with builder data", async () => {
       const client = createGatewayClient(BASE_URL);
-      mockFetch(200, {
-        address: "0xabc",
-        name: "TestBuilder",
-        registered: true,
-      });
+      const builderData: Builder = {
+        id: "0xbuilder1",
+        ownerAddress: "0xOwner",
+        granteeAddress: "0xabc",
+        publicKey: "0x04key",
+        appUrl: "https://app.example.com",
+        addedAt: "2026-01-21T10:00:00.000Z",
+      };
+      mockFetch(200, envelope(builderData));
       const result = await client.isRegisteredBuilder("0xabc");
       expect(result).toBe(true);
     });
@@ -60,22 +82,55 @@ describe("GatewayClient", () => {
     });
   });
 
+  describe("getBuilder", () => {
+    it("unwraps envelope and returns builder data on 200", async () => {
+      const client = createGatewayClient(BASE_URL);
+      const builderData: Builder = {
+        id: "0xbuilder1",
+        ownerAddress: "0xOwner",
+        granteeAddress: "0xabc",
+        publicKey: "0x04key",
+        appUrl: "https://app.example.com",
+        addedAt: "2026-01-21T10:00:00.000Z",
+      };
+      mockFetch(200, envelope(builderData));
+      const result = await client.getBuilder("0xabc");
+      expect(result).toEqual(builderData);
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        `${BASE_URL}/v1/builders/0xabc`,
+      );
+    });
+
+    it("returns null on 404", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(404);
+      const result = await client.getBuilder("0xabc");
+      expect(result).toBeNull();
+    });
+  });
+
   describe("getGrant", () => {
-    it("returns parsed response on 200", async () => {
+    it("unwraps envelope and returns grant data on 200", async () => {
       const client = createGatewayClient(BASE_URL);
       const grantResponse: GatewayGrantResponse = {
-        grantId: "grant-1",
-        user: "0xuser",
-        builder: "0xbuilder",
-        scopes: ["instagram.*"],
-        expiresAt: 9999999999,
-        revoked: false,
+        id: "0xgrant1",
+        grantorAddress: "0xuser",
+        granteeId: "0xbuilder1",
+        grant: JSON.stringify({
+          scopes: ["instagram.*"],
+          expiresAt: 9999999999,
+        }),
+        fileIds: [],
+        status: "confirmed",
+        addedAt: "2026-01-21T10:00:00.000Z",
+        revokedAt: null,
+        revocationSignature: null,
       };
-      mockFetch(200, grantResponse);
-      const result = await client.getGrant("grant-1");
+      mockFetch(200, envelope(grantResponse));
+      const result = await client.getGrant("0xgrant1");
       expect(result).toEqual(grantResponse);
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        `${BASE_URL}/v1/grants/grant-1`,
+        `${BASE_URL}/v1/grants/0xgrant1`,
       );
     });
 
@@ -96,25 +151,39 @@ describe("GatewayClient", () => {
   });
 
   describe("listGrantsByUser", () => {
-    it("returns grants array on 200", async () => {
+    it("unwraps envelope and returns grants array on 200", async () => {
       const client = createGatewayClient(BASE_URL);
       const grants: GrantListItem[] = [
         {
-          grantId: "grant-1",
-          builder: "0xbuilder1",
-          scopes: ["instagram.*"],
-          expiresAt: 9999999999,
-          createdAt: "2025-01-01T00:00:00Z",
+          id: "0xgrant1",
+          grantorAddress: "0xuser",
+          granteeId: "0xbuilder1",
+          grant: JSON.stringify({
+            scopes: ["instagram.*"],
+            expiresAt: 9999999999,
+          }),
+          fileIds: [],
+          status: "confirmed",
+          addedAt: "2026-01-21T10:00:00.000Z",
+          revokedAt: null,
+          revocationSignature: null,
         },
         {
-          grantId: "grant-2",
-          builder: "0xbuilder2",
-          scopes: ["twitter.profile"],
-          expiresAt: 9999999999,
-          createdAt: "2025-01-02T00:00:00Z",
+          id: "0xgrant2",
+          grantorAddress: "0xuser",
+          granteeId: "0xbuilder2",
+          grant: JSON.stringify({
+            scopes: ["twitter.profile"],
+            expiresAt: 9999999999,
+          }),
+          fileIds: [],
+          status: "confirmed",
+          addedAt: "2026-01-22T10:00:00.000Z",
+          revokedAt: null,
+          revocationSignature: null,
         },
       ];
-      mockFetch(200, grants);
+      mockFetch(200, envelope(grants));
       const result = await client.listGrantsByUser("0xuser");
       expect(result).toEqual(grants);
       expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -131,14 +200,17 @@ describe("GatewayClient", () => {
   });
 
   describe("getSchemaForScope", () => {
-    it("returns Schema on 200", async () => {
+    it("unwraps envelope and returns Schema on 200", async () => {
       const client = createGatewayClient(BASE_URL);
       const schema: Schema = {
-        schemaId: "schema-1",
+        id: "0xschema1",
+        ownerAddress: "0xOwner",
+        name: "instagram.profile",
+        definitionUrl: "https://ipfs.io/ipfs/Qm123",
         scope: "instagram.profile",
-        url: "https://ipfs.io/ipfs/Qm123",
+        addedAt: "2026-01-21T10:00:00.000Z",
       };
-      mockFetch(200, schema);
+      mockFetch(200, envelope(schema));
       const result = await client.getSchemaForScope("instagram.profile");
       expect(result).toEqual(schema);
       expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -155,20 +227,359 @@ describe("GatewayClient", () => {
   });
 
   describe("getServer", () => {
-    it("returns ServerInfo on 200", async () => {
+    it("unwraps envelope and returns ServerInfo on 200", async () => {
       const client = createGatewayClient(BASE_URL);
       const serverInfo: ServerInfo = {
-        address: "0xserver",
-        endpoint: "https://server.example.com",
-        registered: true,
-        trusted: true,
+        id: "0xserver1",
+        ownerAddress: "0xOwner",
+        serverAddress: "0xserver",
+        publicKey: "0x04serverkey",
+        serverUrl: "https://server.example.com",
+        addedAt: "2026-01-21T10:00:00.000Z",
       };
-      mockFetch(200, serverInfo);
+      mockFetch(200, envelope(serverInfo));
       const result = await client.getServer("0xserver");
       expect(result).toEqual(serverInfo);
       expect(globalThis.fetch).toHaveBeenCalledWith(
         `${BASE_URL}/v1/servers/0xserver`,
       );
+    });
+  });
+
+  describe("registerFile", () => {
+    it("sends POST with Web3Signed auth header and returns fileId", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, { fileId: "file-123" });
+      const result = await client.registerFile({
+        ownerAddress: "0xOwner",
+        url: "https://storage.example.com/file.json",
+        schemaId: "0xschema",
+        signature: "0xsig",
+      });
+      expect(result).toEqual({ fileId: "file-123" });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      expect(fetchCall[0]).toBe(`${BASE_URL}/v1/files`);
+      expect(fetchCall[1].method).toBe("POST");
+      expect(fetchCall[1].headers.Authorization).toBe("Web3Signed 0xsig");
+    });
+
+    it("sends body with ownerAddress, url, schemaId (not signature)", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, { fileId: "file-123" });
+      await client.registerFile({
+        ownerAddress: "0xOwner",
+        url: "https://storage.example.com/file.json",
+        schemaId: "0xschema",
+        signature: "0xsig",
+      });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      expect(body).toEqual({
+        ownerAddress: "0xOwner",
+        url: "https://storage.example.com/file.json",
+        schemaId: "0xschema",
+      });
+      expect(body).not.toHaveProperty("signature");
+    });
+
+    it("sends Content-Type application/json header", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, { fileId: "file-123" });
+      await client.registerFile({
+        ownerAddress: "0xOwner",
+        url: "https://storage.example.com/file.json",
+        schemaId: "0xschema",
+        signature: "0xsig",
+      });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      expect(fetchCall[1].headers["Content-Type"]).toBe("application/json");
+    });
+
+    it("treats 409 as success (idempotent)", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(409, { fileId: "file-123" });
+      const result = await client.registerFile({
+        ownerAddress: "0xOwner",
+        url: "https://storage.example.com/file.json",
+        schemaId: "0xschema",
+        signature: "0xsig",
+      });
+      expect(result).toEqual({ fileId: "file-123" });
+    });
+
+    it("throws on non-200/409 errors", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(500);
+      await expect(
+        client.registerFile({
+          ownerAddress: "0xOwner",
+          url: "url",
+          schemaId: "0x",
+          signature: "0xsig",
+        }),
+      ).rejects.toThrow("Gateway error: 500");
+    });
+
+    it("throws on network error", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetchError(new Error("Network failure"));
+      await expect(
+        client.registerFile({
+          ownerAddress: "0xOwner",
+          url: "url",
+          schemaId: "0x",
+          signature: "0xsig",
+        }),
+      ).rejects.toThrow("Network failure");
+    });
+  });
+
+  describe("createGrant", () => {
+    it("sends POST with Web3Signed auth header and returns grantId", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, { grantId: "grant-123" });
+      const result = await client.createGrant({
+        grantorAddress: "0xGrantor",
+        granteeId: "0xGrantee",
+        grant: '{"scopes":["*"]}',
+        fileIds: ["1", "2"],
+        signature: "0xsig",
+      });
+      expect(result).toEqual({ grantId: "grant-123" });
+    });
+
+    it("sends body with grantorAddress, granteeId, grant, fileIds (not signature)", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, { grantId: "grant-123" });
+      await client.createGrant({
+        grantorAddress: "0xGrantor",
+        granteeId: "0xGrantee",
+        grant: '{"scopes":["*"]}',
+        fileIds: ["1", "2"],
+        signature: "0xsig",
+      });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      expect(body).toEqual({
+        grantorAddress: "0xGrantor",
+        granteeId: "0xGrantee",
+        grant: '{"scopes":["*"]}',
+        fileIds: ["1", "2"],
+      });
+      expect(body).not.toHaveProperty("signature");
+    });
+
+    it("sends Content-Type application/json header", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, { grantId: "grant-123" });
+      await client.createGrant({
+        grantorAddress: "0xGrantor",
+        granteeId: "0xGrantee",
+        grant: '{"scopes":["*"]}',
+        fileIds: [],
+        signature: "0xsig",
+      });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      expect(fetchCall[1].headers["Content-Type"]).toBe("application/json");
+    });
+
+    it("treats 409 as success (idempotent)", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(409, { grantId: "grant-123" });
+      const result = await client.createGrant({
+        grantorAddress: "0xGrantor",
+        granteeId: "0xGrantee",
+        grant: '{"scopes":["*"]}',
+        fileIds: [],
+        signature: "0xsig",
+      });
+      expect(result).toEqual({ grantId: "grant-123" });
+    });
+
+    it("throws on non-200/409 errors", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(500);
+      await expect(
+        client.createGrant({
+          grantorAddress: "0xGrantor",
+          granteeId: "0xGrantee",
+          grant: '{"scopes":["*"]}',
+          fileIds: [],
+          signature: "0xsig",
+        }),
+      ).rejects.toThrow("Gateway error: 500");
+    });
+
+    it("throws on network error", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetchError(new Error("Network failure"));
+      await expect(
+        client.createGrant({
+          grantorAddress: "0xGrantor",
+          granteeId: "0xGrantee",
+          grant: '{"scopes":["*"]}',
+          fileIds: [],
+          signature: "0xsig",
+        }),
+      ).rejects.toThrow("Network failure");
+    });
+  });
+
+  describe("revokeGrant", () => {
+    it("sends DELETE to grant endpoint", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, {});
+      await client.revokeGrant({
+        grantId: "grant-123",
+        grantorAddress: "0xGrantor",
+        signature: "0xsig",
+      });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      expect(fetchCall[0]).toBe(`${BASE_URL}/v1/grants/grant-123`);
+      expect(fetchCall[1].method).toBe("DELETE");
+      expect(fetchCall[1].headers.Authorization).toBe("Web3Signed 0xsig");
+    });
+
+    it("sends body with grantorAddress only (not signature or grantId)", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(200, {});
+      await client.revokeGrant({
+        grantId: "grant-123",
+        grantorAddress: "0xGrantor",
+        signature: "0xsig",
+      });
+      const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      expect(body).toEqual({ grantorAddress: "0xGrantor" });
+      expect(body).not.toHaveProperty("signature");
+      expect(body).not.toHaveProperty("grantId");
+    });
+
+    it("treats 409 as success (already revoked)", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(409, {});
+      await expect(
+        client.revokeGrant({
+          grantId: "grant-123",
+          grantorAddress: "0xGrantor",
+          signature: "0xsig",
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    it("throws on non-200/409 errors", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(500);
+      await expect(
+        client.revokeGrant({
+          grantId: "grant-123",
+          grantorAddress: "0xGrantor",
+          signature: "0xsig",
+        }),
+      ).rejects.toThrow("Gateway error: 500");
+    });
+  });
+
+  describe("getFile", () => {
+    it("unwraps envelope and returns FileRecord on 200", async () => {
+      const client = createGatewayClient(BASE_URL);
+      const fileRecord: FileRecord = {
+        fileId: "file-123",
+        owner: "0xOwner",
+        url: "https://storage.vana.com/v1/blobs/0xOwner/instagram.profile/2026-01-21T10-00-00Z",
+        schemaId: "0xschema1",
+        createdAt: "2026-01-21T10:00:00.000Z",
+      };
+      mockFetch(200, envelope(fileRecord));
+      const result = await client.getFile("file-123");
+      expect(result).toEqual(fileRecord);
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        `${BASE_URL}/v1/files/file-123`,
+      );
+    });
+
+    it("returns null on 404", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(404);
+      const result = await client.getFile("nonexistent");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("listFilesSince", () => {
+    it("includes since query param when cursor is provided", async () => {
+      const client = createGatewayClient(BASE_URL);
+      const fileList: FileListResult = {
+        files: [
+          {
+            fileId: "file-1",
+            owner: "0xOwner",
+            url: "https://storage.vana.com/v1/blobs/0xOwner/scope/ts1",
+            schemaId: "0xschema1",
+            createdAt: "2026-01-21T10:00:00.000Z",
+          },
+        ],
+        cursor: "2026-01-22T10:00:00.000Z",
+      };
+      mockFetch(200, envelope(fileList));
+      const result = await client.listFilesSince(
+        "0xOwner",
+        "2026-01-21T10:00:00.000Z",
+      );
+      expect(result).toEqual(fileList);
+      const fetchUrl = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as string;
+      expect(fetchUrl).toContain("owner=0xOwner");
+      expect(fetchUrl).toContain("since=2026-01-21T10%3A00%3A00.000Z");
+    });
+
+    it("omits since param when cursor is null", async () => {
+      const client = createGatewayClient(BASE_URL);
+      const fileList: FileListResult = {
+        files: [],
+        cursor: null,
+      };
+      mockFetch(200, envelope(fileList));
+      const result = await client.listFilesSince("0xOwner", null);
+      expect(result).toEqual(fileList);
+      const fetchUrl = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as string;
+      expect(fetchUrl).toContain("owner=0xOwner");
+      expect(fetchUrl).not.toContain("since=");
+    });
+  });
+
+  describe("getSchema", () => {
+    it("unwraps envelope and returns Schema on 200", async () => {
+      const client = createGatewayClient(BASE_URL);
+      const schema: Schema = {
+        id: "0xschema1",
+        ownerAddress: "0xOwner",
+        name: "instagram.profile",
+        definitionUrl: "https://ipfs.io/ipfs/Qm123",
+        scope: "instagram.profile",
+        addedAt: "2026-01-21T10:00:00.000Z",
+      };
+      mockFetch(200, envelope(schema));
+      const result = await client.getSchema("0xschema1");
+      expect(result).toEqual(schema);
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        `${BASE_URL}/v1/schemas/0xschema1`,
+      );
+    });
+
+    it("returns null on 404", async () => {
+      const client = createGatewayClient(BASE_URL);
+      mockFetch(404);
+      const result = await client.getSchema("nonexistent");
+      expect(result).toBeNull();
     });
   });
 

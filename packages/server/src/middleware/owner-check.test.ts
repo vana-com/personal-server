@@ -5,7 +5,7 @@ import { createWeb3AuthMiddleware } from "./web3-auth.js";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
 
 const SERVER_ORIGIN = "http://localhost:8080";
 const ownerWallet = createTestWallet(0);
@@ -58,6 +58,31 @@ describe("createOwnerCheckMiddleware", () => {
     expect(res.status).toBe(401);
     const json = await res.json();
     expect(json.error.errorCode).toBe("NOT_OWNER");
+  });
+
+  it("undefined serverOwner — returns 500 SERVER_NOT_CONFIGURED", async () => {
+    const app = new Hono();
+    const web3Auth = createWeb3AuthMiddleware(SERVER_ORIGIN);
+    const ownerCheck = createOwnerCheckMiddleware(undefined);
+
+    app.get("/no-owner", web3Auth, ownerCheck, (c) => {
+      return c.json({ ok: true });
+    });
+
+    const header = await buildWeb3SignedHeader({
+      wallet: ownerWallet,
+      aud: SERVER_ORIGIN,
+      method: "GET",
+      uri: "/no-owner",
+    });
+
+    const res = await app.request("/no-owner", {
+      headers: { Authorization: header },
+    });
+
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error.errorCode).toBe("SERVER_NOT_CONFIGURED");
   });
 
   it("missing auth context — throws programming error", async () => {

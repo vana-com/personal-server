@@ -4,8 +4,8 @@ import { createWeb3AuthMiddleware } from "./web3-auth.js";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
-import type { VerifiedAuth } from "@personal-server/core/auth";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
+import type { VerifiedAuth } from "@opendatalabs/personal-server-ts-core/auth";
 
 const SERVER_ORIGIN = "http://localhost:8080";
 const wallet = createTestWallet(0);
@@ -105,5 +105,72 @@ describe("createWeb3AuthMiddleware", () => {
     const json = await res.json();
     expect(json.signer).toBe(wallet.address);
     expect(json.grantId).toBe("grant-123");
+  });
+});
+
+describe("createWeb3AuthMiddleware with dev token", () => {
+  const DEV_TOKEN = "abc123devtoken";
+  const SERVER_OWNER =
+    "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`;
+
+  function createDevApp() {
+    const app = new Hono();
+    const web3Auth = createWeb3AuthMiddleware({
+      serverOrigin: SERVER_ORIGIN,
+      devToken: DEV_TOKEN,
+      serverOwner: SERVER_OWNER,
+    });
+
+    app.get("/test", web3Auth, (c) => {
+      const auth = c.get("auth") as VerifiedAuth;
+      return c.json({
+        signer: auth.signer,
+        devBypass: c.get("devBypass") ?? false,
+      });
+    });
+
+    return app;
+  }
+
+  it("valid dev token bypasses Web3Signed verification", async () => {
+    const app = createDevApp();
+
+    const res = await app.request("/test", {
+      headers: { Authorization: `Bearer ${DEV_TOKEN}` },
+    });
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.signer).toBe(SERVER_OWNER);
+    expect(json.devBypass).toBe(true);
+  });
+
+  it("invalid dev token falls through to Web3Signed verification", async () => {
+    const app = createDevApp();
+
+    const res = await app.request("/test", {
+      headers: { Authorization: "Bearer wrong-token" },
+    });
+
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error.errorCode).toBe("INVALID_SIGNATURE");
+  });
+
+  it("no devToken configured — normal Web3Signed flow", async () => {
+    const app = new Hono();
+    const web3Auth = createWeb3AuthMiddleware({
+      serverOrigin: SERVER_ORIGIN,
+    });
+
+    app.get("/test", web3Auth, (c) => {
+      return c.json({ ok: true });
+    });
+
+    const res = await app.request("/test", {
+      headers: { Authorization: "Bearer some-token" },
+    });
+
+    expect(res.status).toBe(401);
   });
 });

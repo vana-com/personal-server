@@ -5,8 +5,8 @@ import { createBuilderCheckMiddleware } from "./builder-check.js";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
-import type { GatewayClient } from "@personal-server/core/gateway";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
+import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
 
 const SERVER_ORIGIN = "http://localhost:8080";
 const wallet = createTestWallet(0);
@@ -18,6 +18,9 @@ function createMockGateway(
     isRegisteredBuilder: vi.fn().mockResolvedValue(true),
     getBuilder: vi.fn().mockResolvedValue(null),
     getGrant: vi.fn().mockResolvedValue(null),
+    listGrantsByUser: vi.fn().mockResolvedValue([]),
+    getSchemaForScope: vi.fn().mockResolvedValue(null),
+    getServer: vi.fn().mockResolvedValue(null),
     ...overrides,
   };
 }

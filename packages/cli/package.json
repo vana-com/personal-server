@@ -1,6 +1,17 @@
 {
   "name": "@opendatalabs/personal-server-ts",
   "version": "0.0.1",
+  "description": "Facade package for integrating the Vana Personal Server",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vana-com/personal-server-ts.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/vana-com/personal-server-ts#readme",
+  "bugs": {
+    "url": "https://github.com/vana-com/personal-server-ts/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -20,7 +31,7 @@
     "build": "tsc --build"
   },
   "dependencies": {
-    "@personal-server/core": "*",
-    "@personal-server/server": "*"
+    "@opendatalabs/personal-server-ts-core": "*",
+    "@opendatalabs/personal-server-ts-server": "*"
   }
 }

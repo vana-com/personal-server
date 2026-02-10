@@ -1,16 +1,20 @@
 import { describe, it, expect, vi } from "vitest";
 import { pino } from "pino";
-import type { GatewayClient } from "@personal-server/core/gateway";
+import type {
+  GatewayClient,
+  Builder,
+} from "@opendatalabs/personal-server-ts-core/gateway";
+import type { GrantListItem } from "@opendatalabs/personal-server-ts-core/gateway";
 import {
   GRANT_DOMAIN,
   GRANT_TYPES,
   grantToEip712Message,
-} from "@personal-server/core/grants";
-import type { GrantPayload } from "@personal-server/core/grants";
+} from "@opendatalabs/personal-server-ts-core/grants";
+import type { GrantPayload } from "@opendatalabs/personal-server-ts-core/grants";
 import {
   createTestWallet,
   buildWeb3SignedHeader,
-} from "@personal-server/core/test-utils";
+} from "@opendatalabs/personal-server-ts-core/test-utils";
 import { grantsRoutes } from "./grants.js";
 
 const logger = pino({ level: "silent" });
@@ -23,11 +27,38 @@ const builder = createTestWallet(1);
 function createMockGateway(): GatewayClient {
   return {
     isRegisteredBuilder: vi.fn().mockResolvedValue(true),
-    getBuilder: vi.fn().mockResolvedValue(null),
+    getBuilder: vi.fn().mockResolvedValue({
+      id: "0xbuilder1",
+      ownerAddress: "0xOwner",
+      granteeAddress: builder.address,
+      publicKey: "0x04key",
+      appUrl: "https://app.example.com",
+      addedAt: "2026-01-21T10:00:00.000Z",
+    } satisfies Builder),
     getGrant: vi.fn().mockResolvedValue(null),
     listGrantsByUser: vi.fn().mockResolvedValue([]),
     getSchemaForScope: vi.fn().mockResolvedValue(null),
     getServer: vi.fn().mockResolvedValue(null),
+    getFile: vi.fn().mockResolvedValue(null),
+    listFilesSince: vi.fn().mockResolvedValue({ files: [], nextCursor: null }),
+    getSchema: vi.fn().mockResolvedValue(null),
+    registerFile: vi.fn().mockResolvedValue({ fileId: "file-1" }),
+    createGrant: vi.fn().mockResolvedValue({ grantId: "grant-123" }),
+    revokeGrant: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+function createMockServerSigner() {
+  return {
+    signFileRegistration: vi
+      .fn()
+      .mockResolvedValue("0xfilesig" as `0x${string}`),
+    signGrantRegistration: vi
+      .fn()
+      .mockResolvedValue("0xgrantsig" as `0x${string}`),
+    signGrantRevocation: vi
+      .fn()
+      .mockResolvedValue("0xrevokesig" as `0x${string}`),
   };
 }
 
@@ -77,12 +108,18 @@ async function signGrant(payload: GrantPayload): Promise<{
   };
 }
 
-function createApp(overrides?: Partial<{ gateway: GatewayClient }>) {
+function createApp(
+  overrides?: Partial<{
+    gateway: GatewayClient;
+    serverSigner: ReturnType<typeof createMockServerSigner>;
+  }>,
+) {
   return grantsRoutes({
     logger,
     gateway: overrides?.gateway ?? createMockGateway(),
     serverOwner: owner.address,
     serverOrigin: SERVER_ORIGIN,
+    serverSigner: overrides?.serverSigner ?? createMockServerSigner(),
   });
 }
 
@@ -102,20 +139,34 @@ describe("GET /", () => {
 
   it("returns grants from gateway", async () => {
     const mockGateway = createMockGateway();
-    const grants = [
+    const grants: GrantListItem[] = [
       {
-        grantId: "grant-1",
-        builder: builder.address,
-        scopes: ["instagram.*"],
-        expiresAt: futureExpiry,
-        createdAt: "2025-01-01T00:00:00Z",
+        id: "0xgrant1",
+        grantorAddress: owner.address,
+        granteeId: "0xbuilder1",
+        grant: JSON.stringify({
+          scopes: ["instagram.*"],
+          expiresAt: futureExpiry,
+        }),
+        fileIds: [],
+        status: "confirmed",
+        addedAt: "2025-01-01T00:00:00Z",
+        revokedAt: null,
+        revocationSignature: null,
       },
       {
-        grantId: "grant-2",
-        builder: builder.address,
-        scopes: ["twitter.*"],
-        expiresAt: futureExpiry,
-        createdAt: "2025-01-02T00:00:00Z",
+        id: "0xgrant2",
+        grantorAddress: owner.address,
+        granteeId: "0xbuilder1",
+        grant: JSON.stringify({
+          scopes: ["twitter.*"],
+          expiresAt: futureExpiry,
+        }),
+        fileIds: [],
+        status: "confirmed",
+        addedAt: "2025-01-02T00:00:00Z",
+        revokedAt: null,
+        revocationSignature: null,
       },
     ];
     vi.mocked(mockGateway.listGrantsByUser).mockResolvedValue(grants);
@@ -256,5 +307,143 @@ describe("POST /verify", () => {
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json.error).toBe("INVALID_BODY");
+  });
+});
+
+describe("POST /", () => {
+  async function postWithOwnerAuth(
+    app: ReturnType<typeof grantsRoutes>,
+    body: Record<string, unknown>,
+  ) {
+    const bodyStr = JSON.stringify(body);
+    const auth = await buildWeb3SignedHeader({
+      wallet: owner,
+      aud: SERVER_ORIGIN,
+      method: "POST",
+      uri: "/",
+      bodyHash: `sha256:${await import("node:crypto").then((c) => c.createHash("sha256").update(bodyStr).digest("hex"))}`,
+    });
+    return app.request("/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: auth,
+      },
+      body: bodyStr,
+    });
+  }
+
+  it("creates grant via gateway and returns grantId", async () => {
+    const mockGateway = createMockGateway();
+    const mockSigner = createMockServerSigner();
+
+    const app = createApp({ gateway: mockGateway, serverSigner: mockSigner });
+    const res = await postWithOwnerAuth(app, {
+      granteeAddress: builder.address,
+      scopes: ["instagram.*"],
+    });
+
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.grantId).toBe("grant-123");
+
+    // Verify gateway.getBuilder was called with the grantee address
+    expect(mockGateway.getBuilder).toHaveBeenCalledWith(builder.address);
+
+    // Verify serverSigner.signGrantRegistration was called
+    expect(mockSigner.signGrantRegistration).toHaveBeenCalledWith(
+      expect.objectContaining({
+        grantorAddress: owner.address,
+        granteeId: "0xbuilder1",
+        fileIds: [],
+      }),
+    );
+
+    // Verify gateway.createGrant was called with correct params
+    expect(mockGateway.createGrant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        grantorAddress: owner.address,
+        granteeId: "0xbuilder1",
+        fileIds: [],
+        signature: "0xgrantsig",
+      }),
+    );
+  });
+
+  it("returns 404 when builder is not registered", async () => {
+    const mockGateway = createMockGateway();
+    vi.mocked(mockGateway.getBuilder).mockResolvedValue(null);
+
+    const app = createApp({ gateway: mockGateway });
+    const res = await postWithOwnerAuth(app, {
+      granteeAddress: builder.address,
+      scopes: ["instagram.*"],
+    });
+
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error.errorCode).toBe("BUILDER_NOT_REGISTERED");
+  });
+
+  it("returns 500 when serverSigner is not configured", async () => {
+    const app = grantsRoutes({
+      logger,
+      gateway: createMockGateway(),
+      serverOwner: owner.address,
+      serverOrigin: SERVER_ORIGIN,
+      // serverSigner intentionally omitted
+    });
+
+    const res = await postWithOwnerAuth(app, {
+      granteeAddress: builder.address,
+      scopes: ["instagram.*"],
+    });
+
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error.errorCode).toBe("SERVER_SIGNER_NOT_CONFIGURED");
+  });
+
+  it("returns 400 for invalid body (missing scopes)", async () => {
+    const app = createApp();
+    const res = await postWithOwnerAuth(app, {
+      granteeAddress: builder.address,
+    });
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("INVALID_BODY");
+  });
+
+  it("returns 400 for invalid body (missing granteeAddress)", async () => {
+    const app = createApp();
+    const res = await postWithOwnerAuth(app, {
+      scopes: ["instagram.*"],
+    });
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("INVALID_BODY");
+  });
+
+  it("passes optional expiresAt and nonce to grant payload", async () => {
+    const mockGateway = createMockGateway();
+    const mockSigner = createMockServerSigner();
+
+    const app = createApp({ gateway: mockGateway, serverSigner: mockSigner });
+    const res = await postWithOwnerAuth(app, {
+      granteeAddress: builder.address,
+      scopes: ["instagram.*"],
+      expiresAt: 1700000000,
+      nonce: 42,
+    });
+
+    expect(res.status).toBe(201);
+
+    // Verify the grant payload passed to signer contains custom expiresAt/nonce
+    const signerCall = mockSigner.signGrantRegistration.mock.calls[0][0];
+    const grantPayload = JSON.parse(signerCall.grant);
+    expect(grantPayload.expiresAt).toBe(1700000000);
+    expect(grantPayload.nonce).toBe(42);
   });
 });

@@ -1,0 +1,1514 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Personal Server — Dev UI</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0a0a0a;
+        --surface: #141414;
+        --surface-2: #1e1e1e;
+        --border: #2a2a2a;
+        --text: #e0e0e0;
+        --text-dim: #808080;
+        --accent: #00ff88;
+        --accent-dim: #00cc6a;
+        --error: #ff4444;
+        --warn: #ffaa00;
+        --mono:
+          "SF Mono", "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
+        --sans:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        --radius: 4px;
+      }
+
+      body {
+        font-family: var(--mono);
+        font-size: 13px;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      header h1 {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        color: var(--accent);
+      }
+
+      header .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+
+      nav {
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        overflow-x: auto;
+      }
+
+      nav button {
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 10px 16px;
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: var(--text-dim);
+        cursor: pointer;
+        white-space: nowrap;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+      }
+
+      nav button:hover {
+        color: var(--text);
+      }
+      nav button.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+
+      main {
+        padding: 20px;
+        max-width: 1200px;
+      }
+
+      .panel {
+        display: none;
+      }
+      .panel.active {
+        display: block;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+
+      .card-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-dim);
+        margin-bottom: 12px;
+      }
+
+      .kv-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 6px 16px;
+      }
+
+      .kv-grid .label {
+        color: var(--text-dim);
+      }
+      .kv-grid .value {
+        color: var(--text);
+        word-break: break-all;
+      }
+      .kv-grid .value.ok {
+        color: var(--accent);
+      }
+      .kv-grid .value.err {
+        color: var(--error);
+      }
+      .kv-grid .value.warn {
+        color: var(--warn);
+      }
+
+      textarea,
+      input,
+      select {
+        font-family: var(--mono);
+        font-size: 13px;
+        background: var(--surface-2);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 8px 10px;
+        width: 100%;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+
+      textarea:focus,
+      input:focus,
+      select:focus {
+        border-color: var(--accent);
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 300px;
+      }
+
+      button.btn {
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 8px 16px;
+        border: 1px solid var(--accent);
+        border-radius: var(--radius);
+        background: transparent;
+        color: var(--accent);
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+
+      button.btn:hover {
+        background: var(--accent);
+        color: var(--bg);
+      }
+      button.btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      button.btn.secondary {
+        border-color: var(--border);
+        color: var(--text-dim);
+      }
+      button.btn.secondary:hover {
+        background: var(--surface-2);
+        color: var(--text);
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+
+      .toolbar input,
+      .toolbar select {
+        width: auto;
+        min-width: 120px;
+      }
+
+      .msg {
+        padding: 8px 12px;
+        border-radius: var(--radius);
+        font-size: 12px;
+        margin-bottom: 12px;
+      }
+
+      .msg.ok {
+        background: rgba(0, 255, 136, 0.1);
+        color: var(--accent);
+        border: 1px solid rgba(0, 255, 136, 0.2);
+      }
+      .msg.err {
+        background: rgba(255, 68, 68, 0.1);
+        color: var(--error);
+        border: 1px solid rgba(255, 68, 68, 0.2);
+      }
+
+      pre.json {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+        font-size: 12px;
+        max-height: 500px;
+        overflow-y: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      th {
+        color: var(--text-dim);
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+      }
+
+      td {
+        color: var(--text);
+      }
+
+      tr:hover td {
+        background: var(--surface-2);
+      }
+
+      .empty {
+        color: var(--text-dim);
+        font-style: italic;
+        padding: 20px 0;
+        text-align: center;
+      }
+
+      .loading::after {
+        content: "";
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        margin-left: 8px;
+        vertical-align: middle;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="status-dot"></div>
+      <h1>PERSONAL SERVER</h1>
+    </header>
+
+    <nav id="tabs">
+      <button class="active" data-tab="health">Health</button>
+      <button data-tab="config">Config</button>
+      <button data-tab="data">Data</button>
+      <button data-tab="grants">Grants</button>
+      <button data-tab="logs">Access Logs</button>
+      <button data-tab="api">API Tester</button>
+      <button data-tab="connect">Connect</button>
+    </nav>
+
+    <main>
+      <!-- Health Panel -->
+      <div id="panel-health" class="panel active">
+        <div class="card">
+          <div class="card-title">Server Status</div>
+          <div id="health-content" class="kv-grid">
+            <span class="label">status</span
+            ><span class="value">loading...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Config Panel -->
+      <div id="panel-config" class="panel">
+        <div class="card">
+          <div class="card-title">Server Configuration</div>
+          <div id="config-msg"></div>
+          <textarea id="config-editor" spellcheck="false"></textarea>
+          <div style="margin-top: 12px; display: flex; gap: 8px">
+            <button class="btn" id="save-config-btn">Save</button>
+            <button class="btn secondary" id="reload-config-btn">Reload</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Panel -->
+      <div id="panel-data" class="panel">
+        <div class="card">
+          <div class="card-title">Add Data</div>
+          <label
+            style="
+              display: block;
+              margin-bottom: 4px;
+              font-size: 11px;
+              color: var(--text-dim);
+            "
+            >Scope</label
+          >
+          <input
+            id="add-data-scope"
+            type="text"
+            value="test.dpv1.260130"
+            style="margin-bottom: 12px"
+          />
+          <label
+            style="
+              display: block;
+              margin-bottom: 4px;
+              font-size: 11px;
+              color: var(--text-dim);
+            "
+            >JSON Data</label
+          >
+          <textarea
+            id="add-data-json"
+            spellcheck="false"
+            style="min-height: 120px; margin-bottom: 12px"
+            placeholder='{
+  "test-string-key": "test-string",
+  "test-num-key": 0
+}'
+          ></textarea>
+          <button class="btn" id="submit-data-btn">Submit</button>
+          <div id="add-data-msg" style="margin-top: 12px"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Data Scopes</div>
+          <div class="toolbar">
+            <button class="btn" id="refresh-data-btn">Refresh</button>
+          </div>
+          <div id="data-scopes"></div>
+        </div>
+        <div id="data-detail" class="card" style="display: none">
+          <div class="card-title">Scope Data</div>
+          <div id="data-detail-content"></div>
+        </div>
+      </div>
+
+      <!-- Grants Panel -->
+      <div id="panel-grants" class="panel">
+        <div class="card">
+          <div class="card-title">Active Grants</div>
+          <div class="toolbar">
+            <button class="btn" id="refresh-grants-btn">Refresh</button>
+          </div>
+          <div id="grants-content"></div>
+        </div>
+      </div>
+
+      <!-- Access Logs Panel -->
+      <div id="panel-logs" class="panel">
+        <div class="card">
+          <div class="card-title">Access Logs</div>
+          <div class="toolbar">
+            <button class="btn" id="refresh-logs-btn">Refresh</button>
+          </div>
+          <div id="logs-content"></div>
+        </div>
+      </div>
+
+      <!-- API Tester Panel -->
+      <div id="panel-api" class="panel">
+        <div class="card">
+          <div class="card-title">API Tester</div>
+          <div class="toolbar">
+            <select id="api-method">
+              <option>GET</option>
+              <option>POST</option>
+              <option>PUT</option>
+              <option>DELETE</option>
+            </select>
+            <input
+              id="api-path"
+              type="text"
+              placeholder="/health"
+              value="/health"
+              style="flex: 1"
+            />
+            <button class="btn" id="send-api-btn">Send</button>
+          </div>
+          <textarea
+            id="api-body"
+            placeholder="Request body (JSON, for POST/PUT)"
+            style="min-height: 100px; margin-bottom: 12px"
+          ></textarea>
+          <div class="card-title">Response</div>
+          <div
+            id="api-status"
+            style="margin-bottom: 8px; font-size: 12px; color: var(--text-dim)"
+          ></div>
+          <pre class="json" id="api-response">No request sent yet.</pre>
+        </div>
+      </div>
+
+      <!-- Connect Panel -->
+      <div id="panel-connect" class="panel">
+        <div class="card">
+          <div class="card-title">Connect Simulator</div>
+          <label
+            style="
+              display: block;
+              margin-bottom: 4px;
+              font-size: 11px;
+              color: var(--text-dim);
+            "
+            >Session Relay URL</label
+          >
+          <input
+            id="connect-relay-url"
+            type="text"
+            value="https://session-relay-git-dev-opendatalabs.vercel.app"
+            style="margin-bottom: 12px"
+          />
+          <label
+            style="
+              display: block;
+              margin-bottom: 4px;
+              font-size: 11px;
+              color: var(--text-dim);
+            "
+            >Deep Link URL</label
+          >
+          <input
+            id="connect-deep-link"
+            type="text"
+            placeholder="Paste deep link URL from the test builder app"
+            style="margin-bottom: 12px"
+          />
+          <div style="display: flex; gap: 8px">
+            <button class="btn" id="connect-parse-btn">Parse</button>
+          </div>
+          <div id="connect-parsed" style="margin-top: 12px; display: none">
+            <div class="kv-grid" id="connect-parsed-info"></div>
+          </div>
+        </div>
+
+        <div class="card" id="connect-flow-card" style="display: none">
+          <div class="card-title">Flow Steps</div>
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              flex-wrap: wrap;
+              margin-bottom: 12px;
+            "
+          >
+            <button class="btn" id="connect-claim-btn" disabled>
+              1. Claim Session
+            </button>
+            <button class="btn" id="connect-grant-btn" disabled>
+              2. Create Grant
+            </button>
+            <button class="btn" id="connect-approve-btn" disabled>
+              3. Approve Session
+            </button>
+          </div>
+          <div style="display: flex; gap: 8px; margin-bottom: 12px">
+            <button class="btn" id="connect-auto-btn" disabled>
+              Auto-Approve All
+            </button>
+            <button class="btn secondary" id="connect-deny-btn" disabled>
+              Deny
+            </button>
+          </div>
+          <div class="card-title" style="margin-top: 8px">Progress Log</div>
+          <div
+            id="connect-log"
+            style="
+              background: var(--surface-2);
+              border: 1px solid var(--border);
+              border-radius: var(--radius);
+              padding: 8px 12px;
+              font-size: 11px;
+              max-height: 300px;
+              overflow-y: auto;
+              white-space: pre-wrap;
+            "
+          ></div>
+        </div>
+
+        <div class="card" id="connect-result-card" style="display: none">
+          <div class="card-title">Result</div>
+          <pre class="json" id="connect-result"></pre>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const TOKEN = "__DEV_TOKEN__";
+      const BASE = window.location.origin;
+
+      // --- DOM helpers ---
+      function el(id) {
+        return document.getElementById(id);
+      }
+      function clearChildren(node) {
+        while (node.firstChild) node.removeChild(node.firstChild);
+      }
+      function text(str) {
+        return document.createTextNode(String(str != null ? str : ""));
+      }
+
+      function createEl(tag, attrs, children) {
+        const e = document.createElement(tag);
+        if (attrs) {
+          for (const [k, v] of Object.entries(attrs)) {
+            if (k === "style" && typeof v === "object") {
+              Object.assign(e.style, v);
+            } else if (k.startsWith("on") && typeof v === "function") {
+              e.addEventListener(k.slice(2), v);
+            } else {
+              e.setAttribute(k, v);
+            }
+          }
+        }
+        if (children) {
+          for (const c of Array.isArray(children) ? children : [children]) {
+            if (typeof c === "string") e.appendChild(text(c));
+            else if (c) e.appendChild(c);
+          }
+        }
+        return e;
+      }
+
+      function showMsg(container, message, type) {
+        clearChildren(container);
+        const div = createEl("div", { class: "msg " + type });
+        div.textContent = message;
+        container.appendChild(div);
+      }
+
+      function showJson(container, data) {
+        clearChildren(container);
+        const pre = createEl("pre", { class: "json" });
+        pre.textContent =
+          typeof data === "string" ? data : JSON.stringify(data, null, 2);
+        container.appendChild(pre);
+      }
+
+      function showEmpty(container, message) {
+        clearChildren(container);
+        const div = createEl("div", { class: "empty" });
+        div.textContent = message;
+        container.appendChild(div);
+      }
+
+      function showLoading(container) {
+        clearChildren(container);
+        const span = createEl("span", { class: "loading" });
+        span.textContent = "Loading";
+        container.appendChild(span);
+      }
+
+      // --- Tabs ---
+      el("tabs").addEventListener("click", function (e) {
+        if (e.target.tagName !== "BUTTON") return;
+        document.querySelectorAll("#tabs button").forEach(function (b) {
+          b.classList.remove("active");
+        });
+        document.querySelectorAll(".panel").forEach(function (p) {
+          p.classList.remove("active");
+        });
+        e.target.classList.add("active");
+        el("panel-" + e.target.dataset.tab).classList.add("active");
+
+        var tab = e.target.dataset.tab;
+        if (tab === "health") loadHealth();
+        if (tab === "config") loadConfig();
+        if (tab === "data") loadScopes();
+        if (tab === "grants") loadGrants();
+        if (tab === "logs") loadAccessLogs();
+      });
+
+      // --- Fetch helper ---
+      async function api(path, opts) {
+        opts = opts || {};
+        var headers = Object.assign(
+          { Authorization: "Bearer " + TOKEN },
+          opts.headers || {},
+        );
+        var res = await fetch(
+          BASE + path,
+          Object.assign({}, opts, { headers: headers }),
+        );
+        var txt = await res.text();
+        var json;
+        try {
+          json = JSON.parse(txt);
+        } catch (e) {
+          json = txt;
+        }
+        return { status: res.status, ok: res.ok, data: json };
+      }
+
+      // --- Health ---
+      async function loadHealth() {
+        var container = el("health-content");
+        try {
+          var result = await api("/health");
+          var d = result.data;
+          clearChildren(container);
+          var items = [
+            ["status", d.status, d.status === "healthy" ? "ok" : "err"],
+            ["version", d.version, ""],
+            ["uptime", formatUptime(d.uptime), ""],
+            ["owner", d.owner ?? "not configured", d.owner ? "ok" : "err"],
+          ];
+          if (d.identity) {
+            var registered = d.identity.serverId !== null;
+            items.push([
+              "address",
+              d.identity.address,
+              registered ? "ok" : "warn",
+            ]);
+            items.push(["publicKey", truncAddr(d.identity.publicKey), ""]);
+            items.push([
+              "identity",
+              registered ? "registered" : "not registered",
+              registered ? "ok" : "warn",
+            ]);
+          } else {
+            items.push(["identity", "not configured", ""]);
+          }
+          for (var i = 0; i < items.length; i++) {
+            var lbl = createEl("span", { class: "label" });
+            lbl.textContent = items[i][0];
+            var val = createEl("span", {
+              class: "value" + (items[i][2] ? " " + items[i][2] : ""),
+            });
+            val.textContent = items[i][1];
+            // Copy-on-click for publicKey and serverAddress
+            if (items[i][0] === "publicKey" && d.identity) {
+              val.style.cursor = "pointer";
+              val.title = "Click to copy full public key";
+              val.addEventListener(
+                "click",
+                (function (fullKey) {
+                  return function () {
+                    navigator.clipboard.writeText(fullKey);
+                    val.textContent = "copied!";
+                    setTimeout(function () {
+                      val.textContent = truncAddr(fullKey);
+                    }, 1200);
+                  };
+                })(d.identity.publicKey),
+              );
+            }
+            container.appendChild(lbl);
+            container.appendChild(val);
+          }
+          if (d.identity && d.identity.serverId === null) {
+            var noteEl = createEl("span", {
+              class: "label",
+              style: { gridColumn: "1 / -1", marginTop: "8px" },
+            });
+            noteEl.textContent =
+              "Register this server with `npm run register-server`";
+            noteEl.style.color = "var(--text-dim)";
+            noteEl.style.fontSize = "11px";
+            noteEl.style.fontStyle = "italic";
+            container.appendChild(noteEl);
+          }
+        } catch (e) {
+          clearChildren(container);
+          var lbl2 = createEl("span", { class: "label" });
+          lbl2.textContent = "status";
+          var val2 = createEl("span", { class: "value err" });
+          val2.textContent = "unreachable";
+          container.appendChild(lbl2);
+          container.appendChild(val2);
+        }
+      }
+
+      function formatUptime(s) {
+        var h = Math.floor(s / 3600);
+        var m = Math.floor((s % 3600) / 60);
+        var sec = s % 60;
+        return h + "h " + m + "m " + sec + "s";
+      }
+
+      loadHealth();
+      setInterval(loadHealth, 5000);
+
+      // --- Config ---
+      async function loadConfig() {
+        var editor = el("config-editor");
+        var msg = el("config-msg");
+        clearChildren(msg);
+        try {
+          var result = await api("/ui/api/config");
+          if (result.ok) {
+            editor.value = JSON.stringify(result.data, null, 2);
+          } else {
+            showMsg(msg, "Failed to load config", "err");
+          }
+        } catch (e) {
+          showMsg(msg, "Error loading config", "err");
+        }
+      }
+
+      async function saveConfig() {
+        var editor = el("config-editor");
+        var msg = el("config-msg");
+        clearChildren(msg);
+
+        var body;
+        try {
+          body = JSON.parse(editor.value);
+        } catch (e) {
+          showMsg(msg, "Invalid JSON", "err");
+          return;
+        }
+
+        try {
+          var result = await api("/ui/api/config", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (result.ok) {
+            showMsg(
+              msg,
+              "Config saved. Restart server to apply changes.",
+              "ok",
+            );
+            editor.value = JSON.stringify(result.data.config, null, 2);
+          } else {
+            var errMsg =
+              (result.data && result.data.error && result.data.error.message) ||
+              "Save failed";
+            showMsg(msg, errMsg, "err");
+          }
+        } catch (e) {
+          showMsg(msg, "Error saving config", "err");
+        }
+      }
+
+      el("save-config-btn").addEventListener("click", saveConfig);
+      el("reload-config-btn").addEventListener("click", loadConfig);
+
+      // --- Data ---
+      async function loadScopes() {
+        var container = el("data-scopes");
+        el("data-detail").style.display = "none";
+        showLoading(container);
+
+        try {
+          var result = await api("/v1/data?limit=100");
+          if (!result.ok) {
+            showJson(container, result.data);
+            return;
+          }
+          if (!result.data.scopes || result.data.scopes.length === 0) {
+            showEmpty(container, "No data scopes found.");
+            return;
+          }
+
+          clearChildren(container);
+          var table = createEl("table");
+          var thead = createEl("thead");
+          var headRow = createEl("tr", null, [
+            createEl("th", null, "Scope"),
+            createEl("th", null, "Actions"),
+          ]);
+          thead.appendChild(headRow);
+          table.appendChild(thead);
+
+          var tbody = createEl("tbody");
+          for (var i = 0; i < result.data.scopes.length; i++) {
+            var scope = result.data.scopes[i];
+            var s =
+              typeof scope === "string"
+                ? scope
+                : scope.scope || JSON.stringify(scope);
+            var tr = createEl("tr");
+            var tdScope = createEl("td");
+            tdScope.textContent = s;
+            var tdActions = createEl("td");
+            var btnView = createEl("button", { class: "btn secondary" });
+            btnView.textContent = "View Latest";
+            btnView.addEventListener(
+              "click",
+              (function (sc) {
+                return function () {
+                  viewScope(sc);
+                };
+              })(s),
+            );
+            var btnVer = createEl("button", {
+              class: "btn secondary",
+              style: { marginLeft: "8px" },
+            });
+            btnVer.textContent = "Versions";
+            btnVer.addEventListener(
+              "click",
+              (function (sc) {
+                return function () {
+                  viewVersions(sc);
+                };
+              })(s),
+            );
+            tdActions.appendChild(btnView);
+            tdActions.appendChild(btnVer);
+            tr.appendChild(tdScope);
+            tr.appendChild(tdActions);
+            tbody.appendChild(tr);
+          }
+          table.appendChild(tbody);
+          container.appendChild(table);
+        } catch (e) {
+          showMsg(container, "Error: " + e.message, "err");
+        }
+      }
+
+      el("refresh-data-btn").addEventListener("click", loadScopes);
+
+      async function submitData() {
+        var msg = el("add-data-msg");
+        clearChildren(msg);
+
+        var scope = el("add-data-scope").value.trim();
+        if (!scope) {
+          showMsg(msg, "Scope is required.", "err");
+          return;
+        }
+
+        var raw = el("add-data-json").value.trim();
+        var parsed;
+        try {
+          parsed = JSON.parse(raw);
+        } catch (e) {
+          showMsg(msg, "Invalid JSON: " + e.message, "err");
+          return;
+        }
+
+        if (
+          parsed === null ||
+          typeof parsed !== "object" ||
+          Array.isArray(parsed)
+        ) {
+          showMsg(
+            msg,
+            "JSON must be a plain object (not array or null).",
+            "err",
+          );
+          return;
+        }
+
+        try {
+          var result = await api("/v1/data/" + encodeURIComponent(scope), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(parsed),
+          });
+          if (result.ok) {
+            var collectedAt =
+              (result.data && result.data.collectedAt) || "unknown";
+            showMsg(
+              msg,
+              'Stored data for scope "' +
+                scope +
+                '" (collectedAt: ' +
+                collectedAt +
+                ")",
+              "ok",
+            );
+            loadScopes();
+          } else {
+            var errCode =
+              (result.data && result.data.error && result.data.error.code) ||
+              "";
+            var errMsg =
+              (result.data && result.data.error && result.data.error.message) ||
+              "Request failed (" + result.status + ")";
+            showMsg(msg, errCode ? errCode + ": " + errMsg : errMsg, "err");
+          }
+        } catch (e) {
+          showMsg(msg, "Error: " + e.message, "err");
+        }
+      }
+
+      el("submit-data-btn").addEventListener("click", submitData);
+
+      async function viewScope(scope) {
+        var detail = el("data-detail");
+        var content = el("data-detail-content");
+        detail.style.display = "block";
+        showLoading(content);
+
+        try {
+          var result = await api("/v1/data/" + encodeURIComponent(scope));
+          showJson(content, result.data);
+        } catch (e) {
+          showMsg(content, "Error: " + e.message, "err");
+        }
+      }
+
+      async function viewVersions(scope) {
+        var detail = el("data-detail");
+        var content = el("data-detail-content");
+        detail.style.display = "block";
+        showLoading(content);
+
+        try {
+          var result = await api(
+            "/v1/data/" + encodeURIComponent(scope) + "/versions",
+          );
+          if (!result.data.versions || result.data.versions.length === 0) {
+            showEmpty(content, "No versions found.");
+            return;
+          }
+
+          clearChildren(content);
+          var table = createEl("table");
+          var thead = createEl("thead");
+          var headRow = createEl("tr", null, [
+            createEl("th", null, "File ID"),
+            createEl("th", null, "Collected At"),
+          ]);
+          thead.appendChild(headRow);
+          table.appendChild(thead);
+
+          var tbody = createEl("tbody");
+          for (var i = 0; i < result.data.versions.length; i++) {
+            var v = result.data.versions[i];
+            var tr = createEl("tr");
+            var td1 = createEl("td");
+            td1.textContent = v.fileId || "\u2014";
+            var td2 = createEl("td");
+            td2.textContent = v.collectedAt;
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            tbody.appendChild(tr);
+          }
+          table.appendChild(tbody);
+          content.appendChild(table);
+        } catch (e) {
+          showMsg(content, "Error: " + e.message, "err");
+        }
+      }
+
+      // --- Grants ---
+      async function loadGrants() {
+        var container = el("grants-content");
+        showLoading(container);
+
+        try {
+          var result = await api("/v1/grants");
+          if (!result.ok) {
+            showJson(container, result.data);
+            return;
+          }
+          if (!result.data.grants || result.data.grants.length === 0) {
+            showEmpty(container, "No grants found.");
+            return;
+          }
+
+          clearChildren(container);
+          var table = createEl("table");
+          var thead = createEl("thead");
+          var headRow = createEl("tr", null, [
+            createEl("th", null, "ID"),
+            createEl("th", null, "Grantee"),
+            createEl("th", null, "Status"),
+            createEl("th", null, "Created"),
+          ]);
+          thead.appendChild(headRow);
+          table.appendChild(thead);
+
+          var tbody = createEl("tbody");
+          for (var i = 0; i < result.data.grants.length; i++) {
+            var g = result.data.grants[i];
+            var status = g.revokedAt ? "revoked" : "active";
+            var tr = createEl("tr");
+            var td1 = createEl("td");
+            td1.textContent = String(g.id);
+            var td2 = createEl("td");
+            td2.textContent = g.granteeId || "\u2014";
+            var td3 = createEl("td");
+            var statusSpan = createEl("span");
+            statusSpan.textContent = status;
+            statusSpan.style.color =
+              status === "active" ? "var(--accent)" : "var(--error)";
+            td3.appendChild(statusSpan);
+            var td4 = createEl("td");
+            td4.textContent = g.createdAt || "\u2014";
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            tr.appendChild(td3);
+            tr.appendChild(td4);
+            tbody.appendChild(tr);
+          }
+          table.appendChild(tbody);
+          container.appendChild(table);
+        } catch (e) {
+          showMsg(container, "Error: " + e.message, "err");
+        }
+      }
+
+      el("refresh-grants-btn").addEventListener("click", loadGrants);
+
+      // --- Access Logs ---
+      async function loadAccessLogs() {
+        var container = el("logs-content");
+        showLoading(container);
+
+        try {
+          var result = await api("/v1/access-logs?limit=50");
+          if (!result.ok) {
+            showJson(container, result.data);
+            return;
+          }
+
+          var entries = result.data.entries || result.data;
+          if (!Array.isArray(entries) || entries.length === 0) {
+            showEmpty(container, "No access logs found.");
+            return;
+          }
+
+          clearChildren(container);
+          var table = createEl("table");
+          var thead = createEl("thead");
+          var headRow = createEl("tr", null, [
+            createEl("th", null, "Timestamp"),
+            createEl("th", null, "Builder"),
+            createEl("th", null, "Scope"),
+            createEl("th", null, "Action"),
+          ]);
+          thead.appendChild(headRow);
+          table.appendChild(thead);
+
+          var tbody = createEl("tbody");
+          for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            var tr = createEl("tr");
+            var td1 = createEl("td");
+            td1.textContent = entry.timestamp || "\u2014";
+            var td2 = createEl("td");
+            td2.textContent = truncAddr(entry.builder);
+            var td3 = createEl("td");
+            td3.textContent = entry.scope || "\u2014";
+            var td4 = createEl("td");
+            td4.textContent = entry.action || "\u2014";
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            tr.appendChild(td3);
+            tr.appendChild(td4);
+            tbody.appendChild(tr);
+          }
+          table.appendChild(tbody);
+          container.appendChild(table);
+        } catch (e) {
+          showMsg(container, "Error: " + e.message, "err");
+        }
+      }
+
+      el("refresh-logs-btn").addEventListener("click", loadAccessLogs);
+
+      // --- API Tester ---
+      async function sendApiRequest() {
+        var method = el("api-method").value;
+        var path = el("api-path").value;
+        var bodyText = el("api-body").value.trim();
+        var statusEl2 = el("api-status");
+        var responseEl = el("api-response");
+
+        statusEl2.textContent = "Sending...";
+        responseEl.textContent = "";
+
+        var opts = { method: method };
+        if (bodyText && (method === "POST" || method === "PUT")) {
+          opts.headers = { "Content-Type": "application/json" };
+          opts.body = bodyText;
+        }
+
+        try {
+          var result = await api(path, opts);
+          var color =
+            result.status < 300
+              ? "var(--accent)"
+              : result.status < 500
+                ? "var(--warn)"
+                : "var(--error)";
+          clearChildren(statusEl2);
+          var statusSpan = createEl("span");
+          statusSpan.textContent = result.status;
+          statusSpan.style.color = color;
+          statusEl2.appendChild(statusSpan);
+          statusEl2.appendChild(text(" " + method + " " + path));
+          responseEl.textContent =
+            typeof result.data === "string"
+              ? result.data
+              : JSON.stringify(result.data, null, 2);
+        } catch (e) {
+          clearChildren(statusEl2);
+          var errSpan = createEl("span");
+          errSpan.textContent = "Error";
+          errSpan.style.color = "var(--error)";
+          statusEl2.appendChild(errSpan);
+          responseEl.textContent = e.message;
+        }
+      }
+
+      el("send-api-btn").addEventListener("click", sendApiRequest);
+
+      // --- Connect Simulator ---
+      var connectState = {
+        relayUrl: "",
+        sessionId: "",
+        secret: "",
+        granteeAddress: "",
+        scopes: [],
+        userAddress: "",
+        serverAddress: "",
+        grantId: "",
+      };
+
+      function connectLog(message, type) {
+        var logEl = el("connect-log");
+        var ts = new Date().toLocaleTimeString();
+        var color =
+          type === "ok"
+            ? "var(--accent)"
+            : type === "err"
+              ? "var(--error)"
+              : "var(--text-dim)";
+        var line = createEl("div", { style: { color: color } });
+        line.textContent = "[" + ts + "] " + message;
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      async function relayFetch(path, opts) {
+        opts = opts || {};
+        var url = connectState.relayUrl + path;
+        var res = await fetch(url, {
+          method: opts.method || "GET",
+          headers: Object.assign(
+            { "Content-Type": "application/json" },
+            opts.headers || {},
+          ),
+          body: opts.body,
+        });
+        var json = await res.json().catch(function () {
+          return {};
+        });
+        return { status: res.status, ok: res.ok, data: json };
+      }
+
+      function connectParse() {
+        var relayUrl = el("connect-relay-url").value.trim().replace(/\/+$/, "");
+        var deepLink = el("connect-deep-link").value.trim();
+
+        if (!deepLink) {
+          connectLog("Deep link URL is required", "err");
+          return;
+        }
+
+        var url;
+        try {
+          url = new URL(deepLink);
+        } catch (e) {
+          connectLog("Invalid deep link URL: " + e.message, "err");
+          return;
+        }
+
+        var sessionId = url.searchParams.get("sessionId");
+        var secret = url.searchParams.get("secret");
+
+        if (!sessionId || !secret) {
+          connectLog(
+            "Deep link must contain sessionId and secret params",
+            "err",
+          );
+          return;
+        }
+
+        connectState.relayUrl = relayUrl;
+        connectState.sessionId = sessionId;
+        connectState.secret = secret;
+
+        // Show parsed info
+        var info = el("connect-parsed-info");
+        clearChildren(info);
+        var items = [
+          ["sessionId", sessionId],
+          ["secret", secret.slice(0, 8) + "..."],
+          ["relay", relayUrl],
+        ];
+        for (var i = 0; i < items.length; i++) {
+          var lbl = createEl("span", { class: "label" });
+          lbl.textContent = items[i][0];
+          var val = createEl("span", { class: "value" });
+          val.textContent = items[i][1];
+          info.appendChild(lbl);
+          info.appendChild(val);
+        }
+        el("connect-parsed").style.display = "block";
+        el("connect-flow-card").style.display = "block";
+
+        // Enable buttons
+        el("connect-claim-btn").disabled = false;
+        el("connect-auto-btn").disabled = false;
+        el("connect-deny-btn").disabled = false;
+        el("connect-grant-btn").disabled = true;
+        el("connect-approve-btn").disabled = true;
+
+        connectLog("Parsed deep link — sessionId: " + sessionId, "ok");
+      }
+
+      async function connectClaim() {
+        connectLog("Claiming session...");
+        el("connect-claim-btn").disabled = true;
+
+        try {
+          var result = await relayFetch("/v1/session/claim", {
+            method: "POST",
+            body: JSON.stringify({
+              sessionId: connectState.sessionId,
+              secret: connectState.secret,
+            }),
+          });
+
+          if (!result.ok) {
+            var errMsg =
+              (result.data.error && result.data.error.message) ||
+              "Claim failed (" + result.status + ")";
+            connectLog("Claim failed: " + errMsg, "err");
+            el("connect-claim-btn").disabled = false;
+            return false;
+          }
+
+          connectState.granteeAddress =
+            result.data.granteeAddress ||
+            result.data.session?.granteeAddress ||
+            "";
+          connectState.scopes =
+            result.data.scopes || result.data.session?.scopes || [];
+
+          connectLog(
+            "Session claimed — grantee: " +
+              connectState.granteeAddress +
+              ", scopes: [" +
+              connectState.scopes.join(", ") +
+              "]",
+            "ok",
+          );
+
+          el("connect-grant-btn").disabled = false;
+          return true;
+        } catch (e) {
+          connectLog("Claim error: " + e.message, "err");
+          el("connect-claim-btn").disabled = false;
+          return false;
+        }
+      }
+
+      async function connectCreateGrant() {
+        connectLog("Creating grant...");
+        el("connect-grant-btn").disabled = true;
+
+        try {
+          // Get owner address from /health
+          var healthResult = await api("/health");
+          if (
+            !healthResult.ok ||
+            !healthResult.data ||
+            !healthResult.data.owner
+          ) {
+            connectLog(
+              "Could not get owner address from /health. Is VANA_MASTER_KEY_SIGNATURE set?",
+              "err",
+            );
+            el("connect-grant-btn").disabled = false;
+            return false;
+          }
+          connectState.userAddress = healthResult.data.owner;
+          connectState.serverAddress =
+            (healthResult.data.identity &&
+              healthResult.data.identity.address) ||
+            "";
+          connectLog("Owner address: " + connectState.userAddress);
+
+          // Create grant via POST /v1/grants
+          var grantResult = await api("/v1/grants", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              granteeAddress: connectState.granteeAddress,
+              scopes: connectState.scopes,
+            }),
+          });
+
+          if (!grantResult.ok) {
+            var errMsg =
+              (grantResult.data.error && grantResult.data.error.message) ||
+              "Create grant failed (" + grantResult.status + ")";
+            connectLog("Grant creation failed: " + errMsg, "err");
+            el("connect-grant-btn").disabled = false;
+            return false;
+          }
+
+          connectState.grantId = String(grantResult.data.grantId);
+          connectLog("Grant created — grantId: " + connectState.grantId, "ok");
+
+          el("connect-approve-btn").disabled = false;
+          return true;
+        } catch (e) {
+          connectLog("Grant error: " + e.message, "err");
+          el("connect-grant-btn").disabled = false;
+          return false;
+        }
+      }
+
+      async function connectApprove() {
+        connectLog("Approving session...");
+        el("connect-approve-btn").disabled = true;
+
+        try {
+          var result = await relayFetch(
+            "/v1/session/" + connectState.sessionId + "/approve",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                secret: connectState.secret,
+                grantId: connectState.grantId,
+                userAddress: connectState.userAddress,
+                serverAddress: connectState.serverAddress,
+                scopes: connectState.scopes,
+              }),
+            },
+          );
+
+          if (!result.ok) {
+            var errMsg =
+              (result.data.error && result.data.error.message) ||
+              "Approve failed (" + result.status + ")";
+            connectLog("Approve failed: " + errMsg, "err");
+            el("connect-approve-btn").disabled = false;
+            return false;
+          }
+
+          connectLog("Session approved!", "ok");
+
+          // Show result
+          el("connect-result-card").style.display = "block";
+          el("connect-result").textContent = JSON.stringify(
+            {
+              grantId: connectState.grantId,
+              userAddress: connectState.userAddress,
+              granteeAddress: connectState.granteeAddress,
+              scopes: connectState.scopes,
+              sessionId: connectState.sessionId,
+            },
+            null,
+            2,
+          );
+
+          // Disable all buttons
+          el("connect-auto-btn").disabled = true;
+          el("connect-deny-btn").disabled = true;
+          return true;
+        } catch (e) {
+          connectLog("Approve error: " + e.message, "err");
+          el("connect-approve-btn").disabled = false;
+          return false;
+        }
+      }
+
+      async function connectDeny() {
+        connectLog("Denying session...");
+
+        try {
+          var result = await relayFetch(
+            "/v1/session/" + connectState.sessionId + "/deny",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                secret: connectState.secret,
+                reason: "Denied from Dev UI",
+              }),
+            },
+          );
+
+          if (!result.ok) {
+            var errMsg =
+              (result.data.error && result.data.error.message) ||
+              "Deny failed (" + result.status + ")";
+            connectLog("Deny failed: " + errMsg, "err");
+            return;
+          }
+
+          connectLog("Session denied", "ok");
+
+          // Disable all action buttons
+          el("connect-claim-btn").disabled = true;
+          el("connect-grant-btn").disabled = true;
+          el("connect-approve-btn").disabled = true;
+          el("connect-auto-btn").disabled = true;
+          el("connect-deny-btn").disabled = true;
+        } catch (e) {
+          connectLog("Deny error: " + e.message, "err");
+        }
+      }
+
+      async function connectAutoApprove() {
+        el("connect-auto-btn").disabled = true;
+        el("connect-deny-btn").disabled = true;
+        connectLog("Starting auto-approve flow...");
+
+        var ok = await connectClaim();
+        if (!ok) {
+          el("connect-auto-btn").disabled = false;
+          el("connect-deny-btn").disabled = false;
+          return;
+        }
+
+        ok = await connectCreateGrant();
+        if (!ok) {
+          el("connect-auto-btn").disabled = false;
+          el("connect-deny-btn").disabled = false;
+          return;
+        }
+
+        await connectApprove();
+      }
+
+      el("connect-parse-btn").addEventListener("click", connectParse);
+      el("connect-claim-btn").addEventListener("click", connectClaim);
+      el("connect-grant-btn").addEventListener("click", connectCreateGrant);
+      el("connect-approve-btn").addEventListener("click", connectApprove);
+      el("connect-deny-btn").addEventListener("click", connectDeny);
+      el("connect-auto-btn").addEventListener("click", connectAutoApprove);
+
+      // --- Utilities ---
+      function truncAddr(addr) {
+        if (!addr || addr.length < 12) return addr || "\u2014";
+        return addr.slice(0, 6) + "..." + addr.slice(-4);
+      }
+    </script>
+  </body>
+</html>

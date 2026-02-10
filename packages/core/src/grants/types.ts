@@ -17,12 +17,15 @@ export interface GrantWithSignature {
   signature: `0x${string}`;
 }
 
-/** Gateway response for GET /v1/grants/{grantId} */
+/** Gateway response for GET /v1/grants/{grantId} (unwrapped from envelope) */
 export interface GatewayGrantResponse {
-  grantId: string;
-  user: string;
-  builder: string;
-  scopes: string[];
-  expiresAt: number;
-  revoked: boolean;
+  id: string;
+  grantorAddress: string;
+  granteeId: string;
+  grant: string;
+  fileIds: string[];
+  status: "pending" | "confirmed";
+  addedAt: string;
+  revokedAt: string | null;
+  revocationSignature: string | null;
 }

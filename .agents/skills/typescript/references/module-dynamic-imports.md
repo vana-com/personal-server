@@ -64,15 +64,15 @@ async function generatePdf(): Promise<PDFDocument> {
 
 ```typescript
 // Next.js
-import dynamic from 'next/dynamic'
+import dynamic from "next/dynamic";
 
-const HeavyChart = dynamic(() => import('@/components/HeavyChart'), {
+const HeavyChart = dynamic(() => import("@/components/HeavyChart"), {
   loading: () => <ChartSkeleton />,
-  ssr: false  // Skip server-side rendering
-})
+  ssr: false, // Skip server-side rendering
+});
 
 // React
-const HeavyChart = React.lazy(() => import('@/components/HeavyChart'))
+const HeavyChart = React.lazy(() => import("@/components/HeavyChart"));
 ```
 
 Reference: [MDN Dynamic Import](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import)

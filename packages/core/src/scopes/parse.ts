@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const SEGMENT_RE = /^[a-z][a-z0-9_]*$/;
+const SEGMENT_RE = /^[a-z0-9][a-z0-9_]*$/;
 
 export const ScopeSchema = z.string().refine(
   (s) => {
@@ -13,7 +13,7 @@ export const ScopeSchema = z.string().refine(
   },
   {
     message:
-      "Scope must be {source}.{category}[.{subcategory}] with lowercase alphanumeric segments",
+      "Scope must be {source}.{category}[.{subcategory}] with lowercase alphanumeric segments (may start with a letter or digit)",
   },
 );
 

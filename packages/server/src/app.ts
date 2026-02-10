@@ -1,16 +1,27 @@
 import { Hono } from "hono";
-import { ProtocolError } from "@personal-server/core/errors";
-import type { IndexManager } from "@personal-server/core/storage/index";
-import type { HierarchyManagerOptions } from "@personal-server/core/storage/hierarchy";
-import type { GatewayClient } from "@personal-server/core/gateway";
-import type { AccessLogWriter } from "@personal-server/core/logging/access-log";
-import type { AccessLogReader } from "@personal-server/core/logging/access-reader";
-import { healthRoute } from "./routes/health.js";
+import { cors } from "hono/cors";
+import { ProtocolError } from "@opendatalabs/personal-server-ts-core/errors";
+import type { IndexManager } from "@opendatalabs/personal-server-ts-core/storage/index";
+import type { HierarchyManagerOptions } from "@opendatalabs/personal-server-ts-core/storage/hierarchy";
+import type { GatewayClient } from "@opendatalabs/personal-server-ts-core/gateway";
+import type { AccessLogWriter } from "@opendatalabs/personal-server-ts-core/logging/access-log";
+import type { AccessLogReader } from "@opendatalabs/personal-server-ts-core/logging/access-reader";
+import { healthRoute, type HealthDeps } from "./routes/health.js";
 import { dataRoutes } from "./routes/data.js";
 import { grantsRoutes } from "./routes/grants.js";
 import { accessLogsRoutes } from "./routes/access-logs.js";
 import { syncRoutes } from "./routes/sync.js";
+import { uiConfigRoutes } from "./routes/ui-config.js";
+import { uiRoute } from "./routes/ui.js";
+import type { SyncManager } from "@opendatalabs/personal-server-ts-core/sync";
+import type { ServerSigner } from "@opendatalabs/personal-server-ts-core/signing";
 import type { Logger } from "pino";
+
+export interface IdentityInfo {
+  address: `0x${string}`;
+  publicKey: `0x${string}`;
+  serverId: string | null;
+}
 
 export interface AppDeps {
   logger: Logger;
@@ -19,19 +30,44 @@ export interface AppDeps {
   indexManager: IndexManager;
   hierarchyOptions: HierarchyManagerOptions;
   serverOrigin: string;
-  serverOwner: `0x${string}`;
+  serverOwner?: `0x${string}`;
+  identity?: IdentityInfo;
   gateway: GatewayClient;
   accessLogWriter: AccessLogWriter;
   accessLogReader: AccessLogReader;
+  devToken?: string;
+  configPath?: string;
+  syncManager?: SyncManager | null;
+  serverSigner?: ServerSigner;
+  getTunnelStatus?: HealthDeps["getTunnelStatus"];
 }
 
 export function createApp(deps: AppDeps): Hono {
   const app = new Hono();
 
+  // CORS — allow all origins for browser-based clients
+  app.use(
+    "*",
+    cors({
+      origin: "*",
+      allowHeaders: ["Content-Type", "Authorization"],
+      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      maxAge: 86400,
+    }),
+  );
+
   // Mount health route
   app.route(
     "/",
-    healthRoute({ version: deps.version, startedAt: deps.startedAt }),
+    healthRoute({
+      version: deps.version,
+      startedAt: deps.startedAt,
+      serverOwner: deps.serverOwner,
+      identity: deps.identity,
+      gateway: deps.gateway,
+      logger: deps.logger,
+      getTunnelStatus: deps.getTunnelStatus,
+    }),
   );
 
   // Mount data routes (ingest + read + delete)
@@ -45,10 +81,12 @@ export function createApp(deps: AppDeps): Hono {
       serverOwner: deps.serverOwner,
       gateway: deps.gateway,
       accessLogWriter: deps.accessLogWriter,
+      devToken: deps.devToken,
+      syncManager: deps.syncManager ?? null,
     }),
   );
 
-  // Mount grants routes (POST /verify is public, GET / needs owner auth)
+  // Mount grants routes (POST /verify is public, GET / and POST / need owner auth)
   app.route(
     "/v1/grants",
     grantsRoutes({
@@ -56,6 +94,8 @@ export function createApp(deps: AppDeps): Hono {
       gateway: deps.gateway,
       serverOwner: deps.serverOwner,
       serverOrigin: deps.serverOrigin,
+      devToken: deps.devToken,
+      serverSigner: deps.serverSigner,
     }),
   );
 
@@ -67,6 +107,7 @@ export function createApp(deps: AppDeps): Hono {
       accessLogReader: deps.accessLogReader,
       serverOrigin: deps.serverOrigin,
       serverOwner: deps.serverOwner,
+      devToken: deps.devToken,
     }),
   );
 
@@ -77,8 +118,25 @@ export function createApp(deps: AppDeps): Hono {
       logger: deps.logger,
       serverOrigin: deps.serverOrigin,
       serverOwner: deps.serverOwner,
+      devToken: deps.devToken,
+      syncManager: deps.syncManager ?? null,
     }),
   );
+
+  // Mount dev UI routes when dev token is available
+  if (deps.devToken) {
+    app.route("/ui", uiRoute({ devToken: deps.devToken }));
+
+    if (deps.configPath) {
+      app.route(
+        "/ui/api",
+        uiConfigRoutes({
+          devToken: deps.devToken,
+          configPath: deps.configPath,
+        }),
+      );
+    }
+  }
 
   // Global error handler
   app.onError((err, c) => {

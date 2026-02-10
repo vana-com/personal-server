@@ -5,7 +5,7 @@ export const DataFileEnvelopeSchema = z.object({
   version: z.literal("1.0"),
   scope: z.string(),
   collectedAt: z.string().datetime(),
-  data: z.record(z.unknown()),
+  data: z.record(z.string(), z.unknown()),
 });
 
 export type DataFileEnvelope = z.infer<typeof DataFileEnvelopeSchema>;
