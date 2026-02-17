@@ -7,17 +7,14 @@
  *   PERSONAL_SERVER_ROOT_PATH=~/data-connect/personal-server VANA_OWNER_PRIVATE_KEY=0x... npm run register-builder
  */
 
-import { privateKeyToAccount } from "viem/accounts";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { loadConfig } from "../packages/core/src/config/loader.js";
 import { resolveRootPath } from "../packages/core/src/config/paths.js";
-import { loadOrCreateServerAccount } from "../packages/core/src/keys/server-account.js";
 import {
   builderRegistrationDomain,
   BUILDER_REGISTRATION_TYPES,
   type BuilderRegistrationMessage,
 } from "../packages/core/src/signing/index.js";
-import { join } from "node:path";
-import { readFileSync } from "node:fs";
 
 async function main() {
   const ownerKey = process.env.VANA_OWNER_PRIVATE_KEY;
@@ -36,10 +33,8 @@ async function main() {
   const ownerAccount = privateKeyToAccount(normalizedKey);
   console.log(`Owner address: ${ownerAccount.address}`);
 
-  const keyPath = join(rootPath, "builder-key.json");
-  const builderAccount = loadOrCreateServerAccount(keyPath);
-  const builderPrivateKey = JSON.parse(readFileSync(keyPath, "utf-8"))
-    .privateKey as string;
+  const builderPrivateKey = generatePrivateKey();
+  const builderAccount = privateKeyToAccount(builderPrivateKey);
   console.log(`Grantee address: ${builderAccount.address}`);
 
   const config = await loadConfig({ rootPath });
@@ -78,8 +73,11 @@ async function main() {
   });
 
   if (res.status === 409) {
-    console.log("Builder is already registered (409). Nothing to do.");
-    return;
+    console.error(
+      "This app URL is already registered with a different key (409). " +
+        "Use a different URL or contact support to reset the existing registration.",
+    );
+    process.exit(1);
   }
 
   if (!res.ok) {
@@ -95,14 +93,14 @@ async function main() {
 === Builder registered successfully ===
 
 Owner address:   ${ownerAccount.address}
-Grantee address: ${builderAccount.address}  (this is your GRANTEE_ADDRESS)
+Grantee address: ${builderAccount.address}
 Public key:      ${builderAccount.publicKey}
 App URL:         ${appUrl}
 Builder ID:      ${(body as Record<string, unknown>).id ?? "unknown"}
 
 Add these to your test builder app .env.local:
-  BUILDER_PRIVATE_KEY=${builderPrivateKey}
-  GRANTEE_ADDRESS=${builderAccount.address}
+  VANA_APP_PRIVATE_KEY=${builderPrivateKey}
+  APP_URL=${appUrl}
 `);
 }
 
