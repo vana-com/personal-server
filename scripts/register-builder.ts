@@ -58,7 +58,7 @@ async function main() {
     >[0]["domain"],
     types: BUILDER_REGISTRATION_TYPES,
     primaryType: "BuilderRegistration",
-    message,
+    message: message as unknown as Record<string, unknown>,
   });
 
   console.log("Registering builder with gateway...");
@@ -74,8 +74,8 @@ async function main() {
 
   if (res.status === 409) {
     console.error(
-      "This app URL is already registered with a different key (409). " +
-        "Use a different URL or contact support to reset the existing registration.",
+      "This grantee address is already registered (409). " +
+        "Each builder registration requires a unique grantee address.",
     );
     process.exit(1);
   }
@@ -96,7 +96,7 @@ Owner address:   ${ownerAccount.address}
 Grantee address: ${builderAccount.address}
 Public key:      ${builderAccount.publicKey}
 App URL:         ${appUrl}
-Builder ID:      ${(body as Record<string, unknown>).id ?? "unknown"}
+Builder ID:      ${(body as Record<string, unknown>).builderId ?? "unknown"}
 
 Add these to your test builder app .env.local:
   VANA_APP_PRIVATE_KEY=${builderPrivateKey}

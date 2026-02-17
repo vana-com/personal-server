@@ -68,7 +68,7 @@ async function main() {
     >[0]["domain"],
     types: SERVER_REGISTRATION_TYPES,
     primaryType: "ServerRegistration",
-    message,
+    message: message as unknown as Record<string, unknown>,
   });
 
   console.log("Registering server with gateway...");
