@@ -8,6 +8,7 @@ import type { TunnelStatusInfo } from "../tunnel/index.js";
 export interface HealthDeps {
   version: string;
   startedAt: Date;
+  port: number;
   serverOwner?: `0x${string}`;
   identity?: IdentityInfo;
   gateway?: GatewayClient;
@@ -53,6 +54,15 @@ export function healthRoute(deps: HealthDeps): Hono {
       owner: deps.serverOwner ?? null,
       identity,
       tunnel,
+    });
+  });
+
+  // GET /status — lightweight status for DataBridge wrapper
+  app.get("/status", (c) => {
+    return c.json({
+      status: "running",
+      owner: deps.serverOwner ?? null,
+      port: deps.port,
     });
   });
 

@@ -27,6 +27,7 @@ export interface AppDeps {
   logger: Logger;
   version: string;
   startedAt: Date;
+  port: number;
   indexManager: IndexManager;
   hierarchyOptions: HierarchyManagerOptions;
   serverOrigin: string | (() => string);
@@ -62,6 +63,7 @@ export function createApp(deps: AppDeps): Hono {
     healthRoute({
       version: deps.version,
       startedAt: deps.startedAt,
+      port: deps.port,
       serverOwner: deps.serverOwner,
       identity: deps.identity,
       gateway: deps.gateway,

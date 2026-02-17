@@ -22,6 +22,7 @@ import { createBuilderCheckMiddleware } from "../middleware/builder-check.js";
 import { createGrantCheckMiddleware } from "../middleware/grant-check.js";
 import { createAccessLogMiddleware } from "../middleware/access-log.js";
 import { createOwnerCheckMiddleware } from "../middleware/owner-check.js";
+import { createLocalOnlyMiddleware } from "../middleware/local-only.js";
 
 export interface DataRouteDeps {
   indexManager: IndexManager;
@@ -50,6 +51,7 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
     serverOwner: deps.serverOwner,
   });
   const accessLog = createAccessLogMiddleware(deps.accessLogWriter);
+  const localOnly = createLocalOnlyMiddleware();
 
   // GET /v1/data/:scope/versions — list versions for a scope (requires auth + builder, no grant)
   app.get("/:scope/versions", web3Auth, builderCheck, async (c) => {
@@ -176,7 +178,7 @@ export function dataRoutes(deps: DataRouteDeps): Hono {
 
   app.use("/:scope", createBodyLimit(DATA_INGEST_MAX_SIZE));
 
-  app.post("/:scope", async (c) => {
+  app.post("/:scope", localOnly, async (c) => {
     // 1. Parse & validate scope
     const scopeParam = c.req.param("scope");
     const scopeResult = ScopeSchema.safeParse(scopeParam);

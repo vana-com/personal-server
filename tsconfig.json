@@ -1,6 +1,7 @@
 {
   "references": [
     { "path": "packages/core" },
+    { "path": "packages/runtime" },
     { "path": "packages/server" },
     { "path": "packages/cli" }
   ],

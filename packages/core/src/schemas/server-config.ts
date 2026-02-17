@@ -58,6 +58,11 @@ export const ServerConfigSchema = z.object({
     .object({
       port: z.number().int().min(1).max(65535).default(DEFAULTS.server.port),
       origin: z.url().default(DEFAULTS.server.origin),
+      address: z
+        .string()
+        .startsWith("0x")
+        .optional()
+        .describe("Owner wallet address (set by DataBridge wrapper)"),
     })
     .default(DEFAULTS.server),
   logging: z

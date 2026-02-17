@@ -17,6 +17,15 @@ export interface FrpcConfigOptions {
 }
 
 /**
+ * Derive a unique proxy name from the runId.
+ * Uses the first 8 characters to avoid FRP proxy name collisions
+ * between concurrent or stale sessions.
+ */
+export function deriveProxyName(runId: string): string {
+  return `ps-${runId.slice(0, 8)}`;
+}
+
+/**
  * Generate frpc.toml configuration content.
  *
  * Uses TOML format with:
@@ -26,6 +35,8 @@ export interface FrpcConfigOptions {
  * - Root-level metadatas for Auth Plugin validation (required by frps server)
  */
 export function generateFrpcConfig(options: FrpcConfigOptions): string {
+  const proxyName = deriveProxyName(options.runId);
+
   return `# Auto-generated frpc configuration
 # Do not edit - regenerated on each server start
 
@@ -41,10 +52,12 @@ metadatas.auth_claim = "${options.authClaim}"
 metadatas.auth_sig = "${options.authSig}"
 
 [[proxies]]
-name = "personal-server"
+name = "${proxyName}"
 type = "http"
 localIP = "127.0.0.1"
 localPort = ${options.localPort}
 subdomain = "${options.subdomain}"
+[proxies.requestHeaders.set]
+x-ps-transport = "tunnel"
 `;
 }

@@ -44,14 +44,17 @@ import {
 import { createVanaStorageAdapter } from "@opendatalabs/personal-server-ts-core/storage/adapters";
 import type { Hono } from "hono";
 import { createApp, type IdentityInfo } from "./app.js";
+import { createAdminApp } from "./admin-app.js";
 import { generateDevToken } from "./dev-token.js";
 import { TunnelManager, ensureFrpcBinary } from "./tunnel/index.js";
 
 export interface ServerContext {
   app: Hono;
+  adminApp: Hono;
   logger: Logger;
   config: ServerConfig;
   startedAt: Date;
+  storageRoot: string;
   indexManager: IndexManager;
   gatewayClient: GatewayClient;
   accessLogReader: AccessLogReader;
@@ -220,6 +223,7 @@ export async function createServer(
     logger,
     version: pkg.version,
     startedAt,
+    port: config.server.port,
     indexManager,
     hierarchyOptions,
     serverOrigin: () => effectiveOrigin,
@@ -235,6 +239,17 @@ export async function createServer(
     getTunnelStatus: () => tunnelManager?.getStatus() ?? null,
   });
 
+  const adminApp = createAdminApp({
+    logger,
+    indexManager,
+    hierarchyOptions,
+    gateway: gatewayClient,
+    accessLogReader,
+    serverOwner,
+    syncManager,
+    serverSigner,
+  });
+
   const cleanup = async () => {
     if (tunnelManager) {
       await tunnelManager.stop();
@@ -247,9 +262,11 @@ export async function createServer(
 
   const context: ServerContext = {
     app,
+    adminApp,
     logger,
     config,
     startedAt,
+    storageRoot,
     indexManager,
     gatewayClient,
     accessLogReader,

@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { healthRoute } from "./health.js";
 
 describe("healthRoute", () => {
-  const deps = { version: "0.0.1", startedAt: new Date() };
+  const deps = { version: "0.0.1", startedAt: new Date(), port: 8080 };
 
   function createMockGateway(
     overrides?: Partial<GatewayClient>,
@@ -49,6 +49,7 @@ describe("healthRoute", () => {
     const app = healthRoute({
       version: "0.0.1",
       startedAt: new Date(),
+      port: 8080,
       serverOwner: "0x1234567890abcdef1234567890abcdef12345678",
     });
     const res = await app.request("/health");
@@ -58,7 +59,11 @@ describe("healthRoute", () => {
   });
 
   it("owner is null when serverOwner is not set", async () => {
-    const app = healthRoute({ version: "0.0.1", startedAt: new Date() });
+    const app = healthRoute({
+      version: "0.0.1",
+      startedAt: new Date(),
+      port: 8080,
+    });
     const res = await app.request("/health");
     const body = await res.json();
 
@@ -67,7 +72,7 @@ describe("healthRoute", () => {
 
   it("uptime increases over time", async () => {
     const past = new Date(Date.now() - 5000);
-    const app = healthRoute({ version: "0.0.1", startedAt: past });
+    const app = healthRoute({ version: "0.0.1", startedAt: past, port: 8080 });
     const res = await app.request("/health");
     const body = await res.json();
 
@@ -81,7 +86,11 @@ describe("healthRoute", () => {
   });
 
   it("identity is null when not configured", async () => {
-    const app = healthRoute({ version: "0.0.1", startedAt: new Date() });
+    const app = healthRoute({
+      version: "0.0.1",
+      startedAt: new Date(),
+      port: 8080,
+    });
     const res = await app.request("/health");
     const body = await res.json();
     expect(body.identity).toBeNull();
@@ -91,6 +100,7 @@ describe("healthRoute", () => {
     const app = healthRoute({
       version: "0.0.1",
       startedAt: new Date(),
+      port: 8080,
       identity: {
         address: "0xServerAddr",
         publicKey: "0x04PubKey",
@@ -110,6 +120,7 @@ describe("healthRoute", () => {
     const app = healthRoute({
       version: "0.0.1",
       startedAt: new Date(),
+      port: 8080,
       identity: {
         address: "0xServerAddr",
         publicKey: "0x04PubKey",
@@ -140,6 +151,7 @@ describe("healthRoute", () => {
     const app = healthRoute({
       version: "0.0.1",
       startedAt: new Date(),
+      port: 8080,
       identity: {
         address: "0xServerAddr",
         publicKey: "0x04PubKey",
@@ -160,7 +172,11 @@ describe("healthRoute", () => {
   });
 
   it("tunnel is null when getTunnelStatus is not provided", async () => {
-    const app = healthRoute({ version: "0.0.1", startedAt: new Date() });
+    const app = healthRoute({
+      version: "0.0.1",
+      startedAt: new Date(),
+      port: 8080,
+    });
     const res = await app.request("/health");
     const body = await res.json();
     expect(body.tunnel).toBeNull();
@@ -170,6 +186,7 @@ describe("healthRoute", () => {
     const app = healthRoute({
       version: "0.0.1",
       startedAt: new Date(),
+      port: 8080,
       getTunnelStatus: () => ({
         enabled: true,
         status: "connected",
@@ -191,6 +208,7 @@ describe("healthRoute", () => {
     const app = healthRoute({
       version: "0.0.1",
       startedAt: new Date(),
+      port: 8080,
       getTunnelStatus: () => ({
         enabled: true,
         status: "disconnected",
@@ -205,5 +223,33 @@ describe("healthRoute", () => {
     expect(body.tunnel.status).toBe("disconnected");
     expect(body.tunnel.publicUrl).toBeNull();
     expect(body.tunnel.error).toBe("Connection lost");
+  });
+
+  describe("GET /status", () => {
+    it("returns status, owner, and port", async () => {
+      const app = healthRoute({
+        version: "0.0.1",
+        startedAt: new Date(),
+        port: 9090,
+        serverOwner: "0x1234567890abcdef1234567890abcdef12345678",
+      });
+      const res = await app.request("/status");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.status).toBe("running");
+      expect(body.owner).toBe("0x1234567890abcdef1234567890abcdef12345678");
+      expect(body.port).toBe(9090);
+    });
+
+    it("returns null owner when not configured", async () => {
+      const app = healthRoute({
+        version: "0.0.1",
+        startedAt: new Date(),
+        port: 8080,
+      });
+      const res = await app.request("/status");
+      const body = await res.json();
+      expect(body.owner).toBeNull();
+    });
   });
 });

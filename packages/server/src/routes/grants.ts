@@ -215,6 +215,61 @@ export function grantsRoutes(deps: GrantsRouteDeps): Hono {
     return c.json({ grantId: result.grantId }, 201);
   });
 
+  // DELETE /:grantId — revoke a grant (owner-only)
+  app.delete("/:grantId", web3Auth, ownerCheck, async (c) => {
+    if (!deps.serverOwner) {
+      return c.json(
+        {
+          error: {
+            code: 500,
+            errorCode: "SERVER_NOT_CONFIGURED",
+            message:
+              "Server owner address not configured. Set VANA_MASTER_KEY_SIGNATURE environment variable.",
+          },
+        },
+        500,
+      );
+    }
+
+    if (!deps.serverSigner) {
+      return c.json(
+        {
+          error: {
+            code: 500,
+            errorCode: "SERVER_SIGNER_NOT_CONFIGURED",
+            message:
+              "Server signer not configured. Set VANA_MASTER_KEY_SIGNATURE environment variable.",
+          },
+        },
+        500,
+      );
+    }
+
+    const grantId = c.req.param("grantId");
+    if (!grantId || !grantId.startsWith("0x")) {
+      return c.json(
+        {
+          error: "INVALID_GRANT_ID",
+          message: "grantId must be a 0x-prefixed hex string",
+        },
+        400,
+      );
+    }
+
+    const signature = await deps.serverSigner.signGrantRevocation({
+      grantorAddress: deps.serverOwner,
+      grantId: grantId as `0x${string}`,
+    });
+
+    await deps.gateway.revokeGrant({
+      grantId,
+      grantorAddress: deps.serverOwner,
+      signature,
+    });
+
+    return c.json({ revoked: true });
+  });
+
   // POST /verify — public endpoint, no auth required
   app.post("/verify", async (c) => {
     let body: unknown;

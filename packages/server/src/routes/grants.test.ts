@@ -310,6 +310,83 @@ describe("POST /verify", () => {
   });
 });
 
+describe("DELETE /:grantId", () => {
+  async function deleteWithOwnerAuth(
+    app: ReturnType<typeof grantsRoutes>,
+    grantId: string,
+  ) {
+    const auth = await buildWeb3SignedHeader({
+      wallet: owner,
+      aud: SERVER_ORIGIN,
+      method: "DELETE",
+      uri: `/${grantId}`,
+    });
+    return app.request(`/${grantId}`, {
+      method: "DELETE",
+      headers: { authorization: auth },
+    });
+  }
+
+  it("revokes grant via gateway and returns { revoked: true }", async () => {
+    const mockGateway = createMockGateway();
+    const mockSigner = createMockServerSigner();
+
+    const app = createApp({ gateway: mockGateway, serverSigner: mockSigner });
+    const res = await deleteWithOwnerAuth(app, "0xgrant1");
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.revoked).toBe(true);
+
+    expect(mockSigner.signGrantRevocation).toHaveBeenCalledWith({
+      grantorAddress: owner.address,
+      grantId: "0xgrant1",
+    });
+
+    expect(mockGateway.revokeGrant).toHaveBeenCalledWith({
+      grantId: "0xgrant1",
+      grantorAddress: owner.address,
+      signature: "0xrevokesig",
+    });
+  });
+
+  it("returns 400 for invalid grantId (no 0x prefix)", async () => {
+    const app = createApp();
+    const res = await deleteWithOwnerAuth(app, "invalid-grant-id");
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("INVALID_GRANT_ID");
+  });
+
+  it("returns 500 when serverSigner is not configured", async () => {
+    const app = grantsRoutes({
+      logger,
+      gateway: createMockGateway(),
+      serverOwner: owner.address,
+      serverOrigin: SERVER_ORIGIN,
+    });
+
+    const res = await deleteWithOwnerAuth(app, "0xgrant1");
+
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error.errorCode).toBe("SERVER_SIGNER_NOT_CONFIGURED");
+  });
+
+  it("propagates gateway errors", async () => {
+    const mockGateway = createMockGateway();
+    vi.mocked(mockGateway.revokeGrant).mockRejectedValue(
+      new Error("Gateway down"),
+    );
+
+    const app = createApp({ gateway: mockGateway });
+    const res = await deleteWithOwnerAuth(app, "0xgrant1");
+
+    expect(res.status).toBe(500);
+  });
+});
+
 describe("POST /", () => {
   async function postWithOwnerAuth(
     app: ReturnType<typeof grantsRoutes>,

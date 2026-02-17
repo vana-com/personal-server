@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@opendatalabs/personal-server-ts-core": "*",
+    "@opendatalabs/personal-server-ts-runtime": "*",
     "@opendatalabs/personal-server-ts-server": "*"
   }
 }

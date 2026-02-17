@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateFrpcConfig } from "./config.js";
+import { generateFrpcConfig, deriveProxyName } from "./config.js";
 
 describe("tunnel/config", () => {
   describe("generateFrpcConfig", () => {
@@ -84,6 +84,34 @@ describe("tunnel/config", () => {
       });
 
       expect(config).toContain("localPort = 3000");
+    });
+
+    it("uses unique proxy name derived from runId", () => {
+      const config = generateFrpcConfig(defaultOptions);
+      expect(config).toContain('name = "ps-run-123"');
+      expect(config).not.toContain('name = "personal-server"');
+    });
+
+    it("includes x-ps-transport tunnel header in proxy config", () => {
+      const config = generateFrpcConfig(defaultOptions);
+      expect(config).toContain('x-ps-transport = "tunnel"');
+      expect(config).toContain("[proxies.requestHeaders.set]");
+    });
+  });
+
+  describe("deriveProxyName", () => {
+    it("prefixes with ps- and takes first 8 chars of runId", () => {
+      expect(deriveProxyName("abcdef12-3456-7890")).toBe("ps-abcdef12");
+    });
+
+    it("handles short runIds", () => {
+      expect(deriveProxyName("abc")).toBe("ps-abc");
+    });
+
+    it("handles UUID format", () => {
+      expect(deriveProxyName("a1b2c3d4-e5f6-7890-abcd-ef0123456789")).toBe(
+        "ps-a1b2c3d4",
+      );
     });
   });
 });

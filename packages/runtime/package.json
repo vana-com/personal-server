@@ -1,26 +1,22 @@
 {
-  "name": "@opendatalabs/personal-server-ts-server",
+  "name": "@opendatalabs/personal-server-ts-runtime",
   "version": "0.0.1",
-  "description": "Hono HTTP server for the Vana Personal Server — routes, middleware, composition root",
+  "description": "Runtime lifecycle for the Vana Personal Server — daemon, IPC, supervisor, tunnel lifecycle",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/vana-com/personal-server-ts.git",
-    "directory": "packages/server"
+    "directory": "packages/runtime"
   },
   "homepage": "https://github.com/vana-com/personal-server-ts#readme",
   "bugs": {
     "url": "https://github.com/vana-com/personal-server-ts/issues"
   },
   "type": "module",
-  "main": "./dist/api.js",
-  "types": "./dist/api.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/api.d.ts",
-      "import": "./dist/api.js"
-    },
-    "./runtime": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
@@ -32,15 +28,10 @@
     "dist"
   ],
   "scripts": {
-    "copy-ui": "mkdir -p dist/ui && cp src/ui/index.html dist/ui/index.html",
-    "build": "tsc --build && npm run copy-ui",
-    "start": "node dist/index.js",
-    "dev": "node --watch dist/index.js"
+    "build": "tsc --build"
   },
   "dependencies": {
     "@opendatalabs/personal-server-ts-core": "*",
-    "@opendatalabs/personal-server-ts-runtime": "*",
-    "hono": "^4.7.0",
     "@hono/node-server": "^1.14.0"
   }
 }

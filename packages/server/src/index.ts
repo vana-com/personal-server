@@ -1,6 +1,11 @@
 import { serve } from "@hono/node-server";
 import { createRequire } from "node:module";
 import { loadConfig } from "@opendatalabs/personal-server-ts-core/config";
+import {
+  createIpcServer,
+  writePidFile,
+  removePidFile,
+} from "@opendatalabs/personal-server-ts-runtime";
 import { createServer } from "./bootstrap.js";
 import { verifyTunnelUrl } from "./tunnel/index.js";
 
@@ -13,12 +18,16 @@ async function main(): Promise<void> {
   const rootPath = process.env.PERSONAL_SERVER_ROOT_PATH;
   const config = await loadConfig({ rootPath });
   const context = await createServer(config, { rootPath });
-  const { app, logger, devToken } = context;
+  const { app, adminApp, logger, devToken, storageRoot } = context;
 
+  // --- HTTP listener (protocol routes) ---
   const server = serve(
     { fetch: app.fetch, port: config.server.port },
     (info) => {
-      logger.info({ port: info.port, version: pkg.version }, "Server started");
+      logger.info(
+        { port: info.port, version: pkg.version },
+        "HTTP server started",
+      );
 
       if (devToken) {
         logger.info(
@@ -29,6 +38,31 @@ async function main(): Promise<void> {
       }
     },
   );
+
+  // --- IPC listener (admin routes via Unix domain socket) ---
+  let closeIpc: (() => Promise<void>) | undefined;
+  try {
+    const ipc = await createIpcServer({
+      storageRoot,
+      fetch: adminApp.fetch,
+    });
+    closeIpc = ipc.close;
+    logger.info({ socketPath: ipc.socketPath }, "IPC server started");
+
+    // Write PID file after both listeners are up
+    await writePidFile(storageRoot, {
+      pid: process.pid,
+      port: config.server.port,
+      socketPath: ipc.socketPath,
+      version: pkg.version,
+      startedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    logger.warn(
+      { err },
+      "IPC server failed to start — admin routes unavailable via socket",
+    );
+  }
 
   // Fire-and-forget: gateway check + tunnel connect (slow operations)
   // HTTP server is already listening so POST /v1/data/:scope works immediately
@@ -58,8 +92,23 @@ async function main(): Promise<void> {
     }
   });
 
-  function shutdown(signal: string): void {
+  async function shutdown(signal: string): Promise<void> {
     logger.info({ signal }, "Shutdown signal received, draining connections");
+
+    // Clean up PID file
+    await removePidFile(storageRoot);
+
+    // Clean up IPC server
+    if (closeIpc) {
+      try {
+        await closeIpc();
+      } catch {
+        // Best effort
+      }
+    }
+
+    // Clean up server context (tunnel, sync, db)
+    await context.cleanup();
 
     server.close(() => {
       logger.info("Server stopped");
@@ -73,8 +122,8 @@ async function main(): Promise<void> {
     }, DRAIN_TIMEOUT_MS).unref();
   }
 
-  process.on("SIGTERM", () => shutdown("SIGTERM"));
-  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
 main().catch((err) => {

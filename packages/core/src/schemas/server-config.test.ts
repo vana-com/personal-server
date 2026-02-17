@@ -39,6 +39,20 @@ describe("ServerConfigSchema — sync fields", () => {
     expect(config.sync.lastProcessedTimestamp).toBe("2026-01-21T10:00:00Z");
   });
 
+  it("server.address is optional and accepts 0x-prefixed strings", () => {
+    const config = ServerConfigSchema.parse({
+      server: { address: "0x1234567890abcdef1234567890abcdef12345678" },
+    });
+    expect(config.server.address).toBe(
+      "0x1234567890abcdef1234567890abcdef12345678",
+    );
+  });
+
+  it("server.address defaults to undefined when not provided", () => {
+    const config = ServerConfigSchema.parse({});
+    expect(config.server.address).toBeUndefined();
+  });
+
   it("storage.config.vana.apiUrl defaults to https://storage.vana.com", () => {
     const config = ServerConfigSchema.parse({
       storage: { config: { vana: {} } },
