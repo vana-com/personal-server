@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@opendatalabs/personal-server-ts-core": "*",
-    "hono": "^4.7.0",
+    "hono": "^4.12.2",
     "@hono/node-server": "^1.14.0"
   }
 }
