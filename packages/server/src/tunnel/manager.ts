@@ -93,7 +93,7 @@ export class TunnelManager {
     }
 
     const subdomain = config.walletAddress.toLowerCase();
-    this.publicUrl = buildTunnelUrl(subdomain);
+    this.publicUrl = buildTunnelUrl(subdomain, config.serverAddr);
 
     const configPath = await this.writeFreshConfig(subdomain);
     await this.spawnProcess(configPath);

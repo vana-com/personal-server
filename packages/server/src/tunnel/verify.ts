@@ -19,11 +19,23 @@ export interface VerifyTunnelResult {
   error?: string;
 }
 
+const ALLOWED_SERVER_ADDRS: Record<string, string> = {
+  "frpc.server.vana.org": "server.vana.org",
+  "frpc.server-dev.vana.org": "server-dev.vana.org",
+};
+
+const DEFAULT_DOMAIN = "server.vana.org";
+
 /**
  * Build the canonical tunnel URL for a wallet address.
  */
-export function buildTunnelUrl(walletAddress: string): string {
-  return `https://${walletAddress.toLowerCase()}.server.vana.org`;
+export function buildTunnelUrl(
+  walletAddress: string,
+  serverAddr?: string,
+): string {
+  const domain =
+    (serverAddr && ALLOWED_SERVER_ADDRS[serverAddr]) || DEFAULT_DOMAIN;
+  return `https://${walletAddress.toLowerCase()}.${domain}`;
 }
 
 /**

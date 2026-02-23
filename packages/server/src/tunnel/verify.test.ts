@@ -14,6 +14,24 @@ describe("tunnel/verify", () => {
         "https://0xabc123.server.vana.org",
       );
     });
+
+    it("uses prod domain for frpc.server.vana.org", () => {
+      expect(buildTunnelUrl("0xabc", "frpc.server.vana.org")).toBe(
+        "https://0xabc.server.vana.org",
+      );
+    });
+
+    it("uses dev domain for frpc.server-dev.vana.org", () => {
+      expect(buildTunnelUrl("0xabc", "frpc.server-dev.vana.org")).toBe(
+        "https://0xabc.server-dev.vana.org",
+      );
+    });
+
+    it("falls back to default domain for unknown serverAddr", () => {
+      expect(buildTunnelUrl("0xabc", "custom.example.com")).toBe(
+        "https://0xabc.server.vana.org",
+      );
+    });
   });
 
   describe("verifyTunnelUrl", () => {
