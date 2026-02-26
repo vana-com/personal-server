@@ -1,0 +1,41 @@
+{
+  "name": "@opendatalabs/personal-server-ts-mcp",
+  "version": "0.0.1",
+  "description": "MCP (Model Context Protocol) server for the Vana Personal Server",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vana-com/personal-server-ts.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/vana-com/personal-server-ts#readme",
+  "bugs": {
+    "url": "https://github.com/vana-com/personal-server-ts/issues"
+  },
+  "type": "module",
+  "bin": {
+    "personal-server-mcp": "./dist/index.js"
+  },
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@opendatalabs/personal-server-ts-core": "*",
+    "@modelcontextprotocol/sdk": "^1.27.0"
+  }
+}
