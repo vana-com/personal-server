@@ -14,6 +14,8 @@ import { syncRoutes } from "./routes/sync.js";
 import { uiConfigRoutes } from "./routes/ui-config.js";
 import { uiRoute } from "./routes/ui.js";
 import { mcpRoute } from "./routes/mcp.js";
+import { OAuthProvider } from "./oauth/provider.js";
+import { oauthRoutes } from "./oauth/routes.js";
 import type { SyncManager } from "@opendatalabs/personal-server-ts-core/sync";
 import type { ServerSigner } from "@opendatalabs/personal-server-ts-core/signing";
 import type { Logger } from "pino";
@@ -133,6 +135,14 @@ export function createApp(deps: AppDeps): Hono {
 
   // Mount MCP endpoint (Model Context Protocol for AI tools)
   if (deps.serverOwner) {
+    const oauthProvider = new OAuthProvider(deps.serverOwner);
+
+    // Mount OAuth discovery + auth endpoints at the root
+    app.route(
+      "/",
+      oauthRoutes({ oauthProvider, serverOwner: deps.serverOwner }),
+    );
+
     app.route(
       "/mcp",
       mcpRoute({
@@ -143,6 +153,7 @@ export function createApp(deps: AppDeps): Hono {
           serverOwner: deps.serverOwner,
           logger: deps.logger,
         },
+        oauthProvider,
       }),
     );
   }
