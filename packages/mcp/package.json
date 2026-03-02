@@ -12,6 +12,12 @@
   "bugs": {
     "url": "https://github.com/vana-com/personal-server-ts/issues"
   },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "vana",
+    "personal-server"
+  ],
   "type": "module",
   "bin": {
     "personal-server-mcp": "./dist/index.js"
