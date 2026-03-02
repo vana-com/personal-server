@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   release:
+    if: false
     name: Release
     runs-on: ubuntu-latest
     steps:
