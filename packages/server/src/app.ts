@@ -140,7 +140,12 @@ export function createApp(deps: AppDeps): Hono {
     // Mount OAuth discovery + auth endpoints at the root
     app.route(
       "/",
-      oauthRoutes({ oauthProvider, serverOwner: deps.serverOwner }),
+      oauthRoutes({
+        oauthProvider,
+        serverOwner: deps.serverOwner,
+        accountPortalOrigin: process.env.ACCOUNT_URL,
+        serverOrigin: deps.serverOrigin,
+      }),
     );
 
     app.route(
@@ -154,6 +159,7 @@ export function createApp(deps: AppDeps): Hono {
           logger: deps.logger,
         },
         oauthProvider,
+        serverOrigin: deps.serverOrigin,
       }),
     );
   }

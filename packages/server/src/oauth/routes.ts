@@ -2,21 +2,37 @@ import { Hono } from "hono";
 import { recoverServerOwner } from "@opendatalabs/personal-server-ts-core/keys";
 import type { OAuthProvider } from "./provider.js";
 
-const ACCOUNT_PORTAL_ORIGIN = "https://account.vana.org";
+const DEFAULT_ACCOUNT_PORTAL_ORIGIN = "https://account.vana.org";
 
 export interface OAuthRouteDeps {
   oauthProvider: OAuthProvider;
   serverOwner: `0x${string}`;
+  accountPortalOrigin?: string;
+  serverOrigin?: string | (() => string);
 }
 
 export function oauthRoutes(deps: OAuthRouteDeps): Hono {
   const app = new Hono();
   const { oauthProvider } = deps;
+  const accountPortalOrigin =
+    deps.accountPortalOrigin ?? DEFAULT_ACCOUNT_PORTAL_ORIGIN;
+
+  /** Resolve the public-facing origin (tunnel URL when available, else request origin). */
+  function getPublicOrigin(c: { req: { url: string } }): string {
+    if (deps.serverOrigin) {
+      const origin =
+        typeof deps.serverOrigin === "function"
+          ? deps.serverOrigin()
+          : deps.serverOrigin;
+      if (origin) return origin;
+    }
+    return new URL(c.req.url).origin;
+  }
 
   // --- Discovery endpoints ---
 
   app.get("/.well-known/oauth-authorization-server", (c) => {
-    const issuer = new URL(c.req.url).origin;
+    const issuer = getPublicOrigin(c);
     return c.json({
       issuer,
       authorization_endpoint: `${issuer}/authorize`,
@@ -30,7 +46,7 @@ export function oauthRoutes(deps: OAuthRouteDeps): Hono {
   });
 
   app.get("/.well-known/oauth-protected-resource", (c) => {
-    const origin = new URL(c.req.url).origin;
+    const origin = getPublicOrigin(c);
     return c.json({
       resource: origin,
       authorization_servers: [origin],
@@ -134,8 +150,7 @@ export function oauthRoutes(deps: OAuthRouteDeps): Hono {
 
     // Redirect to Account Portal for identity verification.
     // The callback URL points back to our /oauth/callback with the auth code as state.
-    const origin = new URL(c.req.url).origin;
-    const callbackUrl = `${origin}/oauth/callback`;
+    const callbackUrl = `${getPublicOrigin(c)}/oauth/callback`;
 
     const portalParams = new URLSearchParams({
       // Use a placeholder sessionId — the Account Portal requires one to render the connect page.
@@ -147,7 +162,7 @@ export function oauthRoutes(deps: OAuthRouteDeps): Hono {
     });
 
     return c.redirect(
-      `${ACCOUNT_PORTAL_ORIGIN}/connect?${portalParams.toString()}`,
+      `${accountPortalOrigin}/connect?${portalParams.toString()}`,
     );
   });
 

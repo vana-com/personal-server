@@ -7,6 +7,7 @@ import type { OAuthProvider } from "../oauth/provider.js";
 export interface McpRouteDeps {
   mcpContext: McpContext;
   oauthProvider?: OAuthProvider;
+  serverOrigin?: string | (() => string);
 }
 
 export function mcpRoute(deps: McpRouteDeps): Hono {
@@ -17,7 +18,16 @@ export function mcpRoute(deps: McpRouteDeps): Hono {
     if (deps.oauthProvider) {
       const authHeader = c.req.header("authorization");
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        const origin = new URL(c.req.url).origin;
+        let origin: string;
+        if (deps.serverOrigin) {
+          const o =
+            typeof deps.serverOrigin === "function"
+              ? deps.serverOrigin()
+              : deps.serverOrigin;
+          origin = o || new URL(c.req.url).origin;
+        } else {
+          origin = new URL(c.req.url).origin;
+        }
         return new Response(
           JSON.stringify({
             error: "Unauthorized",
