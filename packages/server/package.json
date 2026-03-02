@@ -1,6 +1,6 @@
 {
   "name": "@opendatalabs/personal-server-ts-server",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "description": "Hono HTTP server for the Vana Personal Server — routes, middleware, composition root",
   "license": "MIT",
   "repository": {
@@ -38,8 +38,8 @@
     "dev": "node --watch dist/index.js"
   },
   "dependencies": {
-    "@opendatalabs/personal-server-ts-core": "*",
-    "@opendatalabs/personal-server-ts-mcp": "*",
+    "@opendatalabs/personal-server-ts-core": "0.2.0",
+    "@opendatalabs/personal-server-ts-mcp": "0.2.0",
     "@modelcontextprotocol/sdk": "^1.27.0",
     "hono": "^4.7.0",
     "@hono/node-server": "^1.14.0"

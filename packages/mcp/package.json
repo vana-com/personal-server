@@ -1,6 +1,6 @@
 {
   "name": "@opendatalabs/personal-server-ts-mcp",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "description": "MCP (Model Context Protocol) server for the Vana Personal Server",
   "license": "MIT",
   "repository": {
@@ -41,7 +41,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@opendatalabs/personal-server-ts-core": "*",
+    "@opendatalabs/personal-server-ts-core": "0.2.0",
     "@modelcontextprotocol/sdk": "^1.27.0"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@opendatalabs/personal-server-ts-core",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "description": "Protocol logic for the Vana Personal Server — auth, grants, scopes, storage, keys",
   "license": "MIT",
   "repository": {

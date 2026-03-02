@@ -1,6 +1,6 @@
 {
   "name": "@opendatalabs/personal-server-ts",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "description": "Facade package for integrating the Vana Personal Server",
   "license": "MIT",
   "repository": {
@@ -31,7 +31,7 @@
     "build": "tsc --build"
   },
   "dependencies": {
-    "@opendatalabs/personal-server-ts-core": "*",
-    "@opendatalabs/personal-server-ts-server": "*"
+    "@opendatalabs/personal-server-ts-core": "0.2.0",
+    "@opendatalabs/personal-server-ts-server": "0.2.0"
   }
 }
