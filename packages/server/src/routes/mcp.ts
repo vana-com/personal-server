@@ -62,14 +62,18 @@ export function mcpRoute(deps: McpRouteDeps): Hono {
       }
 
       // Pass authInfo to the MCP transport
-      const transport = new WebStandardStreamableHTTPServerTransport();
+      const transport = new WebStandardStreamableHTTPServerTransport({
+        enableJsonResponse: true,
+      });
       const server = createMcpServer(deps.mcpContext);
       await server.connect(transport);
       return transport.handleRequest(c.req.raw, { authInfo });
     }
 
     // No OAuth configured — open access (dev/local mode)
-    const transport = new WebStandardStreamableHTTPServerTransport();
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      enableJsonResponse: true,
+    });
     const server = createMcpServer(deps.mcpContext);
     await server.connect(transport);
     return transport.handleRequest(c.req.raw);
