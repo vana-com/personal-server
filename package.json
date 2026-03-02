@@ -28,6 +28,7 @@
     "lint:eslint:fix": "eslint --fix 'packages/*/src/**/*.ts'",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "mcp": "npm run build && node --env-file-if-exists=.env packages/mcp/dist/index.js",
     "register-server": "tsx --env-file-if-exists=.env scripts/register-server.ts",
     "register-builder": "tsx --env-file-if-exists=.env scripts/register-builder.ts",
     "validate": "npm run lint && npm run lint:eslint && npm run format:check && npm test",

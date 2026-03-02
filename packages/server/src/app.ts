@@ -13,6 +13,9 @@ import { accessLogsRoutes } from "./routes/access-logs.js";
 import { syncRoutes } from "./routes/sync.js";
 import { uiConfigRoutes } from "./routes/ui-config.js";
 import { uiRoute } from "./routes/ui.js";
+import { mcpRoute } from "./routes/mcp.js";
+import { OAuthProvider } from "./oauth/provider.js";
+import { oauthRoutes } from "./oauth/routes.js";
 import type { SyncManager } from "@opendatalabs/personal-server-ts-core/sync";
 import type { ServerSigner } from "@opendatalabs/personal-server-ts-core/signing";
 import type { Logger } from "pino";
@@ -50,7 +53,14 @@ export function createApp(deps: AppDeps): Hono {
     "*",
     cors({
       origin: "*",
-      allowHeaders: ["Content-Type", "Authorization"],
+      allowHeaders: [
+        "Content-Type",
+        "Authorization",
+        "mcp-session-id",
+        "Last-Event-ID",
+        "mcp-protocol-version",
+      ],
+      exposeHeaders: ["mcp-session-id", "mcp-protocol-version"],
       allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       maxAge: 86400,
     }),
@@ -122,6 +132,37 @@ export function createApp(deps: AppDeps): Hono {
       syncManager: deps.syncManager ?? null,
     }),
   );
+
+  // Mount MCP endpoint (Model Context Protocol for AI tools)
+  if (deps.serverOwner) {
+    const oauthProvider = new OAuthProvider(deps.serverOwner);
+
+    // Mount OAuth discovery + auth endpoints at the root
+    app.route(
+      "/",
+      oauthRoutes({
+        oauthProvider,
+        serverOwner: deps.serverOwner,
+        accountPortalOrigin: process.env.ACCOUNT_URL,
+        serverOrigin: deps.serverOrigin,
+      }),
+    );
+
+    app.route(
+      "/mcp",
+      mcpRoute({
+        mcpContext: {
+          indexManager: deps.indexManager,
+          hierarchyOptions: deps.hierarchyOptions,
+          gatewayClient: deps.gateway,
+          serverOwner: deps.serverOwner,
+          logger: deps.logger,
+        },
+        oauthProvider,
+        serverOrigin: deps.serverOrigin,
+      }),
+    );
+  }
 
   // Mount dev UI routes when dev token is available
   if (deps.devToken) {
