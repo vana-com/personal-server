@@ -34,6 +34,7 @@ jobs:
           const packageFiles = [
             "packages/core/package.json",
             "packages/server/package.json",
+            "packages/mcp/package.json",
             "packages/cli/package.json",
           ];
 
@@ -42,6 +43,11 @@ jobs:
             pkg.version = canaryVersion;
 
             if (path === "packages/server/package.json") {
+              pkg.dependencies["@opendatalabs/personal-server-ts-core"] =
+                canaryVersion;
+            }
+
+            if (path === "packages/mcp/package.json") {
               pkg.dependencies["@opendatalabs/personal-server-ts-core"] =
                 canaryVersion;
             }
@@ -62,6 +68,10 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish server canary
         run: cd packages/server && npm publish --tag canary --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish mcp canary
+        run: cd packages/mcp && npm publish --tag canary --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish facade canary
