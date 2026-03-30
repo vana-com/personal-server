@@ -40,8 +40,8 @@
   "dependencies": {
     "@opendatalabs/personal-server-ts-core": "0.2.0",
     "@opendatalabs/personal-server-ts-mcp": "0.2.0",
-    "@modelcontextprotocol/sdk": "^1.27.0",
-    "hono": "^4.7.0",
-    "@hono/node-server": "^1.14.0"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "hono": "^4.12.9",
+    "@hono/node-server": "^1.19.12"
   }
 }
