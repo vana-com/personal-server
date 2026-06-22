@@ -20,7 +20,7 @@ jobs:
     outputs:
       final_message: ${{ steps.run_codex.outputs.final-message }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # Explicitly check out the PR's merge commit.
           ref: refs/pull/${{ github.event.pull_request.number }}/merge
