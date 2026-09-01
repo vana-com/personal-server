@@ -1,8 +1,8 @@
-name: Codex Review
+name: Codex review (on-demand)
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [labeled]
 
 concurrency:
   group: codex-review-${{ github.event.pull_request.number || github.run_id }}
@@ -11,7 +11,7 @@ concurrency:
 jobs:
   codex:
     name: Generate Review
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
+    if: ${{ github.event.label.name == 'codex-review' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -107,4 +107,29 @@ jobs:
                 issue_number,
                 body,
               });
+            }
+
+  disarm:
+    name: Remove the codex-review trigger label
+    # Re-arm the label button: label added -> review runs -> label removed,
+    # so adding the label again later triggers a fresh review.
+    needs: [codex]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                name: "codex-review",
+              });
+            } catch (e) {
+              if (e.status !== 404) throw e;
             }
