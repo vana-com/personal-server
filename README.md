@@ -1,3 +1,6 @@
+> [!WARNING]
+> **This repository is deprecated and no longer maintained.** It is a frozen snapshot at v0.2.0 and is not used by any Vana app. Development continues in [vana-com/personal-server-ts](https://github.com/vana-com/personal-server-ts). Do not use this code or the `0.x` npm releases; upgrade to the latest `@opendatalabs/personal-server-ts`. Security reports go to dev@vana.com and should target the maintained repository.
+
 # Vana Personal Server
 
 [![CI](https://github.com/vana-com/personal-server-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/vana-com/personal-server-ts/actions/workflows/ci.yml)
